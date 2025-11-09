@@ -1,10 +1,10 @@
 # Dependency Assessment Report - State-of-the-Art 2025 Analysis
 
 **Project**: positron-svn
-**Version**: 2.17.22
+**Version**: 2.17.23
 **Date**: 2025-11-09
 **Analysis Type**: Ultra-Comprehensive State-of-the-Art Assessment
-**Implementation Status**: Phase 1, 2 & 3.1 Complete ✅
+**Implementation Status**: Phase 1, 2 & 3 Complete ✅
 
 ---
 
@@ -60,10 +60,10 @@
 - Deferred activation for better startup performance
 - Cleaner package.json configuration
 
-### 🔄 Phase 3: Dependency Cleanup (IN PROGRESS)
-**Status**: Phase 3.1 Complete (2025-11-09)
-**Commits**: b59047c
-**Time**: 1 hour
+### ✅ Phase 3: Dependency Cleanup (COMPLETE)
+**Status**: Complete (2025-11-09)
+**Commits**: b59047c, 2769e79
+**Time**: 2 hours
 
 #### Phase 3.1: Milligram Removal ✅
 ✅ Removed Milligram CSS framework (-8KB devDependency)
@@ -78,11 +78,19 @@
 
 **Strategic Decision**: Instead of migrating Milligram's @import to @use (blocked by Milligram's global variable design), we removed it entirely. Custom CSS using VS Code theme variables proved superior: smaller, zero warnings, full control.
 
-#### Phase 3.2: Native fs/promises (Pending) ⏳
-⏳ Replace tmp with native fs/promises (~8KB savings)
+#### Phase 3.2: Native fs/promises (Skipped) ⏭️
+⏭️ Skipped per user direction - tmp replacement deferred
 
-#### Phase 3.3: iconv-lite Migration (Optional) ⏳
-⏳ Consider iconv-lite-umd → @vscode/iconv-lite-umd migration
+#### Phase 3.3: iconv-lite Migration ✅
+✅ Migrated iconv-lite-umd → @vscode/iconv-lite-umd
+✅ Resolved npm deprecation warning
+✅ Updated src/vscodeModules.ts imports
+
+**Results**:
+- Deprecation warning resolved
+- No size change (same package, new namespace)
+- Build: Zero warnings
+- Commit: 2769e79
 
 ### ⏳ Phase 4: Automation & Monitoring (PENDING)
 **Status**: Not started
@@ -99,7 +107,7 @@
 
 ## Executive Summary
 
-**Current State** (Updated 2025-11-09): The extension has undergone **successful modernization** with Phase 1, 2 & 3.1 complete.
+**Current State** (Updated 2025-11-09): The extension has undergone **successful modernization** with Phase 1, 2 & 3 complete.
 
 ### ✅ Completed Improvements
 1. ✅ **esbuild bundler configured** - Single 313.9KB bundle (77.28KB brotli)
@@ -109,9 +117,10 @@
 5. ✅ **Bundle size tracking** - size-limit with 200KB cap, CI enforcement
 6. ✅ **Activation optimized** - onStartupFinished for deferred startup
 7. ✅ **Milligram removed** - Custom CSS, zero Sass warnings (-8KB dep, -43% CSS size)
+8. ✅ **iconv-lite migrated** - Resolved deprecation warning (@vscode/iconv-lite-umd)
 
-### 🟡 Remaining Opportunities (Phase 3.2+ & 4)
-- Replace tmp with native fs/promises (~8KB savings)
+### 🟡 Remaining Opportunities (Phase 4)
+- Replace tmp with native fs/promises (~8KB savings, optional)
 - Renovate for automated dependency updates
 - CodeQL security scanning
 
@@ -1588,7 +1597,7 @@ body { background-color: var(--vscode-editor-background); }
 - ✅ **Zero build warnings (Sass, esbuild)**
 - ✅ **Minimal custom CSS with VS Code theme integration**
 
-**Completed (Phase 1, 2 & 3.1)**:
+**Completed (Phase 1, 2 & 3)**:
 - ✅ esbuild bundler configured (313.9KB bundle, 77.28KB brotli)
 - ✅ Duplicate dependencies removed (280KB saved)
 - ✅ Single package manager (npm only)
@@ -1596,34 +1605,33 @@ body { background-color: var(--vscode-editor-background); }
 - ✅ Bundle size monitoring with size-limit
 - ✅ Deferred activation (onStartupFinished)
 - ✅ Milligram removed (-8KB devDep, -43% CSS, zero warnings)
+- ✅ iconv-lite migrated (deprecated package resolved)
 - ✅ ROADMAP.md created with future enhancements
 
-**Remaining Opportunities (Phase 3.2+ & 4 - Optional)**:
-- ⏳ Replace tmp with native fs (~8KB savings)
-- ⏳ iconv-lite migration (deprecated package)
+**Remaining Opportunities (Phase 4 - Optional)**:
+- ⏳ Replace tmp with native fs (~8KB savings, deferred)
 - ⏳ Automated dependency updates (Renovate)
 - ⏳ Security scanning (CodeQL)
 
 ### Final Recommendation
 
-**Phase 1, 2 & 3.1 Complete!** The extension now has:
+**Phase 1, 2 & 3 Complete!** The extension now has:
 - **Modern build infrastructure** with esbuild
 - **9% bundle reduction achieved** (345KB → 313.9KB raw, 77.28KB brotli)
 - **Optimized activation** with deferred loading
 - **CI enforcement** of bundle size limits
 - **~288KB total dependencies removed** (jschardet, @posit-dev/positron, Milligram)
 - **Zero build warnings** (clean Sass & esbuild output)
+- **Zero deprecation warnings** (iconv-lite migrated)
 - **Custom minimal CSS** (2.3KB, -43% vs Milligram)
 - **State-of-the-art 2025 infrastructure**
 
 **Lesson Learned**: Strategic dependency removal (Milligram) proved superior to migration (@use). Custom CSS delivered smaller size, zero warnings, full control, and better VS Code integration.
 
-This is now a **highly modernized project** with excellent infrastructure and clean builds. Phase 3.2+ & 4 are **optional enhancements** that can be done as time permits.
+This is now a **highly modernized project** with excellent infrastructure and clean builds. Phase 4 remains **optional** for automation enhancements.
 
 **Next Steps**:
-- Phase 3.2 (tmp replacement) - optional, ~3 hours, -8KB
-- Phase 3.3 (iconv-lite migration) - optional, ~2 hours
-- Phase 4 (Automation) - optional, ~1 day
+- Phase 4 (Automation) - optional, ~1 day (Renovate, CodeQL)
 
 ---
 
@@ -1633,5 +1641,5 @@ This is now a **highly modernized project** with excellent infrastructure and cl
 **Pages**: 37
 **Recommendations**: 25+
 **Total Effort Estimated**: 5-7 days over 4 weeks
-**Actual Effort (Phase 1-3.1)**: 1.25 days (6 hours implementation)
+**Actual Effort (Phase 1-3)**: 1.5 days (7 hours implementation)
 **Expected ROI**: High - Significant performance, maintainability, and security improvements achieved
