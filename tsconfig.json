@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es2019",
+    "target": "es2020",
     "module": "commonjs",
+    "lib": ["es2020"],
     "outDir": "./out",
+    "rootDir": "./src",
     "typeRoots": ["./node_modules/@types"],
     "sourceMap": true,
     "experimentalDecorators": true,
