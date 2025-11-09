@@ -25,5 +25,3 @@ images/docs/**
 bin
 webpack.config.js
 
-out/**
-!out/extension.js*
