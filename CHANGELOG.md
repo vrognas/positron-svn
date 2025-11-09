@@ -1,3 +1,10 @@
+## [2.17.21] (2025-11-09)
+
+### Performance
+
+* Optimize activation timing with onStartupFinished event
+* Remove redundant activation events (auto-generated in VS Code 1.75+)
+
 ## [2.17.20] (2025-11-09)
 
 ### Performance
