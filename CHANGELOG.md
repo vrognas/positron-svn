@@ -1,3 +1,84 @@
+## [2.17.13] (2025-11-09)
+
+### Documentation
+
+* Document webpack to tsc migration lessons learned
+
+## [2.17.12] (2025-11-09)
+
+### Bug Fixes
+
+* Move xml2js, minimatch, semver, tmp to runtime dependencies
+
+## [2.17.11] (2025-11-09)
+
+### Bug Fixes
+
+* Move chardet and dayjs to runtime dependencies for tsc build
+
+## [2.17.10] (2025-11-09)
+
+### Bug Fixes
+
+* Add diagnostic logging to extension activation
+
+## [2.17.9] (2025-11-09)
+
+### Bug Fixes
+
+* Fix .vscodeignore to include all compiled modules
+
+## [2.17.8] (2025-11-09)
+
+### Bug Fixes
+
+* Fix array types and readonly compatibility in svnRepository and testUtil
+
+## [2.17.7] (2025-11-09)
+
+### Bug Fixes
+
+* Fix error handling types in extension and repository
+
+## [2.17.6] (2025-11-09)
+
+### Bug Fixes
+
+* Fix error handling types in merge, resolveAll, and switchBranch commands
+
+## [2.17.5] (2025-11-09)
+
+### Bug Fixes
+
+* Fix error handling types in checkout, commit, and commitWithMessage commands
+
+## [2.17.4] (2025-11-09)
+
+### Features
+
+* Replace webpack with TypeScript compiler (tsc) for direct compilation
+* Enable full strict mode type checking
+
+## [2.17.3] (2025-11-09)
+
+### Features
+
+* Modernize test runner to @vscode/test-cli
+
+## [2.17.2] (2025-11-09)
+
+### Features
+
+* Add Positron engine compatibility (^2025.6.x)
+* Add @posit-dev/positron dependency for future API integration
+* Update VS Code engine to ^1.74.0
+
+## [2.17.1] (2025-11-09)
+
+### Features
+
+* Optimize activation events - replace wildcard with specific triggers
+
 # [2.17.0](https://github.com/JohnstonCode/svn-scm/compare/v2.16.1...v2.17.0) (2023-06-22)
 
 
