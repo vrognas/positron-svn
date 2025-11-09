@@ -19,7 +19,9 @@
       "Bash(npx tsc:*)",
       "Bash(npx mocha:*)",
       "Bash(git log:*)",
-      "Bash(node build.js:*)"
+      "Bash(node build.js:*)",
+      "Bash(npx eslint:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
