@@ -31,10 +31,14 @@ async function init(
   outputChannel: OutputChannel,
   disposables: Disposable[]
 ) {
+  console.log("SVN Extension: init() started");
   const pathHint = configuration.get<string>("path");
   const svnFinder = new SvnFinder();
 
+  console.log("SVN Extension: Finding SVN executable...");
   const info = await svnFinder.findSvn(pathHint);
+  console.log(`SVN Extension: Found SVN ${info.version} at ${info.path}`);
+
   const svn = new Svn({ svnPath: info.path, version: info.version });
   const sourceControlManager = await new SourceControlManager(
     svn,
@@ -42,8 +46,10 @@ async function init(
     extensionContext
   );
 
+  console.log("SVN Extension: Registering commands...");
   registerCommands(sourceControlManager, disposables);
 
+  console.log("SVN Extension: Creating providers...");
   disposables.push(
     sourceControlManager,
     tempSvnFs,
@@ -59,6 +65,7 @@ async function init(
   );
 
   outputChannel.appendLine(`Using svn "${info.version}" from "${info.path}"`);
+  console.log("SVN Extension: Providers created successfully");
 
   const onOutput = (str: string) => outputChannel.append(str);
   svn.onOutput.addListener("log", onOutput);
@@ -66,6 +73,7 @@ async function init(
     toDisposable(() => svn.onOutput.removeListener("log", onOutput))
   );
   disposables.push(toDisposable(messages.dispose));
+  console.log("SVN Extension: init() complete");
 }
 
 async function _activate(context: ExtensionContext, disposables: Disposable[]) {
@@ -151,12 +159,17 @@ async function _activate(context: ExtensionContext, disposables: Disposable[]) {
 }
 
 export async function activate(context: ExtensionContext) {
+  console.log("SVN Extension: activate() called");
   const disposables: Disposable[] = [];
   context.subscriptions.push(
     new Disposable(() => Disposable.from(...disposables).dispose())
   );
 
-  await _activate(context, disposables).catch(err => console.error(err));
+  await _activate(context, disposables).catch(err => {
+    console.error("SVN Extension: Activation failed", err);
+    window.showErrorMessage(`SVN Extension activation failed: ${err.message || err}`);
+  });
+  console.log("SVN Extension: activation complete");
 }
 
 // this method is called when your extension is deactivated
