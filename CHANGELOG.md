@@ -1,3 +1,10 @@
+## [2.17.20] (2025-11-09)
+
+### Performance
+
+* Add bundle size tracking with size-limit (200KB limit, currently 77.28KB brotli)
+* Add CI check for bundle size monitoring
+
 ## [2.17.13] (2025-11-09)
 
 ### Documentation
