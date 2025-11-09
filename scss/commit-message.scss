@@ -1,54 +1,167 @@
+// Custom minimal CSS for commit message webview
+// Replaces Milligram to eliminate Sass @import warnings
 
-// Color
-// ––––––––––––––––––––––––––––––––––––––––––––––––––
-// Default Colors
-// @import "../node_modules/milligram/src/_Color.sass";
+// Box model reset
+*, *::before, *::after {
+  box-sizing: border-box;
+}
 
-// Use vscode variables for color
-$color-initial: var(--vscode-button-foreground) !default;
-$color-primary: var(--vscode-button-background) !default;
-$color-secondary: var(--vscode-button-hoverBackground) !default;
-$color-tertiary: var(--vscode-editor-background) !default;
-$color-quaternary: var(--vscode-dropdown-border) !default;
-$color-quinary: #e1e1e1 !default;
-
-// Form
-@import "../node_modules/milligram/src/_Base.sass";
-// @import "../node_modules/milligram/src/_Blockquote.sass";
-@import "../node_modules/milligram/src/_Button.sass";
-// @import "../node_modules/milligram/src/_Code.sass";
-// @import "../node_modules/milligram/src/_Divider.sass";
-@import "../node_modules/milligram/src/_Form.sass";
-@import "../node_modules/milligram/src/_Grid.sass";
-// @import "../node_modules/milligram/src/_Link.sass";
-@import "../node_modules/milligram/src/_List.sass";
-@import "../node_modules/milligram/src/_Spacing.sass";
-// @import "../node_modules/milligram/src/_Table.sass";
-@import "../node_modules/milligram/src/_Typography.sass";
-// @import "../node_modules/milligram/src/_Image.sass";
-@import "../node_modules/milligram/src/_Utility.sass";
-
+// Base styles using VS Code theme variables
 body {
-    background-color: var(--vscode-editor-background);
-    color: var(--vscode-editor-foreground);
-    font-family: var(--vscode-font-family);
-    font-size: var(--vscode-font-size);
-    font-weight: var(--vscode-font-weight);
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  font-weight: var(--vscode-font-weight);
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
 }
 
-input[type='email'],
-input[type='number'],
-input[type='password'],
-input[type='search'],
-input[type='tel'],
-input[type='text'],
-input[type='url'],
-textarea,
-select {
-    background-color: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
+// Layout
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-::placeholder {
+// Utilities
+.float-right {
+  float: right;
+}
+
+.clearfix::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+// Typography
+h3 {
+  font-size: 1.2em;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: var(--vscode-editor-foreground);
+}
+
+a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a:hover {
+  color: var(--vscode-textLink-activeForeground);
+  text-decoration: underline;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+
+li {
+  margin: 4px 0;
+  padding: 2px 0;
+}
+
+// Form elements
+fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--vscode-editor-foreground);
+}
+
+textarea {
+  width: 100%;
+  min-height: 100px;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  padding: 8px;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  resize: vertical;
+  margin-bottom: 12px;
+}
+
+textarea:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  border-color: var(--vscode-focusBorder);
+}
+
+textarea::placeholder {
   color: var(--vscode-input-placeholderForeground);
+}
+
+// Buttons
+button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  font-weight: 600;
+  margin-right: 8px;
+  transition: background-color 0.1s ease;
+}
+
+button:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+.button-primary {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.button-primary:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.button-primary:active {
+  opacity: 0.9;
+}
+
+.button-outline {
+  background-color: transparent;
+  color: var(--vscode-button-foreground);
+  border: 1px solid var(--vscode-button-border);
+}
+
+.button-outline:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+.button-outline:active {
+  opacity: 0.9;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+// File list styling
+.file-list {
+  margin-bottom: 20px;
+  padding: 12px;
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+}
+
+.file-list .title {
+  margin-top: 0;
 }

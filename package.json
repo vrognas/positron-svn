@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.21",
+    "version": "2.17.22",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -91,7 +91,6 @@
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.4",
         "glob": "^11.0.3",
-        "milligram": "^1.4.1",
         "mocha": "^11.7.5",
         "original-fs": "^1.2.0",
         "ovsx": "^0.10.6",

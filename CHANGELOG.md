@@ -1,3 +1,15 @@
+## [2.17.22] (2025-11-09)
+
+### Performance
+
+* Remove Milligram CSS framework dependency (-8KB devDependency)
+* Replace with custom minimal CSS (4KB → 2.3KB, -43% reduction)
+* Eliminate all Sass @import deprecation warnings
+
+### Documentation
+
+* Add ROADMAP.md with future enhancement ideas
+
 ## [2.17.21] (2025-11-09)
 
 ### Performance
