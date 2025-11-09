@@ -1,3 +1,10 @@
+## [2.17.23] (2025-11-09)
+
+### Dependencies
+
+* Migrate from deprecated iconv-lite-umd to @vscode/iconv-lite-umd
+* Resolve npm deprecation warning
+
 ## [2.17.22] (2025-11-09)
 
 ### Performance
