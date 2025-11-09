@@ -3,8 +3,10 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Its important for each implementation to begin with writing and reviewing tests before moving on to implementation (TDD test-driven development).
-Write minimalist, general, and end-to-end tests. Don't overdo it. About three tests per implementation is enough.
-Commit often, with small and focused commits. Its great that you keep updating the version number with every commit, and don't forget to update the changelog.
+Write minimalist, general, and end-to-end tests. Don't overdo it - about three tests per implementation is enough.
+Commit often, with small and focused commits.
+Its great that you keep updating the version number with every commit, and don't forget to update the changelog.
+For every commit, go over `CLAUDE.md`, `ARCHITECTURE_ANALYSIS.md`, `DEV_WORKFLOW.md`, and `LESSONS_LEARNED.md` to see if everything is up-to-date.
 
 ## Build and Development Commands
 

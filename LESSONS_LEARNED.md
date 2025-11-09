@@ -1,8 +1,8 @@
 # Lessons Learned: Webpack → TypeScript Compiler Migration
 
 **Date**: 2025-11-09
-**Version Range**: 2.17.1 → 2.17.12
-**Commits**: 13 focused commits
+**Version Range**: 2.17.1 → 2.17.12 (migration) + 2.17.13-2.17.16 (documentation)
+**Commits**: 13 focused commits (migration) + 3 commits (documentation updates)
 
 ---
 
