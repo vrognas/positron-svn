@@ -66,4 +66,109 @@ suite("Svn Repository Tests", () => {
 
     await repository.rename("test.php", "tester.php");
   });
+
+  test("Test addChangelist validation - invalid name", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tpm",
+      ConstructorPolicy.LateInit
+    );
+
+    try {
+      await repository.addChangelist(["test.php"], "invalid@name");
+      assert.fail("Should throw on invalid changelist name");
+    } catch (e: unknown) {
+      assert.match((e as Error).message, /Invalid changelist name/);
+    }
+  });
+
+  test("Test addChangelist validation - valid name", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tpm",
+      ConstructorPolicy.LateInit
+    );
+    repository.exec = async (args: string[]) => {
+      assert.equal(args[0], "changelist");
+      assert.equal(args[1], "valid_name-123");
+      return { exitCode: 0, stderr: "", stdout: "" };
+    };
+
+    await repository.addChangelist(["test.php"], "valid_name-123");
+  });
+
+  test("Test merge validation - invalid accept action", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tpm",
+      ConstructorPolicy.LateInit
+    );
+
+    try {
+      await repository.merge("trunk", false, "invalid_action");
+      assert.fail("Should throw on invalid accept action");
+    } catch (e: unknown) {
+      assert.match((e as Error).message, /Invalid accept action/);
+    }
+  });
+
+  test("Test merge validation - valid accept action", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tpm",
+      ConstructorPolicy.LateInit
+    );
+    repository.getRepoUrl = async () => "http://repo/svn";
+    repository.exec = async (args: string[]) => {
+      assert.equal(args[0], "merge");
+      assert.equal(args[1], "--accept");
+      assert.equal(args[2], "postpone");
+      return { exitCode: 0, stderr: "", stdout: "" };
+    };
+
+    await repository.merge("trunk", false, "postpone");
+  });
+
+  test("Test plainLogByText validation - invalid pattern", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tpm",
+      ConstructorPolicy.LateInit
+    );
+
+    try {
+      await repository.plainLogByText("pattern;rm -rf /");
+      assert.fail("Should throw on invalid search pattern");
+    } catch (e: unknown) {
+      assert.match((e as Error).message, /Invalid search pattern/);
+    }
+  });
+
+  test("Test plainLogByText validation - valid pattern", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tpm",
+      ConstructorPolicy.LateInit
+    );
+    repository.exec = async (args: string[]) => {
+      assert.equal(args[0], "log");
+      assert.equal(args[1], "--search");
+      assert.equal(args[2], "bugfix");
+      return { exitCode: 0, stderr: "", stdout: "" };
+    };
+
+    await repository.plainLogByText("bugfix");
+  });
 });

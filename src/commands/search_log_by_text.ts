@@ -1,7 +1,7 @@
 import { Command } from "./command";
 import { window, Uri, commands, ProgressLocation } from "vscode";
 import { Repository } from "../repository";
-import * as cp from "child_process";
+import { validateSearchPattern } from "../validation";
 import { tempSvnFs } from "../temp_svn_fs";
 
 export class SearchLogByText extends Command {
@@ -15,6 +15,12 @@ export class SearchLogByText extends Command {
       return;
     }
 
+    // Validate search pattern to prevent command injection
+    if (!validateSearchPattern(input)) {
+      window.showErrorMessage("Invalid search pattern: contains forbidden characters");
+      return;
+    }
+
     const uri = Uri.parse("tempsvnfs:/svn.log");
     tempSvnFs.writeFile(uri, Buffer.from(""), {
       create: true,
@@ -23,38 +29,26 @@ export class SearchLogByText extends Command {
 
     await commands.executeCommand<void>("vscode.open", uri);
 
-    const proc = cp.spawn("svn", ["log", "--search", input], {
-      cwd: repository.workspaceRoot
-    });
+    try {
+      const result = await window.withProgress(
+        {
+          cancellable: false,
+          location: ProgressLocation.Notification,
+          title: "Searching Log"
+        },
+        async () => {
+          return repository.plainLogByText(input);
+        }
+      );
 
-    let content = "";
-
-    proc.stdout.on("data", data => {
-      content += data.toString();
-
-      tempSvnFs.writeFile(uri, Buffer.from(content), {
+      // Write output to temp file
+      tempSvnFs.writeFile(uri, Buffer.from(result), {
         create: true,
         overwrite: true
       });
-    });
-
-    window.withProgress(
-      {
-        cancellable: true,
-        location: ProgressLocation.Notification,
-        title: "Searching Log"
-      },
-      (_progress, token) => {
-        token.onCancellationRequested(() => {
-          proc.kill("SIGINT");
-        });
-
-        return new Promise<void>((resolve, reject) => {
-          proc.on("exit", (code: number) => {
-            code === 0 ? resolve() : reject();
-          });
-        });
-      }
-    );
+    } catch (error) {
+      window.showErrorMessage(`Search failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(error);
+    }
   }
 }

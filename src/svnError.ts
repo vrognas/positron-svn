@@ -1,4 +1,5 @@
 import { ISvnErrorData } from "./common/types";
+import { sanitizeString, createSanitizedErrorLog } from "./security/errorSanitizer";
 
 export default class SvnError {
   public error?: Error;
@@ -28,23 +29,14 @@ export default class SvnError {
   }
 
   public toString(): string {
+    const errorLog = createSanitizedErrorLog(this);
     let result =
-      this.message +
+      sanitizeString(this.message) +
       " " +
-      JSON.stringify(
-        {
-          exitCode: this.exitCode,
-          svnErrorCode: this.svnErrorCode,
-          svnCommand: this.svnCommand,
-          stdout: this.stdout,
-          stderr: this.stderr
-        },
-        null,
-        2
-      );
+      JSON.stringify(errorLog, null, 2);
 
     if (this.error) {
-      result += (this.error as any).stack;
+      result += sanitizeString((this.error as any).stack || "");
     }
 
     return result;

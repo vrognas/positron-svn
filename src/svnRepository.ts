@@ -33,6 +33,11 @@ import {
 } from "./util";
 import { matchAll } from "./util/globMatch";
 import { parseDiffXml } from "./parser/diffParser";
+import {
+  validateChangelist,
+  validateAcceptAction,
+  validateSearchPattern
+} from "./validation";
 
 export class Repository {
   private _infoCache: {
@@ -519,6 +524,9 @@ export class Repository {
   }
 
   public addChangelist(files: string[], changelist: string) {
+    if (!validateChangelist(changelist)) {
+      throw new Error("Invalid changelist name");
+    }
     files = files.map(file => this.removeAbsolutePath(file));
     return this.exec(["changelist", changelist, ...files]);
   }
@@ -669,6 +677,9 @@ export class Repository {
     reintegrate: boolean = false,
     accept_action: string = "postpone"
   ) {
+    if (!validateAcceptAction(accept_action)) {
+      throw new Error("Invalid accept action");
+    }
     const repoUrl = await this.getRepoUrl();
     const branchUrl = repoUrl + "/" + ref;
 
@@ -809,12 +820,18 @@ export class Repository {
   }
 
   public async plainLogByText(search: string) {
+    if (!validateSearchPattern(search)) {
+      throw new Error("Invalid search pattern");
+    }
     const result = await this.exec(["log", "--search", search]);
 
     return result.stdout;
   }
 
   public async plainLogByTextBuffer(search: string) {
+    if (!validateSearchPattern(search)) {
+      throw new Error("Invalid search pattern");
+    }
     const result = await this.execBuffer(["log", "--search", search]);
 
     return result.stdout;
