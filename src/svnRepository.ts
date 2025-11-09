@@ -500,7 +500,7 @@ export class Repository {
               return [];
             })
           )
-        ).reduce((acc, cur) => acc.concat(cur), [file]);
+        ).reduce<string[]>((acc, cur) => acc.concat(cur), [file]);
       }
       return [file];
     };
