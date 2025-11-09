@@ -144,9 +144,7 @@ export class Repository implements IRemoteRepository {
       group.resourceStates = [];
     });
 
-    if (this.remoteChanges) {
-      this.remoteChanges.dispose();
-    }
+    this.remoteChanges?.dispose();
 
     this.isIncomplete = false;
     this.needCleanUp = false;
@@ -252,9 +250,7 @@ export class Repository implements IRemoteRepository {
     // Dispose the setInterval of Remote Changes
     this.disposables.push(
       toDisposable(() => {
-        if (this.remoteChangedUpdateInterval) {
-          clearInterval(this.remoteChangedUpdateInterval);
-        }
+        this.remoteChangedUpdateInterval && clearInterval(this.remoteChangedUpdateInterval);
       })
     );
 
@@ -275,9 +271,7 @@ export class Repository implements IRemoteRepository {
     // On change config, dispose current interval and create a new.
     configuration.onDidChange(e => {
       if (e.affectsConfiguration("svn.remoteChanges.checkFrequency")) {
-        if (this.remoteChangedUpdateInterval) {
-          clearInterval(this.remoteChangedUpdateInterval);
-        }
+        this.remoteChangedUpdateInterval && clearInterval(this.remoteChangedUpdateInterval);
 
         this.createRemoteChangedInterval();
 
@@ -393,10 +387,8 @@ export class Repository implements IRemoteRepository {
       this.run(Operation.StatusRemote);
     } else {
       // Remove list of remote changes
-      if (this.remoteChanges) {
-        this.remoteChanges.dispose();
-        this.remoteChanges = undefined;
-      }
+      this.remoteChanges?.dispose();
+      this.remoteChanges = undefined;
     }
   }
 
@@ -449,11 +441,11 @@ export class Repository implements IRemoteRepository {
   @throttle
   @globalSequentialize("updateModelState")
   public async updateModelState(checkRemoteChanges: boolean = false) {
-    const changes: any[] = [];
-    const unversioned: any[] = [];
-    const conflicts: any[] = [];
+    const changes: Resource[] = [];
+    const unversioned: Resource[] = [];
+    const conflicts: Resource[] = [];
     const changelists: Map<string, Resource[]> = new Map();
-    const remoteChanges: any[] = [];
+    const remoteChanges: Resource[] = [];
 
     this.statusExternal = [];
     this.statusIgnored = [];
@@ -472,7 +464,7 @@ export class Repository implements IRemoteRepository {
           includeExternals: combineExternal,
           checkRemoteChanges
         });
-      })) || [];
+      })) ?? [];
 
     const fileConfig = workspace.getConfiguration("files", Uri.file(this.root));
 
@@ -677,11 +669,8 @@ export class Repository implements IRemoteRepository {
       /**
        * Destroy and create for keep at last position
        */
-      let tempResourceStates: Resource[] = [];
-      if (this.remoteChanges) {
-        tempResourceStates = this.remoteChanges.resourceStates;
-        this.remoteChanges.dispose();
-      }
+      const tempResourceStates: Resource[] = this.remoteChanges?.resourceStates ?? [];
+      this.remoteChanges?.dispose();
 
       this.remoteChanges = this.sourceControl.createResourceGroup(
         "remotechanges",
@@ -856,7 +845,7 @@ export class Repository implements IRemoteRepository {
     );
   }
 
-  public async commitFiles(message: string, files: any[]) {
+  public async commitFiles(message: string, files: string[]) {
     return this.run(Operation.Commit, () =>
       this.repository.commitFiles(message, files)
     );
@@ -996,7 +985,7 @@ export class Repository implements IRemoteRepository {
 
     const info = this.repository.info;
 
-    if (info.repository && info.repository.root) {
+    if (info.repository?.root) {
       key += ":" + info.repository.root;
     } else if (info.url) {
       key += ":" + info.url;
@@ -1013,7 +1002,7 @@ export class Repository implements IRemoteRepository {
 
     const secret = await this.secrets.get(this.getCredentialServiceName());
 
-    if (typeof secret === "undefined") {
+    if (secret === undefined) {
       return [];
     }
 

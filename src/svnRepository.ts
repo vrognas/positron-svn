@@ -142,7 +142,7 @@ export class Repository {
       if (s.status === Status.EXTERNAL) {
         try {
           const info = await this.getInfo(s.path);
-          s.repositoryUuid = info.repository.uuid;
+          s.repositoryUuid = info.repository?.uuid;
         } catch (error) {
           console.error(error);
         }
@@ -210,16 +210,16 @@ export class Repository {
     let result = await this.exec(args);
     const entries = await parseSvnLog(result.stdout);
 
-    if (entries.length === 0 || entries[0].paths.length === 0) {
+    if (entries.length === 0 || entries[0]?.paths.length === 0) {
       return [];
     }
 
     const copyCommitPath = entries[0].paths[0];
 
     if (
-      typeof copyCommitPath.copyfromRev === "undefined" ||
-      typeof copyCommitPath.copyfromPath === "undefined" ||
-      typeof copyCommitPath._ === "undefined" ||
+      copyCommitPath.copyfromRev === undefined ||
+      copyCommitPath.copyfromPath === undefined ||
+      copyCommitPath._ === undefined ||
       copyCommitPath.copyfromRev.trim().length === 0 ||
       copyCommitPath.copyfromPath.trim().length === 0 ||
       copyCommitPath._.trim().length === 0
@@ -471,7 +471,7 @@ export class Repository {
     const matches = result.stdout.match(/Committed revision (.*)\./i);
     if (matches && matches[0]) {
       const sendedFiles = (
-        result.stdout.match(/(Sending|Adding|Deleting)\s+/g) || []
+        result.stdout.match(/(Sending|Adding|Deleting)\s+/g) ?? []
       ).length;
 
       const filesMessage = `${sendedFiles} ${
@@ -782,7 +782,7 @@ export class Repository {
   }
 
   public async plainLog(): Promise<string> {
-    const logLength = configuration.get<string>("log.length") || "50";
+    const logLength = configuration.get<string>("log.length") ?? "50";
     const result = await this.exec([
       "log",
       "-r",
@@ -795,7 +795,7 @@ export class Repository {
   }
 
   public async plainLogBuffer(): Promise<Buffer> {
-    const logLength = configuration.get<string>("log.length") || "50";
+    const logLength = configuration.get<string>("log.length") ?? "50";
     const result = await this.execBuffer([
       "log",
       "-r",

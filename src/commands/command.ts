@@ -29,6 +29,31 @@ import IncomingChangeNode from "../treeView/nodes/incomingChangeNode";
 import { fromSvnUri, toSvnUri } from "../uri";
 import { getSvnDir } from "../util";
 
+/**
+ * Type-safe command argument patterns used across all commands.
+ * Commands can accept various combinations of these argument types.
+ */
+export type CommandArgs =
+  // Repository commands (e.g., refresh, update)
+  | [Repository]
+  // Resource state commands (e.g., commit, revert)
+  | SourceControlResourceState[]
+  // URI-based commands
+  | [Uri]
+  | [Uri, LineChange[], number] // revertChange
+  // Resource/URI with optional states
+  | [Resource | Uri | undefined, ...SourceControlResourceState[]]
+  // IncomingChangeNode commands
+  | [IncomingChangeNode, ...unknown[]]
+  // Other variadic patterns
+  | unknown[];
+
+/**
+ * Return type for command execution. Most commands return void or Promise<void>,
+ * but some may return specific values.
+ */
+export type CommandResult = void | Promise<void> | Promise<unknown>;
+
 export abstract class Command implements Disposable {
   private _disposable?: Disposable;
 
@@ -44,23 +69,23 @@ export abstract class Command implements Disposable {
     if (!options.repository) {
       this._disposable = commands.registerCommand(
         commandName,
-        (...args: any[]) => this.execute(...args)
+        (...args: unknown[]) => this.execute(...args)
       );
 
       return;
     }
   }
 
-  public abstract execute(...args: any[]): any;
+  public abstract execute(...args: unknown[]): CommandResult;
 
   public dispose() {
-    this._disposable && this._disposable.dispose(); // tslint:disable-line
+    this._disposable?.dispose();
   }
 
   private createRepositoryCommand(
-    method: (...args: any[]) => void
-  ): (...args: any[]) => any {
-    const result = async (...args: any[]) => {
+    method: (...args: unknown[]) => CommandResult
+  ): (...args: unknown[]) => Promise<unknown> {
+    const result = async (...args: unknown[]) => {
       const sourceControlManager = (await commands.executeCommand(
         "svn.getSourceControlManager",
         ""
@@ -123,7 +148,9 @@ export abstract class Command implements Disposable {
   ): Promise<T[]>;
   protected async runByRepository<T>(
     arg: Uri | Uri[],
-    fn: (repository: Repository, resources: any) => Promise<T>
+    fn:
+      | ((repository: Repository, resource: Uri) => Promise<T>)
+      | ((repository: Repository, resources: Uri[]) => Promise<T>)
   ): Promise<T[]> {
     const resources = arg instanceof Uri ? [arg] : arg;
     const isSingleResource = arg instanceof Uri;
@@ -152,9 +179,18 @@ export abstract class Command implements Disposable {
       }
     }
 
-    const promises = groups.map(({ repository, resources }) =>
-      fn(repository as Repository, isSingleResource ? resources[0] : resources)
-    );
+    const promises = groups.map(({ repository, resources }) => {
+      if (isSingleResource) {
+        return (fn as (repository: Repository, resource: Uri) => Promise<T>)(
+          repository as Repository,
+          resources[0]
+        );
+      }
+      return (fn as (repository: Repository, resources: Uri[]) => Promise<T>)(
+        repository as Repository,
+        resources
+      );
+    });
 
     return Promise.all(promises);
   }

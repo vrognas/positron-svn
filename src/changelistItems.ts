@@ -69,7 +69,7 @@ export async function inputSwitchChangelist(
     canRemove
   );
 
-  const selectedChoice: any = await window.showQuickPick(picks, {
+  const selectedChoice = await window.showQuickPick(picks, {
     placeHolder: "Select an existing changelist or create a new"
   });
   if (!selectedChoice) {
@@ -167,7 +167,7 @@ export async function getPatchChangelist(repository: Repository) {
     return;
   }
 
-  const selectedChoice: any = await window.showQuickPick(picks, {
+  const selectedChoice = await window.showQuickPick(picks, {
     placeHolder: "Select a changelist"
   });
   if (!selectedChoice) {

@@ -18,7 +18,7 @@ export async function confirmRevert() {
 }
 
 export async function promptDepth() {
-  const picks: any[] = [];
+  const picks: Array<{ label: string; description: string }> = [];
 
   for (const depth in SvnDepth) {
     if (SvnDepth.hasOwnProperty(depth)) {

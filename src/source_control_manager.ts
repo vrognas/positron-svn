@@ -498,7 +498,7 @@ export class SourceControlManager implements IDisposable {
       throw new Error("There are no available repositories");
     }
 
-    const picks: any[] = this.repositories.map(repository => {
+    const picks: Array<{ label: string; repository: Repository }> = this.repositories.map(repository => {
       return {
         label: path.basename(repository.root),
         repository
