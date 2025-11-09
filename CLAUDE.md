@@ -1,44 +1,10 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-Its important for each implementation to begin with writing and reviewing tests before moving on to implementation (TDD test-driven development).
-Write minimalist, general, and end-to-end tests. Don't overdo it - about three tests per implementation is enough.
-Commit often, with small and focused commits.
-Its great that you keep updating the version number with every commit, and don't forget to update the changelog.
-For every commit, go over `CLAUDE.md`, `ARCHITECTURE_ANALYSIS.md`, `DEV_WORKFLOW.md`, and `LESSONS_LEARNED.md` to see if everything is up-to-date.
-
-## Build and Development Commands
-
-**Note**: This project uses npm (not yarn). Both lock files exist for historical reasons.
-
-### Build
-
-- `npm run build` - Full build (TypeScript + CSS)
-- `npm run build:ts` - Build TypeScript using tsc (direct compilation)
-- `npm run build:css` - Build SCSS to CSS
-- `npm run package` - Package as VSIX for installation
-
-### Development
-
-- `npm run compile` - Watch TypeScript changes (development mode)
-- `npm run watch:css` - Watch CSS changes
-- `npm run test-compile` - Compile TypeScript for tests
-
-### Testing
-
-- `npm test` - Run tests (requires compiled code)
-
-### Code Quality
-
-- `npm run lint` - Run ESLint
-- `npm run lint:fix` - Fix ESLint issues
-- `npm run style-check` - Check code formatting
-- `npm run style-fix` - Fix code formatting
-
-### Release
-
-- `npm run semantic-release` - Create semantic release
+- In all interactions and commit messages, be extremely concise and sacrifice grammar for the sake of concision.
+- Its important for each implementation to begin with writing and reviewing tests before moving on to implementation (TDD test-driven development).
+  Write minimalist tests. Don't overdo it - about three general end-to-end tests per implementation is enough.
+- Commit often, with small and focused commits.
+- Update the version number and the changelog with every commit.
+- For every commit, go over `CLAUDE.md`, `ARCHITECTURE_ANALYSIS.md`, `DEV_WORKFLOW.md`, and `LESSONS_LEARNED.md` to see if everything is up-to-date.
+- For simple queries, use under five tool calls, but for more complex queries you can use up to 15 tool calls.
 
 ## Architecture
 
@@ -130,3 +96,9 @@ Uses VS Code SecretStorage API (replaced keytar in v2.17.0):
 - Multiple accounts supported per repository
 - Auto-retry on authentication failure
 - Prompts user when credentials needed
+
+## Plans
+
+- At the end of each plan, give me a list of unresolved questions to answer, if any.
+  Make the questions extremely concise.
+  Sacrifice grammar for the sake of concision.

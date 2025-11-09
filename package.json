@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.23",
+    "version": "2.17.24",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -42,8 +42,8 @@
         "build:css": "sass scss/:css/ --style=compressed --no-source-map",
         "build:ts": "tsc -p ./",
         "compile": "node build.js --watch",
-        "lint": "eslint \"src/**/*.ts\"",
-        "lint:fix": "npm run lint --fix",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
         "organize": "node ./out/tools/organize.js",
         "semantic-release": "semantic-release",
         "size": "size-limit",
@@ -82,12 +82,12 @@
         "@types/tmp": "^0.2.6",
         "@types/vscode": "^1.74.0",
         "@types/xml2js": "^0.4.14",
-        "@typescript-eslint/eslint-plugin": "^7.18.0",
-        "@typescript-eslint/parser": "^7.18.0",
+        "@typescript-eslint/eslint-plugin": "^8.46.3",
+        "@typescript-eslint/parser": "^8.46.3",
         "@vscode/test-cli": "^0.0.12",
         "decache": "^4.6.2",
         "esbuild": "^0.24.2",
-        "eslint": "^8.57.1",
+        "eslint": "^9.39.1",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.4",
         "glob": "^11.0.3",
@@ -101,6 +101,7 @@
         "semantic-release-vsce": "^6.0.13",
         "size-limit": "^11.2.0",
         "typescript": "^5.9.3",
+        "typescript-eslint": "^8.46.3",
         "vscode-test": "^1.6.1"
     },
     "config": {
@@ -109,9 +110,6 @@
         }
     },
     "overrides": {
-        "ajv": "^8.17.1",
-        "ajv-keywords": "^5.1.0",
-        "ajv-formats": "^3.0.1",
         "prettier": "^3.6.2"
     },
     "contributes": {

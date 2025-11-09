@@ -446,7 +446,7 @@ export class SourceControlManager implements IDisposable {
       repository.onDidChangeState,
       state => state === RepositoryState.Disposed
     );
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+     
     const disappearListener = onDidDisappearRepository(() => dispose());
 
     const changeListener = repository.onDidChangeRepository(uri =>
@@ -472,7 +472,7 @@ export class SourceControlManager implements IDisposable {
       repository.dispose();
 
       this.openRepositories = this.openRepositories.filter(
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+         
         e => e !== openRepository
       );
       this._onDidCloseRepository.fire(repository);

@@ -1,3 +1,18 @@
+## [2.17.24] (2025-11-09)
+
+### Dependencies
+
+* Upgrade ESLint v8 → v9 (flat config, EOL mitigation)
+* Upgrade @typescript-eslint v7 → v8
+* Remove ajv overrides (compatibility fix)
+* Add typescript-eslint package for flat config support
+
+### Build
+
+* Migrate .eslintrc.js → eslint.config.js (flat config)
+* Remove .eslintignore (integrated into flat config)
+* Zero ESLint errors, 101 warnings (unchanged)
+
 ## [2.17.23] (2025-11-09)
 
 ### Dependencies

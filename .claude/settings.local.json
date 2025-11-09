@@ -9,7 +9,13 @@
       "Bash(npx @vscode/vsce package:*)",
       "Bash(find:*)",
       "mcp__pandoc-mcp-server__convert-contents",
-      "mcp__r-mcp-server__btw_tool_files_write_text_file"
+      "mcp__r-mcp-server__btw_tool_files_write_text_file",
+      "WebFetch(domain:positron.posit.co)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(cat:*)",
+      "Bash(unzip:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

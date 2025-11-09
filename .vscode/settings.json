@@ -2,5 +2,14 @@
 {
   "prettier.semi": true,
   "prettier.singleQuote": false,
-  "prettier.trailingComma": "none"
+  "prettier.trailingComma": "none",
+  "workbench.colorCustomizations": {
+    "commandCenter.border": "#e7e7e799",
+    "sash.hoverBorder": "#7e8fa0",
+    "titleBar.activeBackground": "#647687",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#64768799",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.color": "#647687"
 }
