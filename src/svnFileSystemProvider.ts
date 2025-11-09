@@ -122,7 +122,9 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
         size = Number(listResults[0].size) as number;
         mtime = Date.parse(listResults[0].commit.date);
       }
-    } catch {}
+    } catch (error) {
+      console.error("Failed to list SVN file:", error);
+    }
 
     return { type: FileType.File, size, mtime, ctime: 0 };
   }
@@ -169,7 +171,9 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
         console.log("here");
         return await repository.patchBuffer([fsPath]);
       }
-    } catch {}
+    } catch (error) {
+      console.error("Failed to read SVN file:", error);
+    }
 
     return new Uint8Array(0);
   }

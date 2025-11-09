@@ -15912,6 +15912,57 @@ async function parseInfoXml(content) {
   });
 }
 
+// src/security/errorSanitizer.ts
+function sanitizeString(input) {
+  if (!input) return input;
+  let sanitized = input;
+  sanitized = sanitized.replace(/[A-Z]:\\(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*/gi, "[PATH]");
+  sanitized = sanitized.replace(/\/(?:[a-zA-Z0-9._\-~]+\/)*[a-zA-Z0-9._\-~]*/g, "[PATH]");
+  sanitized = sanitized.replace(
+    /https?:\/\/(?:(?:[a-zA-Z0-9\-._~:/?#\[\]@!$&'()*+,;=])+)/gi,
+    "[DOMAIN]"
+  );
+  sanitized = sanitized.replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, "[IP]");
+  sanitized = sanitized.replace(/\b(?:[0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}\b/g, "[IP]");
+  sanitized = sanitized.replace(
+    /(?:password|passwd|pwd|token|secret|api[_-]?key|auth|credential|apikey)\s*=\s*[^\s,;]+/gi,
+    "$&=[REDACTED]"
+  );
+  sanitized = sanitized.replace(
+    /[?&](?:password|passwd|pwd|token|secret|api[_-]?key|auth|credential|apikey)\s*=\s*[^\s&;]+/gi,
+    (match3) => {
+      const [key] = match3.split("=");
+      return key + "=[REDACTED]";
+    }
+  );
+  sanitized = sanitized.replace(/Bearer\s+[A-Za-z0-9._\-~+/=]+/g, "Bearer [REDACTED]");
+  sanitized = sanitized.replace(/Basic\s+[A-Za-z0-9+/=]+/g, "Basic [REDACTED]");
+  sanitized = sanitized.replace(/"([A-Za-z0-9+/=_\-]{32,})"/g, '"[REDACTED]"');
+  sanitized = sanitized.replace(/'([A-Za-z0-9+/=_\-]{32,})'/g, "'[REDACTED]'");
+  sanitized = sanitized.replace(
+    /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+    "[UUID]"
+  );
+  sanitized = sanitized.replace(/AKIA[0-9A-Z]{16}/g, "[AWS_KEY]");
+  sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, "[EMAIL]");
+  return sanitized;
+}
+function createSanitizedErrorLog(error) {
+  if (!error) return {};
+  const log = {};
+  if (error.message) log.message = sanitizeString(error.message);
+  if (error.name) log.name = error.name;
+  if (error.code) log.code = error.code;
+  if (error.exitCode) log.exitCode = error.exitCode;
+  if (error.svnErrorCode) log.svnErrorCode = error.svnErrorCode;
+  if (error.svnCommand) log.svnCommand = sanitizeString(error.svnCommand);
+  if (error.stdout) log.stdout = sanitizeString(error.stdout);
+  if (error.stderr) log.stderr = sanitizeString(error.stderr);
+  if (error.stderrFormated) log.stderrFormated = sanitizeString(error.stderrFormated);
+  if (error.stack) log.stack = sanitizeString(error.stack);
+  return log;
+}
+
 // src/svnError.ts
 var SvnError = class {
   constructor(data) {
@@ -15930,19 +15981,10 @@ var SvnError = class {
     this.svnCommand = data.svnCommand;
   }
   toString() {
-    let result = this.message + " " + JSON.stringify(
-      {
-        exitCode: this.exitCode,
-        svnErrorCode: this.svnErrorCode,
-        svnCommand: this.svnCommand,
-        stdout: this.stdout,
-        stderr: this.stderr
-      },
-      null,
-      2
-    );
+    const errorLog = createSanitizedErrorLog(this);
+    let result = sanitizeString(this.message) + " " + JSON.stringify(errorLog, null, 2);
     if (this.error) {
-      result += this.error.stack;
+      result += sanitizeString(this.error.stack || "");
     }
     return result;
   }
@@ -17660,6 +17702,37 @@ async function parseDiffXml(content) {
   });
 }
 
+// src/validation/index.ts
+function validateChangelist(name) {
+  if (!name || typeof name !== "string") {
+    return false;
+  }
+  return /^[a-zA-Z0-9_-]+$/.test(name);
+}
+var VALID_ACCEPT_ACTIONS = [
+  "postpone",
+  "base",
+  "mine-conflict",
+  "theirs-conflict",
+  "mine-full",
+  "theirs-full",
+  "edit",
+  "launch",
+  "working"
+];
+function validateAcceptAction(action) {
+  if (!action || typeof action !== "string") {
+    return false;
+  }
+  return VALID_ACCEPT_ACTIONS.includes(action);
+}
+function validateSearchPattern(pattern) {
+  if (!pattern || typeof pattern !== "string") {
+    return false;
+  }
+  return !/[|;$()[\]{}`\\]/.test(pattern);
+}
+
 // src/svnRepository.ts
 var Repository = class {
   constructor(svn, root, workspaceRoot, policy) {
@@ -17987,6 +18060,9 @@ var Repository = class {
     return this.exec(["add", ...files]);
   }
   addChangelist(files, changelist) {
+    if (!validateChangelist(changelist)) {
+      throw new Error("Invalid changelist name");
+    }
     files = files.map((file) => this.removeAbsolutePath(file));
     return this.exec(["changelist", changelist, ...files]);
   }
@@ -18090,6 +18166,9 @@ var Repository = class {
     return true;
   }
   async merge(ref, reintegrate = false, accept_action = "postpone") {
+    if (!validateAcceptAction(accept_action)) {
+      throw new Error("Invalid accept action");
+    }
     const repoUrl = await this.getRepoUrl();
     const branchUrl = repoUrl + "/" + ref;
     let args = ["merge", "--accept", accept_action];
@@ -18195,10 +18274,16 @@ var Repository = class {
     return result.stdout;
   }
   async plainLogByText(search) {
+    if (!validateSearchPattern(search)) {
+      throw new Error("Invalid search pattern");
+    }
     const result = await this.exec(["log", "--search", search]);
     return result.stdout;
   }
   async plainLogByTextBuffer(search) {
+    if (!validateSearchPattern(search)) {
+      throw new Error("Invalid search pattern");
+    }
     const result = await this.execBuffer(["log", "--search", search]);
     return result.stdout;
   }
@@ -20079,7 +20164,6 @@ var SearchLogByRevision = class extends Command2 {
 
 // src/commands/search_log_by_text.ts
 var import_vscode45 = require("vscode");
-var cp2 = __toESM(require("child_process"));
 
 // src/temp_svn_fs.ts
 var import_vscode44 = require("vscode");
@@ -20302,40 +20386,35 @@ var SearchLogByText = class extends Command2 {
     if (!input) {
       return;
     }
+    if (!validateSearchPattern(input)) {
+      import_vscode45.window.showErrorMessage("Invalid search pattern: contains forbidden characters");
+      return;
+    }
     const uri = import_vscode45.Uri.parse("tempsvnfs:/svn.log");
     tempSvnFs.writeFile(uri, Buffer.from(""), {
       create: true,
       overwrite: true
     });
     await import_vscode45.commands.executeCommand("vscode.open", uri);
-    const proc2 = cp2.spawn("svn", ["log", "--search", input], {
-      cwd: repository.workspaceRoot
-    });
-    let content = "";
-    proc2.stdout.on("data", (data) => {
-      content += data.toString();
-      tempSvnFs.writeFile(uri, Buffer.from(content), {
+    try {
+      const result = await import_vscode45.window.withProgress(
+        {
+          cancellable: false,
+          location: import_vscode45.ProgressLocation.Notification,
+          title: "Searching Log"
+        },
+        async () => {
+          return repository.plainLogByText(input);
+        }
+      );
+      tempSvnFs.writeFile(uri, Buffer.from(result), {
         create: true,
         overwrite: true
       });
-    });
-    import_vscode45.window.withProgress(
-      {
-        cancellable: true,
-        location: import_vscode45.ProgressLocation.Notification,
-        title: "Searching Log"
-      },
-      (_progress, token) => {
-        token.onCancellationRequested(() => {
-          proc2.kill("SIGINT");
-        });
-        return new Promise((resolve2, reject) => {
-          proc2.on("exit", (code) => {
-            code === 0 ? resolve2() : reject();
-          });
-        });
-      }
-    );
+    } catch (error) {
+      import_vscode45.window.showErrorMessage(`Search failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(error);
+    }
   }
 };
 
@@ -22932,7 +23011,7 @@ __decorateClass([
 ], SourceControlManager.prototype, "eventuallyScanPossibleSvnRepositories", 1);
 
 // src/svnFinder.ts
-var cp3 = __toESM(require("child_process"));
+var cp2 = __toESM(require("child_process"));
 var path26 = __toESM(require("path"));
 var semver2 = __toESM(require_semver2());
 var SvnFinder = class {
@@ -22968,13 +23047,13 @@ var SvnFinder = class {
   }
   findSvnDarwin() {
     return new Promise((c, e) => {
-      cp3.exec("which svn", (err, svnPathBuffer) => {
+      cp2.exec("which svn", (err, svnPathBuffer) => {
         if (err) {
           return e("svn not found");
         }
         const path29 = svnPathBuffer.toString().replace(/^\s+|\s+$/g, "");
         function getVersion(path30) {
-          cp3.exec("svn --version --quiet", (err2, stdout) => {
+          cp2.exec("svn --version --quiet", (err2, stdout) => {
             if (err2) {
               return e("svn not found");
             }
@@ -22984,7 +23063,7 @@ var SvnFinder = class {
         if (path29 !== "/usr/bin/svn") {
           return getVersion(path29);
         }
-        cp3.exec("xcode-select -p", (err2) => {
+        cp2.exec("xcode-select -p", (err2) => {
           if (err2 && err2.code === 2) {
             return e("svn not found");
           }
@@ -22996,7 +23075,7 @@ var SvnFinder = class {
   findSpecificSvn(path29) {
     return new Promise((c, e) => {
       const buffers = [];
-      const child = cp3.spawn(path29, ["--version", "--quiet"]);
+      const child = cp2.spawn(path29, ["--version", "--quiet"]);
       child.stdout.on("data", (b) => buffers.push(b));
       child.on("error", cpErrorHandler(e));
       child.on(
@@ -23323,7 +23402,8 @@ var SvnFileSystemProvider = class {
         size = Number(listResults[0].size);
         mtime = Date.parse(listResults[0].commit.date);
       }
-    } catch {
+    } catch (error) {
+      console.error("Failed to list SVN file:", error);
     }
     return { type: import_vscode64.FileType.File, size, mtime, ctime: 0 };
   }
@@ -23361,7 +23441,8 @@ var SvnFileSystemProvider = class {
         console.log("here");
         return await repository.patchBuffer([fsPath]);
       }
-    } catch {
+    } catch (error) {
+      console.error("Failed to read SVN file:", error);
     }
     return new Uint8Array(0);
   }

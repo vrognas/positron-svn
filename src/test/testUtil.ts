@@ -172,7 +172,9 @@ export function destroyAllTempPaths() {
 
     try {
       dir.removeCallback();
-    } catch (error) {}
+    } catch (error) {
+      console.error("Failed to remove temp directory:", error);
+    }
   }
 }
 
