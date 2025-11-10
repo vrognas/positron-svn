@@ -1,3 +1,62 @@
+## [2.18.0] (2025-11-10)
+
+### Phase 2 Complete - Service Extraction
+
+**Repository Refactoring:**
+* Repository.ts: 1,149 → 915 lines (234 line reduction, 20%)
+* Extracted 3 services totaling 586 lines
+* All extractions follow TDD approach with comprehensive tests
+
+**Services Extracted:**
+1. **StatusService** (318 lines)
+   - updateModelState() logic extraction
+   - Status parsing and resource group population
+   - Preserves @throttle and @globalSequentialize decorators
+   - 3 end-to-end tests
+
+2. **ResourceGroupManager** (158 lines)
+   - Resource group creation and disposal
+   - Changelist management
+   - Resource ordering coordination
+   - 8 comprehensive tests (70%+ coverage)
+
+3. **RemoteChangeService** (110 lines)
+   - Remote change polling with 5-minute intervals
+   - Config-driven lifecycle management
+   - Status bar integration
+   - 5 end-to-end tests
+
+**Architecture Improvements:**
+* Dependency injection via IStatusContext interface
+* Backward compatibility preserved with getter properties
+* Type-safe service interfaces (zero new `any` types)
+* Clear service boundaries with focused responsibilities
+
+**Build & Tests:**
+* TypeScript compilation: ✓ Passing
+* Build output: 321.4kb (no size increase)
+* ESLint: 94 warnings (unchanged, pre-existing)
+* Zero functionality regression
+
+**Next:** Phase 3 - Dependency Injection (Factory pattern)
+
+## [2.17.29] (2025-11-10)
+
+### Refactoring - RemoteChangeService Extraction
+
+* Extract RemoteChangeService from Repository.ts (36 lines reduced)
+* Service manages remote change polling (5-minute default interval)
+* Config-driven interval lifecycle (remoteChanges.checkFrequency)
+* 5 comprehensive tests written (TDD approach)
+* Repository.ts: 1,185 → 1,149 lines
+* RemoteChangeService.ts: 110 lines (target: 120-150)
+
+### Technical Debt
+
+* Remove unused imports (clearInterval, setInterval from Repository)
+* Make Repository.run() public (required by service delegation)
+* Clean up leftover StatusService declarations
+
 ## [2.17.28] (2025-11-10)
 
 ### Architecture

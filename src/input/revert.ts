@@ -17,7 +17,7 @@ export async function confirmRevert() {
   return true;
 }
 
-export async function promptDepth() {
+export async function promptDepth(): Promise<keyof typeof SvnDepth | undefined> {
   const picks: Array<{ label: string; description: string }> = [];
 
   for (const depth in SvnDepth) {
@@ -31,13 +31,13 @@ export async function promptDepth() {
   if (!pick) {
     return undefined;
   }
-  return pick.label;
+  return pick.label as keyof typeof SvnDepth;
 }
 
 export async function checkAndPromptDepth(
   uris: Uri[],
   defaultDepth: keyof typeof SvnDepth = "empty"
-) {
+): Promise<keyof typeof SvnDepth | undefined> {
   // Without uris, force prompt
   let hasDirectory = uris.length === 0;
 
