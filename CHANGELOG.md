@@ -1,3 +1,23 @@
+## [2.17.26] (2025-11-10)
+
+### Refactoring
+
+* Extract ResourceGroupManager from Repository (Phase 2 Cycle 2)
+* Extract RemoteChangeService from Repository (Phase 2 Cycle 3)
+* Reduce Repository.ts: 1,030 → 923 lines (-107 LOC, 22% total reduction)
+* Add ResourceGroupManager: 298 lines, group lifecycle management
+* Add RemoteChangeService: 107 lines, polling timer management
+* Fix 3 code review blockers (unsafe cast, encapsulation, type safety)
+* Optimize array allocations (remove unnecessary spreading)
+* Add clearAll() method for proper encapsulation
+* 6 TDD tests total (3 per service)
+* Update docs: ARCHITECTURE_ANALYSIS, LESSONS_LEARNED, IMPLEMENTATION_PLAN
+
+### Build
+
+* Rebuild dist with Cycles 2 & 3 extractions
+* Build: 703KB, zero new errors
+
 ## [2.17.25] (2025-11-10)
 
 ### Refactoring

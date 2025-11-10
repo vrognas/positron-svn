@@ -14222,7 +14222,7 @@ __export(extension_exports, {
 });
 module.exports = __toCommonJS(extension_exports);
 var path29 = __toESM(require("path"));
-var import_vscode66 = require("vscode");
+var import_vscode67 = require("vscode");
 
 // src/commands/add.ts
 var import_vscode9 = require("vscode");
@@ -20986,12 +20986,11 @@ var ItemLogProvider = class {
 
 // src/historyView/repoLogProvider.ts
 var path25 = __toESM(require("path"));
-var import_vscode57 = require("vscode");
+var import_vscode58 = require("vscode");
 
 // src/repository.ts
 var path24 = __toESM(require("path"));
-var import_timers = require("timers");
-var import_vscode56 = require("vscode");
+var import_vscode57 = require("vscode");
 
 // src/services/StatusService.ts
 var import_vscode50 = require("vscode");
@@ -21195,6 +21194,215 @@ var StatusService = class {
   }
 };
 
+// src/services/ResourceGroupManager.ts
+var import_vscode51 = require("vscode");
+var ResourceGroupManager = class {
+  /**
+   * @param sourceControl VS Code SourceControl instance
+   * @param parentDisposables Parent's disposable array to register cleanup
+   */
+  constructor(sourceControl, parentDisposables) {
+    this.sourceControl = sourceControl;
+    this._changelists = /* @__PURE__ */ new Map();
+    this._disposables = [];
+    this._prevChangelistsSize = 0;
+    this._changes = this.createGroup("changes", "Changes");
+    this._changes.hideWhenEmpty = true;
+    this._conflicts = this.createGroup("conflicts", "Conflicts");
+    this._conflicts.hideWhenEmpty = true;
+    this._unversioned = this.createGroup("unversioned", "Unversioned");
+    this._unversioned.hideWhenEmpty = true;
+    this._disposables.push(this._changes, this._conflicts);
+    this._disposables.push(toDisposable(() => this._unversioned.dispose()));
+    this._disposables.push(
+      toDisposable(() => {
+        if (this._remoteChanges) {
+          this._remoteChanges.dispose();
+        }
+      })
+    );
+    parentDisposables.push(
+      toDisposable(() => this.dispose())
+    );
+  }
+  get changes() {
+    return this._changes;
+  }
+  get conflicts() {
+    return this._conflicts;
+  }
+  get unversioned() {
+    return this._unversioned;
+  }
+  get changelists() {
+    return this._changelists;
+  }
+  get remoteChanges() {
+    return this._remoteChanges;
+  }
+  /**
+   * Update all resource groups from status result.
+   * Returns the total count for source control badge.
+   */
+  updateGroups(data) {
+    var _a, _b;
+    const { result, config } = data;
+    this._changes.resourceStates = result.changes;
+    this._conflicts.resourceStates = result.conflicts;
+    this._changelists.forEach((group) => {
+      group.resourceStates = [];
+    });
+    result.changelists.forEach((resources, changelist) => {
+      let group = this._changelists.get(changelist);
+      if (!group) {
+        group = this.createGroup(
+          `changelist-${changelist}`,
+          `Changelist "${changelist}"`
+        );
+        group.hideWhenEmpty = true;
+        this._disposables.push(group);
+        this._changelists.set(changelist, group);
+      }
+      group.resourceStates = resources;
+    });
+    const currentChangelists = new Set(result.changelists.keys());
+    this._changelists.forEach((group, changelist) => {
+      if (!currentChangelists.has(changelist)) {
+        group.dispose();
+        this._changelists.delete(changelist);
+      }
+    });
+    if (this._prevChangelistsSize !== this._changelists.size) {
+      this._unversioned.dispose();
+      this._unversioned = this.createGroup("unversioned", "Unversioned");
+      this._unversioned.hideWhenEmpty = true;
+    }
+    this._unversioned.resourceStates = result.unversioned;
+    if (!this._remoteChanges || this._prevChangelistsSize !== this._changelists.size) {
+      const tempResourceStates = ((_a = this._remoteChanges) == null ? void 0 : _a.resourceStates) ?? [];
+      (_b = this._remoteChanges) == null ? void 0 : _b.dispose();
+      this._remoteChanges = this.createGroup("remotechanges", "Remote Changes");
+      this._remoteChanges.hideWhenEmpty = true;
+      this._remoteChanges.resourceStates = tempResourceStates;
+    }
+    this._remoteChanges.resourceStates = result.remoteChanges;
+    this._prevChangelistsSize = this._changelists.size;
+    return this.calculateCount(config);
+  }
+  /**
+   * Find resource by URI across all groups
+   */
+  getResourceFromFile(uri) {
+    if (typeof uri === "string") {
+      uri = import_vscode51.Uri.file(uri);
+    }
+    const groups = [
+      this._changes,
+      this._conflicts,
+      this._unversioned,
+      ...this._changelists.values()
+    ];
+    const uriString = uri.toString();
+    for (const group of groups) {
+      for (const resource of group.resourceStates) {
+        if (uriString === resource.resourceUri.toString() && resource instanceof Resource) {
+          return resource;
+        }
+      }
+    }
+    return void 0;
+  }
+  /**
+   * Calculate source control count based on configuration
+   */
+  calculateCount(config) {
+    const counts = [this._changes, this._conflicts];
+    this._changelists.forEach((group, changelist) => {
+      if (!config.ignoreOnStatusCountList.includes(changelist)) {
+        counts.push(group);
+      }
+    });
+    if (config.countUnversioned) {
+      counts.push(this._unversioned);
+    }
+    return counts.reduce((sum, group) => sum + group.resourceStates.length, 0);
+  }
+  /**
+   * Create a resource group
+   */
+  createGroup(id, label) {
+    return this.sourceControl.createResourceGroup(
+      id,
+      label
+    );
+  }
+  /**
+   * Clear all resource states and dispose remote changes
+   */
+  clearAll() {
+    var _a;
+    this._changes.resourceStates = [];
+    this._unversioned.resourceStates = [];
+    this._conflicts.resourceStates = [];
+    this._changelists.forEach((group, _changelist) => {
+      group.resourceStates = [];
+    });
+    (_a = this._remoteChanges) == null ? void 0 : _a.dispose();
+    this._remoteChanges = void 0;
+  }
+  /**
+   * Dispose all managed groups
+   */
+  dispose() {
+    this._disposables.forEach((d) => d.dispose());
+    this._disposables = [];
+    this._changelists.clear();
+  }
+};
+
+// src/services/RemoteChangeService.ts
+var RemoteChangeService = class {
+  /**
+   * @param onPoll Callback invoked at each poll interval
+   * @param getConfig Function to retrieve current config (allows dynamic updates)
+   */
+  constructor(onPoll, getConfig) {
+    this.onPoll = onPoll;
+    this.getConfig = getConfig;
+    this.disposed = false;
+  }
+  start() {
+    if (this.disposed) {
+      throw new Error("Cannot start disposed RemoteChangeService");
+    }
+    this.stop();
+    const config = this.getConfig();
+    const frequencyMs = config.checkFrequencySeconds * 1e3;
+    if (frequencyMs === 0) {
+      return;
+    }
+    this.interval = setInterval(() => {
+      void this.onPoll();
+    }, frequencyMs);
+  }
+  stop() {
+    if (this.interval !== void 0) {
+      clearInterval(this.interval);
+      this.interval = void 0;
+    }
+  }
+  restart() {
+    this.start();
+  }
+  get isRunning() {
+    return this.interval !== void 0;
+  }
+  dispose() {
+    this.stop();
+    this.disposed = true;
+  }
+};
+
 // src/operationsImpl.ts
 var OperationsImpl = class {
   constructor() {
@@ -21228,11 +21436,11 @@ var OperationsImpl = class {
 // src/pathNormalizer.ts
 var import_path5 = require("path");
 var nativepath = __toESM(require("path"));
-var import_vscode52 = require("vscode");
+var import_vscode53 = require("vscode");
 
 // src/svnRI.ts
 var import_path4 = require("path");
-var import_vscode51 = require("vscode");
+var import_vscode52 = require("vscode");
 function pathOrRoot(uri) {
   return uri.path || "/";
 }
@@ -21248,13 +21456,13 @@ var SvnRI = class {
     }
   }
   get remoteFullPath() {
-    return import_vscode51.Uri.parse(this.remoteRoot.toString() + "/" + this._path);
+    return import_vscode52.Uri.parse(this.remoteRoot.toString() + "/" + this._path);
   }
   get localFullPath() {
     if (this.checkoutRoot === void 0) {
       return void 0;
     }
-    return import_vscode51.Uri.file(
+    return import_vscode52.Uri.file(
       import_path4.posix.join(
         this.checkoutRoot.path,
         import_path4.posix.relative(this.fromRepoToBranch, this._path)
@@ -21300,10 +21508,10 @@ __decorateClass([
 var PathNormalizer = class {
   constructor(repoInfo) {
     this.repoInfo = repoInfo;
-    this.repoRoot = import_vscode52.Uri.parse(repoInfo.repository.root);
-    this.branchRoot = import_vscode52.Uri.parse(repoInfo.url);
+    this.repoRoot = import_vscode53.Uri.parse(repoInfo.repository.root);
+    this.branchRoot = import_vscode53.Uri.parse(repoInfo.url);
     if (repoInfo.wcInfo && repoInfo.wcInfo.wcrootAbspath) {
-      this.checkoutRoot = import_vscode52.Uri.file(repoInfo.wcInfo.wcrootAbspath);
+      this.checkoutRoot = import_vscode53.Uri.file(repoInfo.wcInfo.wcrootAbspath);
     }
   }
   /** svn://foo.org/domain/trunk/x -> trunk/x */
@@ -21311,7 +21519,7 @@ var PathNormalizer = class {
     if (fpath.startsWith("/")) {
       return fpath.substr(1);
     } else if (fpath.startsWith("svn://") || fpath.startsWith("file://")) {
-      const target = import_vscode52.Uri.parse(fpath).path;
+      const target = import_vscode53.Uri.parse(fpath).path;
       return import_path5.posix.relative(pathOrRoot(this.repoRoot), target);
     } else {
       throw new Error("unknown path");
@@ -21370,11 +21578,11 @@ __decorateClass([
 ], PathNormalizer.prototype, "fromBranchToRoot", 1);
 
 // src/statusbar/checkoutStatusBar.ts
-var import_vscode53 = require("vscode");
+var import_vscode54 = require("vscode");
 var CheckoutStatusBar = class {
   constructor(repository) {
     this.repository = repository;
-    this._onDidChange = new import_vscode53.EventEmitter();
+    this._onDidChange = new import_vscode54.EventEmitter();
     this.disposables = [];
     repository.onDidChangeStatus(
       this._onDidChange.fire,
@@ -21409,11 +21617,11 @@ var CheckoutStatusBar = class {
 };
 
 // src/statusbar/syncStatusBar.ts
-var import_vscode54 = require("vscode");
+var import_vscode55 = require("vscode");
 var _SyncStatusBar = class _SyncStatusBar {
   constructor(repository) {
     this.repository = repository;
-    this._onDidChange = new import_vscode54.EventEmitter();
+    this._onDidChange = new import_vscode55.EventEmitter();
     this.disposables = [];
     this._state = _SyncStatusBar.startState;
     repository.onDidChangeStatus(this.onModelChange, this, this.disposables);
@@ -21545,23 +21753,23 @@ var StatusBarCommands = class {
 };
 
 // src/watchers/repositoryFilesWatcher.ts
-var import_vscode55 = require("vscode");
+var import_vscode56 = require("vscode");
 var import_fs9 = require("fs");
 var import_path6 = require("path");
 var RepositoryFilesWatcher = class {
   constructor(root) {
     this.root = root;
     this.disposables = [];
-    const fsWatcher = import_vscode55.workspace.createFileSystemWatcher(
-      new import_vscode55.RelativePattern(fixPathSeparator(root), "**")
+    const fsWatcher = import_vscode56.workspace.createFileSystemWatcher(
+      new import_vscode56.RelativePattern(fixPathSeparator(root), "**")
     );
-    this._onRepoChange = new import_vscode55.EventEmitter();
-    this._onRepoCreate = new import_vscode55.EventEmitter();
-    this._onRepoDelete = new import_vscode55.EventEmitter();
+    this._onRepoChange = new import_vscode56.EventEmitter();
+    this._onRepoCreate = new import_vscode56.EventEmitter();
+    this._onRepoDelete = new import_vscode56.EventEmitter();
     let onRepoChange;
     let onRepoCreate;
     let onRepoDelete;
-    if (typeof import_vscode55.workspace.workspaceFolders !== "undefined" && !import_vscode55.workspace.workspaceFolders.filter((w) => isDescendant(w.uri.fsPath, root)).length) {
+    if (typeof import_vscode56.workspace.workspaceFolders !== "undefined" && !import_vscode56.workspace.workspaceFolders.filter((w) => isDescendant(w.uri.fsPath, root)).length) {
       const repoWatcher = (0, import_fs9.watch)(
         (0, import_path6.join)(root, getSvnDir()),
         this.repoWatch.bind(this)
@@ -21614,13 +21822,13 @@ var RepositoryFilesWatcher = class {
       return;
     }
     if (event === "change") {
-      this._onRepoChange.fire(import_vscode55.Uri.parse(filename));
+      this._onRepoChange.fire(import_vscode56.Uri.parse(filename));
     } else if (event === "rename") {
       exists(filename).then((doesExist) => {
         if (doesExist) {
-          this._onRepoCreate.fire(import_vscode55.Uri.parse(filename));
+          this._onRepoCreate.fire(import_vscode56.Uri.parse(filename));
         } else {
-          this._onRepoDelete.fire(import_vscode55.Uri.parse(filename));
+          this._onRepoDelete.fire(import_vscode56.Uri.parse(filename));
         }
       });
     }
@@ -21648,7 +21856,6 @@ var Repository2 = class {
   constructor(repository, secrets) {
     this.repository = repository;
     this.secrets = secrets;
-    this.changelists = /* @__PURE__ */ new Map();
     this.statusIgnored = [];
     this.statusExternal = [];
     this.disposables = [];
@@ -21658,17 +21865,17 @@ var Repository2 = class {
     this.needCleanUp = false;
     this.deletedUris = [];
     this.canSaveAuth = false;
-    this._onDidChangeRepository = new import_vscode56.EventEmitter();
+    this._onDidChangeRepository = new import_vscode57.EventEmitter();
     this.onDidChangeRepository = this._onDidChangeRepository.event;
-    this._onDidChangeState = new import_vscode56.EventEmitter();
+    this._onDidChangeState = new import_vscode57.EventEmitter();
     this.onDidChangeState = this._onDidChangeState.event;
-    this._onDidChangeStatus = new import_vscode56.EventEmitter();
+    this._onDidChangeStatus = new import_vscode57.EventEmitter();
     this.onDidChangeStatus = this._onDidChangeStatus.event;
-    this._onDidChangeRemoteChangedFiles = new import_vscode56.EventEmitter();
+    this._onDidChangeRemoteChangedFiles = new import_vscode57.EventEmitter();
     this.onDidChangeRemoteChangedFile = this._onDidChangeRemoteChangedFiles.event;
-    this._onRunOperation = new import_vscode56.EventEmitter();
+    this._onRunOperation = new import_vscode57.EventEmitter();
     this.onRunOperation = this._onRunOperation.event;
-    this._onDidRunOperation = new import_vscode56.EventEmitter();
+    this._onDidRunOperation = new import_vscode57.EventEmitter();
     this.onDidRunOperation = this._onDidRunOperation.event;
     this._operations = new OperationsImpl();
     this._state = 0 /* Idle */;
@@ -21687,10 +21894,10 @@ var Repository2 = class {
       this,
       this.disposables
     );
-    this.sourceControl = import_vscode56.scm.createSourceControl(
+    this.sourceControl = import_vscode57.scm.createSourceControl(
       "svn",
       "SVN",
-      import_vscode56.Uri.file(repository.workspaceRoot)
+      import_vscode57.Uri.file(repository.workspaceRoot)
     );
     this.sourceControl.count = 0;
     this.sourceControl.inputBox.placeholder = "Message (press Ctrl+Enter to commit)";
@@ -21708,27 +21915,17 @@ var Repository2 = class {
       null,
       this.disposables
     );
-    this.changes = this.sourceControl.createResourceGroup(
-      "changes",
-      "Changes"
+    this.groupManager = new ResourceGroupManager(
+      this.sourceControl,
+      this.disposables
     );
-    this.conflicts = this.sourceControl.createResourceGroup(
-      "conflicts",
-      "Conflicts"
-    );
-    this.unversioned = this.sourceControl.createResourceGroup(
-      "unversioned",
-      "Unversioned"
-    );
-    this.changes.hideWhenEmpty = true;
-    this.unversioned.hideWhenEmpty = true;
-    this.conflicts.hideWhenEmpty = true;
-    this.disposables.push(this.changes);
-    this.disposables.push(this.conflicts);
-    this.disposables.push(toDisposable(() => this.unversioned.dispose()));
-    this.disposables.push(
-      toDisposable(() => {
-        this.remoteChangedUpdateInterval && (0, import_timers.clearInterval)(this.remoteChangedUpdateInterval);
+    this.remoteChangeService = new RemoteChangeService(
+      () => this.updateRemoteChangedFiles(),
+      () => ({
+        checkFrequencySeconds: configuration.get(
+          "remoteChanges.checkFrequency",
+          300
+        )
       })
     );
     this._fsWatcher.onDidWorkspaceDelete(
@@ -21737,21 +21934,36 @@ var Repository2 = class {
       this.disposables
     );
     this.onDidChangeStatus(this.actionForDeletedFiles, this, this.disposables);
-    this.createRemoteChangedInterval();
+    this.remoteChangeService.start();
     this.updateRemoteChangedFiles();
     configuration.onDidChange((e) => {
       if (e.affectsConfiguration("svn.remoteChanges.checkFrequency")) {
-        this.remoteChangedUpdateInterval && (0, import_timers.clearInterval)(this.remoteChangedUpdateInterval);
-        this.createRemoteChangedInterval();
+        this.remoteChangeService.restart();
         this.updateRemoteChangedFiles();
       }
     });
     this.status();
     this.disposables.push(
-      import_vscode56.workspace.onDidSaveTextDocument((document) => {
+      import_vscode57.workspace.onDidSaveTextDocument((document) => {
         this.onDidSaveTextDocument(document);
       })
     );
+  }
+  // Property accessors for backward compatibility
+  get changes() {
+    return this.groupManager.changes;
+  }
+  get conflicts() {
+    return this.groupManager.conflicts;
+  }
+  get unversioned() {
+    return this.groupManager.unversioned;
+  }
+  get changelists() {
+    return this.groupManager.changelists;
+  }
+  get remoteChanges() {
+    return this.groupManager.remoteChanges;
   }
   get fsWatcher() {
     return this._fsWatcher;
@@ -21769,16 +21981,9 @@ var Repository2 = class {
     return this._state;
   }
   set state(state) {
-    var _a;
     this._state = state;
     this._onDidChangeState.fire(state);
-    this.changes.resourceStates = [];
-    this.unversioned.resourceStates = [];
-    this.conflicts.resourceStates = [];
-    this.changelists.forEach((group, _changelist) => {
-      group.resourceStates = [];
-    });
-    (_a = this.remoteChanges) == null ? void 0 : _a.dispose();
+    this.groupManager.clearAll();
     this.isIncomplete = false;
     this.needCleanUp = false;
   }
@@ -21790,7 +21995,7 @@ var Repository2 = class {
   }
   /** 'svn://repo.x/branches/b1' e.g. */
   get branchRoot() {
-    return import_vscode56.Uri.parse(this.repository.info.url);
+    return import_vscode57.Uri.parse(this.repository.info.url);
   }
   get inputBox() {
     return this.sourceControl.inputBox;
@@ -21810,18 +22015,6 @@ var Repository2 = class {
   async onDidAnyFileChanged(e) {
     await this.repository.updateInfo();
     this._onDidChangeRepository.fire(e);
-  }
-  createRemoteChangedInterval() {
-    const updateFreq = configuration.get(
-      "remoteChanges.checkFrequency",
-      300
-    );
-    if (!updateFreq) {
-      return;
-    }
-    this.remoteChangedUpdateInterval = (0, import_timers.setInterval)(() => {
-      this.updateRemoteChangedFiles();
-    }, 1e3 * updateFreq);
   }
   async actionForDeletedFiles() {
     if (!this.deletedUris.length) {
@@ -21865,12 +22058,11 @@ var Repository2 = class {
         false
       );
     } else if (actionForDeletedFiles === "prompt") {
-      return import_vscode56.commands.executeCommand("svn.promptRemove", ...uris);
+      return import_vscode57.commands.executeCommand("svn.promptRemove", ...uris);
     }
     return;
   }
   async updateRemoteChangedFiles() {
-    var _a;
     const updateFreq = configuration.get(
       "remoteChanges.checkFrequency",
       300
@@ -21878,8 +22070,9 @@ var Repository2 = class {
     if (updateFreq) {
       this.run("StatusRemote" /* StatusRemote */);
     } else {
-      (_a = this.remoteChanges) == null ? void 0 : _a.dispose();
-      this.remoteChanges = void 0;
+      if (this.groupManager.remoteChanges) {
+        this.groupManager.remoteChanges.resourceStates = [];
+      }
     }
   }
   onFSChange(_uri) {
@@ -21906,9 +22099,9 @@ var Repository2 = class {
         await eventToPromise(this.onDidRunOperation);
         continue;
       }
-      if (!import_vscode56.window.state.focused) {
+      if (!import_vscode57.window.state.focused) {
         const onDidFocusWindow = filterEvent(
-          import_vscode56.window.onDidChangeWindowState,
+          import_vscode57.window.onDidChangeWindowState,
           (e) => e.focused
         );
         await eventToPromise(onDidFocusWindow);
@@ -21918,7 +22111,6 @@ var Repository2 = class {
     }
   }
   async updateModelState(checkRemoteChanges = false) {
-    var _a, _b;
     const result = await this.retryRun(async () => {
       return this.statusService.updateStatus({ checkRemoteChanges });
     });
@@ -21926,89 +22118,33 @@ var Repository2 = class {
     this.statusIgnored = [...result.statusIgnored];
     this.isIncomplete = result.isIncomplete;
     this.needCleanUp = result.needCleanUp;
-    this.changes.resourceStates = result.changes;
-    this.conflicts.resourceStates = result.conflicts;
-    const prevChangelistsSize = this.changelists.size;
-    this.changelists.forEach((group, _changelist) => {
-      group.resourceStates = [];
-    });
-    const counts = [this.changes, this.conflicts];
-    const ignoreOnStatusCountList = configuration.get(
-      "sourceControl.ignoreOnStatusCount"
-    );
-    result.changelists.forEach((resources, changelist) => {
-      let group = this.changelists.get(changelist);
-      if (!group) {
-        group = this.sourceControl.createResourceGroup(
-          `changelist-${changelist}`,
-          `Changelist "${changelist}"`
-        );
-        group.hideWhenEmpty = true;
-        this.disposables.push(group);
-        this.changelists.set(changelist, group);
-      }
-      group.resourceStates = [...resources];
-      if (!ignoreOnStatusCountList.includes(changelist)) {
-        counts.push(group);
+    const count = this.groupManager.updateGroups({
+      result,
+      config: {
+        ignoreOnStatusCountList: configuration.get(
+          "sourceControl.ignoreOnStatusCount",
+          []
+        ),
+        countUnversioned: configuration.get(
+          "sourceControl.countUnversioned",
+          false
+        )
       }
     });
-    if (prevChangelistsSize !== this.changelists.size) {
-      this.unversioned.dispose();
-      this.unversioned = this.sourceControl.createResourceGroup(
-        "unversioned",
-        "Unversioned"
-      );
-      this.unversioned.hideWhenEmpty = true;
+    this.sourceControl.count = count;
+    if (this.groupManager.remoteChanges) {
+      this.groupManager.remoteChanges.repository = this;
     }
-    this.unversioned.resourceStates = result.unversioned;
-    if (configuration.get("sourceControl.countUnversioned", false)) {
-      counts.push(this.unversioned);
-    }
-    this.sourceControl.count = counts.reduce(
-      (a, b) => a + b.resourceStates.length,
-      0
-    );
-    if (!this.remoteChanges || prevChangelistsSize !== this.changelists.size) {
-      const tempResourceStates = ((_a = this.remoteChanges) == null ? void 0 : _a.resourceStates) ?? [];
-      (_b = this.remoteChanges) == null ? void 0 : _b.dispose();
-      this.remoteChanges = this.sourceControl.createResourceGroup(
-        "remotechanges",
-        "Remote Changes"
-      );
-      this.remoteChanges.repository = this;
-      this.remoteChanges.hideWhenEmpty = true;
-      this.remoteChanges.resourceStates = tempResourceStates;
-    }
-    if (checkRemoteChanges) {
-      this.remoteChanges.resourceStates = result.remoteChanges;
-      if (result.remoteChanges.length !== this.remoteChangedFiles) {
-        this.remoteChangedFiles = result.remoteChanges.length;
-        this._onDidChangeRemoteChangedFiles.fire();
-      }
+    if (checkRemoteChanges && result.remoteChanges.length !== this.remoteChangedFiles) {
+      this.remoteChangedFiles = result.remoteChanges.length;
+      this._onDidChangeRemoteChangedFiles.fire();
     }
     this._onDidChangeStatus.fire();
     this.currentBranch = await this.getCurrentBranch();
     return Promise.resolve();
   }
   getResourceFromFile(uri) {
-    if (typeof uri === "string") {
-      uri = import_vscode56.Uri.file(uri);
-    }
-    const groups = [
-      this.changes,
-      this.conflicts,
-      this.unversioned,
-      ...this.changelists.values()
-    ];
-    const uriString = uri.toString();
-    for (const group of groups) {
-      for (const resource of group.resourceStates) {
-        if (uriString === resource.resourceUri.toString() && resource instanceof Resource) {
-          return resource;
-        }
-      }
-    }
-    return void 0;
+    return this.groupManager.getResourceFromFile(uri);
   }
   provideOriginalResource(uri) {
     if (uri.scheme !== "file") {
@@ -22257,7 +22393,7 @@ var Repository2 = class {
     if (this.lastPromptAuth) {
       return this.lastPromptAuth;
     }
-    this.lastPromptAuth = import_vscode56.commands.executeCommand("svn.promptAuth");
+    this.lastPromptAuth = import_vscode57.commands.executeCommand("svn.promptAuth");
     const result = await this.lastPromptAuth;
     if (result) {
       this.username = result.username;
@@ -22277,7 +22413,7 @@ var Repository2 = class {
     }
     const text = document.getText();
     if (!/^<{7}[^]+^={7}[^]+^>{7}/m.test(text)) {
-      import_vscode56.commands.executeCommand("svn.resolved", conflict.resourceUri);
+      import_vscode57.commands.executeCommand("svn.resolved", conflict.resourceUri);
     }
   }
   async run(operation, runOperation = () => Promise.resolve(null)) {
@@ -22301,7 +22437,7 @@ var Repository2 = class {
         }
         const rootExists = await exists(this.workspaceRoot);
         if (!rootExists) {
-          await import_vscode56.commands.executeCommand("svn.close", this);
+          await import_vscode57.commands.executeCommand("svn.close", this);
         }
         throw err;
       } finally {
@@ -22309,7 +22445,7 @@ var Repository2 = class {
         this._onDidRunOperation.fire(operation);
       }
     };
-    return shouldShowProgress(operation) ? import_vscode56.window.withProgress({ location: import_vscode56.ProgressLocation.SourceControl }, run) : run();
+    return shouldShowProgress(operation) ? import_vscode57.window.withProgress({ location: import_vscode57.ProgressLocation.SourceControl }, run) : run();
   }
   async retryRun(runOperation = () => Promise.resolve(null)) {
     let attempt = 0;
@@ -22399,40 +22535,40 @@ function getActionIcon(action) {
 var RepoLogProvider = class {
   constructor(sourceControlManager) {
     this.sourceControlManager = sourceControlManager;
-    this._onDidChangeTreeData = new import_vscode57.EventEmitter();
+    this._onDidChangeTreeData = new import_vscode58.EventEmitter();
     this.onDidChangeTreeData = this._onDidChangeTreeData.event;
     // TODO on-disk cache?
     this.logCache = /* @__PURE__ */ new Map();
     this._dispose = [];
     this.refresh();
     this._dispose.push(
-      import_vscode57.window.registerTreeDataProvider("repolog", this),
-      import_vscode57.commands.registerCommand(
+      import_vscode58.window.registerTreeDataProvider("repolog", this),
+      import_vscode58.commands.registerCommand(
         "svn.repolog.copymsg",
         async (item) => copyCommitToClipboard("msg", item)
       ),
-      import_vscode57.commands.registerCommand(
+      import_vscode58.commands.registerCommand(
         "svn.repolog.copyrevision",
         async (item) => copyCommitToClipboard("revision", item)
       ),
-      import_vscode57.commands.registerCommand(
+      import_vscode58.commands.registerCommand(
         "svn.repolog.addrepolike",
         this.addRepolikeGui,
         this
       ),
-      import_vscode57.commands.registerCommand("svn.repolog.remove", this.removeRepo, this),
-      import_vscode57.commands.registerCommand(
+      import_vscode58.commands.registerCommand("svn.repolog.remove", this.removeRepo, this),
+      import_vscode58.commands.registerCommand(
         "svn.repolog.openFileRemote",
         this.openFileRemoteCmd,
         this
       ),
-      import_vscode57.commands.registerCommand("svn.repolog.openDiff", this.openDiffCmd, this),
-      import_vscode57.commands.registerCommand(
+      import_vscode58.commands.registerCommand("svn.repolog.openDiff", this.openDiffCmd, this),
+      import_vscode58.commands.registerCommand(
         "svn.repolog.openFileLocal",
         this.openFileLocal,
         this
       ),
-      import_vscode57.commands.registerCommand("svn.repolog.refresh", this.refresh, this),
+      import_vscode58.commands.registerCommand("svn.repolog.refresh", this.refresh, this),
       this.sourceControlManager.onDidChangeRepository(
         async (_e) => {
           return this.refresh();
@@ -22469,7 +22605,7 @@ var RepoLogProvider = class {
       order: this.logCache.size
     };
     if (this.logCache.has(repoLike)) {
-      import_vscode57.window.showWarningMessage("This path is already added");
+      import_vscode58.window.showWarningMessage("This path is already added");
       return;
     }
     const repo = this.sourceControlManager.getRepository(repoLike);
@@ -22478,15 +22614,15 @@ var RepoLogProvider = class {
         let uri;
         if (repoLike.startsWith("^")) {
           const wsrepo = this.sourceControlManager.getRepository(
-            unwrap(import_vscode57.workspace.workspaceFolders)[0].uri
+            unwrap(import_vscode58.workspace.workspaceFolders)[0].uri
           );
           if (!wsrepo) {
             throw new Error("No repository in workspace root");
           }
           const info = await wsrepo.getInfo(repoLike);
-          uri = import_vscode57.Uri.parse(info.url);
+          uri = import_vscode58.Uri.parse(info.url);
         } else {
-          uri = import_vscode57.Uri.parse(repoLike);
+          uri = import_vscode58.Uri.parse(repoLike);
         }
         if (rev !== "HEAD" && isNaN(parseInt(rev, 10))) {
           throw new Error("erroneous revision");
@@ -22497,7 +22633,7 @@ var RepoLogProvider = class {
         item.repo = remRepo;
         item.svnTarget = uri;
       } catch (e) {
-        import_vscode57.window.showWarningMessage(
+        import_vscode58.window.showWarningMessage(
           "Failed to add repo: " + (e instanceof Error ? e.message : "")
         );
         return;
@@ -22506,28 +22642,28 @@ var RepoLogProvider = class {
       try {
         const svninfo = await repo.getInfo(repoLike, rev);
         item.repo = repo;
-        item.svnTarget = import_vscode57.Uri.parse(svninfo.url);
+        item.svnTarget = import_vscode58.Uri.parse(svninfo.url);
         item.persisted.baseRevision = parseInt(svninfo.revision, 10);
       } catch (e) {
-        import_vscode57.window.showErrorMessage("Failed to resolve svn path");
+        import_vscode58.window.showErrorMessage("Failed to resolve svn path");
         return;
       }
     }
     const repoName = item.svnTarget.toString(true);
     if (this.logCache.has(repoName)) {
-      import_vscode57.window.showWarningMessage("Repository with this name already exists");
+      import_vscode58.window.showWarningMessage("Repository with this name already exists");
       return;
     }
     this.logCache.set(repoName, item);
     this._onDidChangeTreeData.fire(void 0);
   }
   addRepolikeGui() {
-    const box = import_vscode57.window.createInputBox();
+    const box = import_vscode58.window.createInputBox();
     box.prompt = "Enter SVN URL or local path";
     box.onDidAccept(async () => {
       let repoLike = box.value;
-      if (!path25.isAbsolute(repoLike) && import_vscode57.workspace.workspaceFolders && !repoLike.startsWith("^") && !/^[a-z]+?:\/\//.test(repoLike)) {
-        for (const wsf of import_vscode57.workspace.workspaceFolders) {
+      if (!path25.isAbsolute(repoLike) && import_vscode58.workspace.workspaceFolders && !repoLike.startsWith("^") && !/^[a-z]+?:\/\//.test(repoLike)) {
+        for (const wsf of import_vscode58.workspace.workspaceFolders) {
           const joined = path25.join(wsf.uri.fsPath, repoLike);
           if (await exists(joined)) {
             repoLike = joined;
@@ -22536,7 +22672,7 @@ var RepoLogProvider = class {
         }
       }
       box.dispose();
-      const box2 = import_vscode57.window.createInputBox();
+      const box2 = import_vscode58.window.createInputBox();
       box2.prompt = "Enter starting revision (optional)";
       box2.onDidAccept(async () => {
         const rev = box2.value;
@@ -22564,7 +22700,7 @@ var RepoLogProvider = class {
     if (!checkIfFile(ri, true)) {
       return;
     }
-    import_vscode57.commands.executeCommand("vscode.open", unwrap(ri.localFullPath));
+    import_vscode58.commands.executeCommand("vscode.open", unwrap(ri.localFullPath));
   }
   async openDiffCmd(element) {
     const commit = element.data;
@@ -22576,7 +22712,7 @@ var RepoLogProvider = class {
     if (revs.length === 2) {
       prevRev = revs[1];
     } else {
-      import_vscode57.window.showWarningMessage("Cannot find previous commit");
+      import_vscode58.window.showWarningMessage("Cannot find previous commit");
       return;
     }
     return openDiff(item.repo, remotePath, prevRev.revision, parent.revision);
@@ -22624,9 +22760,9 @@ var RepoLogProvider = class {
     if (element.kind === 1 /* Repo */) {
       const svnTarget = element.data;
       const cached = this.getCached(element);
-      ti = new import_vscode57.TreeItem(
+      ti = new import_vscode58.TreeItem(
         svnTarget.toString(),
-        import_vscode57.TreeItemCollapsibleState.Collapsed
+        import_vscode58.TreeItemCollapsibleState.Collapsed
       );
       if (cached.persisted.userAdded) {
         ti.label = "\u2218 " + ti.label;
@@ -22635,17 +22771,17 @@ var RepoLogProvider = class {
         ti.contextValue = "repo";
       }
       if (cached.repo instanceof Repository2) {
-        ti.iconPath = new import_vscode57.ThemeIcon("folder-opened");
+        ti.iconPath = new import_vscode58.ThemeIcon("folder-opened");
       } else {
-        ti.iconPath = new import_vscode57.ThemeIcon("repo");
+        ti.iconPath = new import_vscode58.ThemeIcon("repo");
       }
       const from = cached.persisted.commitFrom || "HEAD";
       ti.tooltip = `${svnTarget} since ${from}`;
     } else if (element.kind === 2 /* Commit */) {
       const commit = element.data;
-      ti = new import_vscode57.TreeItem(
+      ti = new import_vscode58.TreeItem(
         getCommitLabel(commit),
-        import_vscode57.TreeItemCollapsibleState.Collapsed
+        import_vscode58.TreeItemCollapsibleState.Collapsed
       );
       ti.description = getCommitDescription(commit);
       ti.tooltip = getCommitToolTip(commit);
@@ -22654,7 +22790,7 @@ var RepoLogProvider = class {
     } else if (element.kind === 3 /* CommitDetail */) {
       const pathElem = element.data;
       const basename12 = path25.basename(pathElem._);
-      ti = new import_vscode57.TreeItem(basename12, import_vscode57.TreeItemCollapsibleState.None);
+      ti = new import_vscode58.TreeItem(basename12, import_vscode58.TreeItemCollapsibleState.None);
       ti.description = path25.dirname(pathElem._);
       const cached = this.getCached(element);
       const nm = cached.repo.getPathNormalizer();
@@ -22694,14 +22830,14 @@ var RepoLogProvider = class {
       const result = transform(logentries, 2 /* Commit */, element);
       insertBaseMarker(cached, logentries, result);
       if (!cached.isComplete) {
-        const ti = new import_vscode57.TreeItem(`Load another ${limit} revisions`);
+        const ti = new import_vscode58.TreeItem(`Load another ${limit} revisions`);
         ti.tooltip = "Paging size may be adjusted using log.length setting";
         ti.command = {
           command: "svn.repolog.refresh",
           arguments: [element, true],
           title: "refresh element"
         };
-        ti.iconPath = new import_vscode57.ThemeIcon("unfold");
+        ti.iconPath = new import_vscode58.ThemeIcon("unfold");
         result.push({ kind: 4 /* TItem */, data: ti });
       }
       return result;
@@ -22715,10 +22851,10 @@ var RepoLogProvider = class {
 
 // src/source_control_manager.ts
 var path26 = __toESM(require("path"));
-var import_vscode59 = require("vscode");
+var import_vscode60 = require("vscode");
 
 // src/remoteRepository.ts
-var import_vscode58 = require("vscode");
+var import_vscode59 = require("vscode");
 var RemoteRepository = class _RemoteRepository {
   constructor(repo) {
     this.repo = repo;
@@ -22732,7 +22868,7 @@ var RemoteRepository = class _RemoteRepository {
     return new PathNormalizer(this.info);
   }
   get branchRoot() {
-    return import_vscode58.Uri.parse(this.info.url);
+    return import_vscode59.Uri.parse(this.info.url);
   }
   async log(rfrom, rto, limit, target) {
     return this.repo.log(rfrom, rto, limit, target);
@@ -22747,13 +22883,13 @@ var SourceControlManager = class {
   constructor(_svn, policy, extensionContact) {
     this._svn = _svn;
     this.extensionContact = extensionContact;
-    this._onDidOpenRepository = new import_vscode59.EventEmitter();
+    this._onDidOpenRepository = new import_vscode60.EventEmitter();
     this.onDidOpenRepository = this._onDidOpenRepository.event;
-    this._onDidCloseRepository = new import_vscode59.EventEmitter();
+    this._onDidCloseRepository = new import_vscode60.EventEmitter();
     this.onDidCloseRepository = this._onDidCloseRepository.event;
-    this._onDidChangeRepository = new import_vscode59.EventEmitter();
+    this._onDidChangeRepository = new import_vscode60.EventEmitter();
     this.onDidChangeRepository = this._onDidChangeRepository.event;
-    this._onDidChangeStatusRepository = new import_vscode59.EventEmitter();
+    this._onDidChangeStatusRepository = new import_vscode60.EventEmitter();
     this.onDidChangeStatusRepository = this._onDidChangeStatusRepository.event;
     this.openRepositories = [];
     this.disposables = [];
@@ -22761,14 +22897,14 @@ var SourceControlManager = class {
     this.possibleSvnRepositoryPaths = /* @__PURE__ */ new Set();
     this.ignoreList = [];
     this.maxDepth = 0;
-    this._onDidChangeState = new import_vscode59.EventEmitter();
+    this._onDidChangeState = new import_vscode60.EventEmitter();
     this.onDidchangeState = this._onDidChangeState.event;
     this._state = "uninitialized";
     if (policy !== 0 /* Async */) {
       throw new Error("Unsopported policy");
     }
     this.enabled = configuration.get("enabled") === true;
-    this.configurationChangeDisposable = import_vscode59.workspace.onDidChangeConfiguration(
+    this.configurationChangeDisposable = import_vscode60.workspace.onDidChangeConfiguration(
       this.onDidChangeConfiguration,
       this
     );
@@ -22827,12 +22963,12 @@ var SourceControlManager = class {
       this.maxDepth = configuration.get("multipleFolders.depth", 0);
       this.ignoreList = configuration.get("multipleFolders.ignore", []);
     }
-    import_vscode59.workspace.onDidChangeWorkspaceFolders(
+    import_vscode60.workspace.onDidChangeWorkspaceFolders(
       this.onDidChangeWorkspaceFolders,
       this,
       this.disposables
     );
-    const fsWatcher = import_vscode59.workspace.createFileSystemWatcher("**");
+    const fsWatcher = import_vscode60.workspace.createFileSystemWatcher("**");
     this.disposables.push(fsWatcher);
     const onWorkspaceChange = anyEvent(
       fsWatcher.onDidChange,
@@ -22893,7 +23029,7 @@ var SourceControlManager = class {
       (folder) => !this.getOpenRepository(folder.uri)
     );
     const openRepositoriesToDispose = removed.map((folder) => this.getOpenRepository(folder.uri.fsPath)).filter((repository) => !!repository).filter(
-      (repository) => !(import_vscode59.workspace.workspaceFolders || []).some(
+      (repository) => !(import_vscode60.workspace.workspaceFolders || []).some(
         (f) => repository.repository.workspaceRoot.startsWith(f.uri.fsPath)
       )
     );
@@ -22903,7 +23039,7 @@ var SourceControlManager = class {
     openRepositoriesToDispose.forEach((r) => r.repository.dispose());
   }
   async scanWorkspaceFolders() {
-    for (const folder of import_vscode59.workspace.workspaceFolders || []) {
+    for (const folder of import_vscode60.workspace.workspaceFolders || []) {
       const root = folder.uri.fsPath;
       await this.tryOpenRepository(root);
     }
@@ -22914,7 +23050,7 @@ var SourceControlManager = class {
     }
     const checkParent = level === 0;
     if (await isSvnFolder(path30, checkParent)) {
-      const resourceConfig = import_vscode59.workspace.getConfiguration("svn", import_vscode59.Uri.file(path30));
+      const resourceConfig = import_vscode60.workspace.getConfiguration("svn", import_vscode60.Uri.file(path30));
       const ignoredRepos = new Set(
         (resourceConfig.get("ignoreRepositories") || []).map(
           (p) => normalizePath(p)
@@ -22933,7 +23069,7 @@ var SourceControlManager = class {
       } catch (err) {
         if (err instanceof SvnError) {
           if (err.svnErrorCode === svnErrorCodes.WorkingCopyIsTooOld) {
-            await import_vscode59.commands.executeCommand("svn.upgrade", path30);
+            await import_vscode60.commands.executeCommand("svn.upgrade", path30);
             return;
           }
         }
@@ -22986,9 +23122,9 @@ var SourceControlManager = class {
       );
     }
     if (typeof hint === "string") {
-      hint = import_vscode59.Uri.file(hint);
+      hint = import_vscode60.Uri.file(hint);
     }
-    if (hint instanceof import_vscode59.Uri) {
+    if (hint instanceof import_vscode60.Uri) {
       return this.openRepositoriesSorted().find((liveRepository) => {
         if (!isDescendant(liveRepository.repository.workspaceRoot, hint.fsPath)) {
           return false;
@@ -23091,7 +23227,7 @@ var SourceControlManager = class {
       };
     });
     const placeHolder = "Choose a repository";
-    const pick = await import_vscode59.window.showQuickPick(picks, { placeHolder });
+    const pick = await import_vscode60.window.showQuickPick(picks, { placeHolder });
     return pick && pick.repository;
   }
   async upgradeWorkingCopy(folderPath) {
@@ -23204,22 +23340,22 @@ var SvnFinder = class {
 };
 
 // src/treeView/dataProviders/svnProvider.ts
-var import_vscode63 = require("vscode");
+var import_vscode64 = require("vscode");
 
 // src/treeView/nodes/repositoryNode.ts
 var path28 = __toESM(require("path"));
-var import_vscode62 = require("vscode");
+var import_vscode63 = require("vscode");
 
 // src/treeView/nodes/incomingChangesNode.ts
-var import_vscode61 = require("vscode");
+var import_vscode62 = require("vscode");
 
 // src/treeView/nodes/noIncomingChangesNode.ts
-var import_vscode60 = require("vscode");
+var import_vscode61 = require("vscode");
 var NoIncomingChangesNode = class {
   getTreeItem() {
-    const item = new import_vscode60.TreeItem(
+    const item = new import_vscode61.TreeItem(
       "No Incoming Changes",
-      import_vscode60.TreeItemCollapsibleState.None
+      import_vscode61.TreeItemCollapsibleState.None
     );
     return item;
   }
@@ -23234,9 +23370,9 @@ var IncomingChangesNode = class {
     this.repository = repository;
   }
   getTreeItem() {
-    const item = new import_vscode61.TreeItem(
+    const item = new import_vscode62.TreeItem(
       "Incoming Changes",
-      import_vscode61.TreeItemCollapsibleState.Collapsed
+      import_vscode62.TreeItemCollapsibleState.Collapsed
     );
     item.iconPath = {
       dark: getIconUri2("download", "dark"),
@@ -23277,7 +23413,7 @@ var RepositoryNode = class {
     return path28.basename(this.repository.workspaceRoot);
   }
   getTreeItem() {
-    const item = new import_vscode62.TreeItem(this.label, import_vscode62.TreeItemCollapsibleState.Collapsed);
+    const item = new import_vscode63.TreeItem(this.label, import_vscode63.TreeItemCollapsibleState.Collapsed);
     item.iconPath = {
       dark: getIconUri2("repo", "dark"),
       light: getIconUri2("repo", "light")
@@ -23293,12 +23429,12 @@ var RepositoryNode = class {
 var SvnProvider = class {
   constructor(sourceControlManager) {
     this.sourceControlManager = sourceControlManager;
-    this._onDidChangeTreeData = new import_vscode63.EventEmitter();
+    this._onDidChangeTreeData = new import_vscode64.EventEmitter();
     this._dispose = [];
     this.onDidChangeTreeData = this._onDidChangeTreeData.event;
     this._dispose.push(
-      import_vscode63.window.registerTreeDataProvider("svn", this),
-      import_vscode63.commands.registerCommand(
+      import_vscode64.window.registerTreeDataProvider("svn", this),
+      import_vscode64.commands.registerCommand(
         "svn.treeview.refreshProvider",
         () => this.refresh()
       )
@@ -23333,21 +23469,21 @@ var SvnProvider = class {
 };
 
 // src/historyView/branchChangesProvider.ts
-var import_vscode64 = require("vscode");
+var import_vscode65 = require("vscode");
 var BranchChangesProvider = class {
   constructor(model) {
     this.model = model;
     this._dispose = [];
-    this._onDidChangeTreeData = new import_vscode64.EventEmitter();
+    this._onDidChangeTreeData = new import_vscode65.EventEmitter();
     this.onDidChangeTreeData = this._onDidChangeTreeData.event;
     this._dispose.push(
-      import_vscode64.window.registerTreeDataProvider("branchchanges", this),
-      import_vscode64.commands.registerCommand(
+      import_vscode65.window.registerTreeDataProvider("branchchanges", this),
+      import_vscode65.commands.registerCommand(
         "svn.branchchanges.openDiff",
         this.openDiffCmd,
         this
       ),
-      import_vscode64.commands.registerCommand(
+      import_vscode65.commands.registerCommand(
         "svn.branchchanges.refresh",
         () => this._onDidChangeTreeData.fire(void 0),
         this
@@ -23433,7 +23569,7 @@ var IsSvn18orGreater = class {
 };
 
 // src/svnFileSystemProvider.ts
-var import_vscode65 = require("vscode");
+var import_vscode66 = require("vscode");
 var THREE_MINUTES = 1e3 * 60 * 3;
 var FIVE_MINUTES = 1e3 * 60 * 5;
 var SvnFileSystemProvider = class {
@@ -23441,7 +23577,7 @@ var SvnFileSystemProvider = class {
     this.sourceControlManager = sourceControlManager;
     this.disposables = [];
     this.cache = /* @__PURE__ */ new Map();
-    this._onDidChangeFile = new import_vscode65.EventEmitter();
+    this._onDidChangeFile = new import_vscode66.EventEmitter();
     this.onDidChangeFile = this._onDidChangeFile.event;
     this.changedRepositoryRoots = /* @__PURE__ */ new Set();
     this.disposables.push(
@@ -23449,7 +23585,7 @@ var SvnFileSystemProvider = class {
         this.onDidChangeRepository,
         this
       ),
-      import_vscode65.workspace.registerFileSystemProvider("svn", this, {
+      import_vscode66.workspace.registerFileSystemProvider("svn", this, {
         isReadonly: true,
         isCaseSensitive: true
       })
@@ -23464,9 +23600,9 @@ var SvnFileSystemProvider = class {
     this.fireChangeEvents();
   }
   async fireChangeEvents() {
-    if (!import_vscode65.window.state.focused) {
+    if (!import_vscode66.window.state.focused) {
       const onDidFocusWindow = filterEvent(
-        import_vscode65.window.onDidChangeWindowState,
+        import_vscode66.window.onDidChangeWindowState,
         (e) => e.focused
       );
       await eventToPromise(onDidFocusWindow);
@@ -23476,7 +23612,7 @@ var SvnFileSystemProvider = class {
       const fsPath = uri.fsPath;
       for (const root of this.changedRepositoryRoots) {
         if (isDescendant(root, fsPath)) {
-          events.push({ type: import_vscode65.FileChangeType.Changed, uri });
+          events.push({ type: import_vscode66.FileChangeType.Changed, uri });
           break;
         }
       }
@@ -23494,7 +23630,7 @@ var SvnFileSystemProvider = class {
     const { fsPath } = fromSvnUri(uri);
     const repository = this.sourceControlManager.getRepository(fsPath);
     if (!repository) {
-      throw import_vscode65.FileSystemError.FileNotFound;
+      throw import_vscode66.FileSystemError.FileNotFound;
     }
     let size = 0;
     let mtime = (/* @__PURE__ */ new Date()).getTime();
@@ -23507,7 +23643,7 @@ var SvnFileSystemProvider = class {
     } catch (error) {
       console.error("Failed to list SVN file:", error);
     }
-    return { type: import_vscode65.FileType.File, size, mtime, ctime: 0 };
+    return { type: import_vscode66.FileType.File, size, mtime, ctime: 0 };
   }
   readDirectory() {
     throw new Error("readDirectory is not implemented");
@@ -23520,7 +23656,7 @@ var SvnFileSystemProvider = class {
     const { fsPath, extra, action } = fromSvnUri(uri);
     const repository = this.sourceControlManager.getRepository(fsPath);
     if (!repository) {
-      throw import_vscode65.FileSystemError.FileNotFound();
+      throw import_vscode66.FileSystemError.FileNotFound();
     }
     const cacheKey = uri.toString();
     const timestamp = (/* @__PURE__ */ new Date()).getTime();
@@ -23562,7 +23698,7 @@ var SvnFileSystemProvider = class {
     const cache = /* @__PURE__ */ new Map();
     for (const row of this.cache.values()) {
       const { fsPath } = fromSvnUri(row.uri);
-      const isOpen = import_vscode65.workspace.textDocuments.filter((d) => d.uri.scheme === "file").some((d) => pathEquals(d.uri.fsPath, fsPath));
+      const isOpen = import_vscode66.workspace.textDocuments.filter((d) => d.uri.scheme === "file").some((d) => pathEquals(d.uri.fsPath, fsPath));
       if (isOpen || now - row.timestamp < THREE_MINUTES) {
         cache.set(row.uri.toString(), row);
       } else {
@@ -23622,8 +23758,8 @@ async function init(extensionContext, outputChannel, disposables) {
   console.log("SVN Extension: init() complete");
 }
 async function _activate(context, disposables) {
-  const outputChannel = import_vscode66.window.createOutputChannel("Svn");
-  import_vscode66.commands.registerCommand("svn.showOutput", () => outputChannel.show());
+  const outputChannel = import_vscode67.window.createOutputChannel("Svn");
+  import_vscode67.commands.registerCommand("svn.showOutput", () => outputChannel.show());
   disposables.push(outputChannel);
   const showOutput = configuration.get("showOutput");
   if (showOutput) {
@@ -23647,7 +23783,7 @@ async function _activate(context, disposables) {
       const findSvnExecutable = "Find SVN executable";
       const download = "Download SVN";
       const neverShowAgain = "Don't Show Again";
-      const choice = await import_vscode66.window.showWarningMessage(
+      const choice = await import_vscode67.window.showWarningMessage(
         "SVN not found. Install it or configure it using the 'svn.path' setting.",
         findSvnExecutable,
         download,
@@ -23660,7 +23796,7 @@ async function _activate(context, disposables) {
             svn: ["exe", "bat"]
           };
         }
-        const executable = await import_vscode66.window.showOpenDialog({
+        const executable = await import_vscode67.window.showOpenDialog({
           canSelectFiles: true,
           canSelectFolders: false,
           canSelectMany: false,
@@ -23673,9 +23809,9 @@ async function _activate(context, disposables) {
           await tryInit();
         }
       } else if (choice === download) {
-        import_vscode66.commands.executeCommand(
+        import_vscode67.commands.executeCommand(
           "vscode.open",
-          import_vscode66.Uri.parse("https://subversion.apache.org/packages.html")
+          import_vscode67.Uri.parse("https://subversion.apache.org/packages.html")
         );
       } else if (choice === neverShowAgain) {
         await configuration.update("ignoreMissingSvnWarning", true);
@@ -23688,11 +23824,11 @@ async function activate(context) {
   console.log("SVN Extension: activate() called");
   const disposables = [];
   context.subscriptions.push(
-    new import_vscode66.Disposable(() => import_vscode66.Disposable.from(...disposables).dispose())
+    new import_vscode67.Disposable(() => import_vscode67.Disposable.from(...disposables).dispose())
   );
   await _activate(context, disposables).catch((err) => {
     console.error("SVN Extension: Activation failed", err);
-    import_vscode66.window.showErrorMessage(`SVN Extension activation failed: ${err.message || err}`);
+    import_vscode67.window.showErrorMessage(`SVN Extension activation failed: ${err.message || err}`);
   });
   console.log("SVN Extension: activation complete");
 }

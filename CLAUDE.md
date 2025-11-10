@@ -46,6 +46,20 @@
 - Handles file decorations and change lists
 - Zero dependencies on Repository class
 
+**Resource Group Manager (`src/services/resourceGroupManager.ts`)**
+
+- Manages VS Code resource groups lifecycle
+- Changelist creation and disposal
+- Resource ordering and updates
+- Zero Repository dependencies
+
+**Remote Change Service (`src/services/remoteChangeService.ts`)**
+
+- Manages remote change polling timers
+- Interval setup and teardown
+- Remote status check coordination
+- Minimal dependencies
+
 **Base Repository (`src/svnRepository.ts`)**
 
 - Lower-level repository operations
