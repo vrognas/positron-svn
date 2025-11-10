@@ -1,3 +1,78 @@
+## [2.17.33] (2025-11-10)
+
+### Planning
+
+* Update IMPLEMENTATION_PLAN: Phase 4.5b complete status
+* Metrics dashboard: Build ✅, DX ✅, URL validation ✅, validateRevision ✅
+* CRITICAL vulns: 2→1 (password deferred, URL+revision complete)
+* Next: Phase 4a - Security Foundation tests (Week 1, 6 days)
+* Findings: validateRevision only 1 user input (not 11 files as estimated)
+
+## [2.17.32] (2025-11-10)
+
+### Security
+
+* Add URL validation to switchBranch command (SSRF/command injection prevention)
+* Import and apply validateRepositoryUrl before branch.path operations
+* Validate branch URLs: only http://, https://, svn://, svn+ssh:// allowed
+* Assess validateRevision scope: only 1 user input (search_log_by_revision, already protected)
+* Phase 4.5b: URL validation 100%, validateRevision 100% (1/1 inputs validated)
+
+## [2.17.31] (2025-11-10)
+
+### Build
+
+* Fix 5 TypeScript compilation errors (dayjs imports, SvnDepth types)
+* Add esModuleInterop to tsconfig.json
+* Type promptDepth() return as keyof typeof SvnDepth
+
+### DX
+
+* Add incremental TS compilation (tsconfig: incremental, tsBuildInfoFile)
+* Parallelize pretest hook: npm-run-all --parallel build:ts lint (25-40s faster)
+* Add test:fast script (skip lint, 15-20s faster for local dev)
+* Add .tsbuildinfo to .gitignore
+* Install npm-run-all devDependency
+
+## [2.17.30] (2025-11-10)
+
+### Planning
+
+* 5 parallel subagents analyzed implementation plan gaps
+* Build priority: FIX FIRST (5 TS errors block tests/validation)
+* Phase 4.5a gap: 30-40% complete (validateRevision 1/12 files, URL validation partial)
+* DX timing: NOW (immediate ROI on dev cycles)
+* Phase 4a: Add integration tests + explicit error handling (2 days each)
+* Revise IMPLEMENTATION_PLAN: Build→DX→Security sequence, 6-day Phase 4a
+* Update metrics: validateRevision 1/12, URL validation checkout only
+* Critical findings: integration testing missing, error handling underscheduled
+
+## [2.17.29] (2025-11-10)
+
+### Analysis
+
+* 5 parallel subagents resolved performance optimization questions
+* Parallelize external getInfo: NO (@sequentialize blocks, batch paths instead)
+* Cache external mappings: YES (Set once per call, O(1) lookup, instant rebuild)
+* Index conflict patterns: YES (Set<string>, 25k→50 iterations, 500x faster)
+* Watcher debounce timing: NO increase (remove double-debounce instead)
+* Extract DeletedFileHandler: DEFER (fuzzy coupling, low ROI vs Phase 2)
+* Update IMPLEMENTATION_PLAN: resolve all 5 questions with decisions
+
+## [2.17.28] (2025-11-10)
+
+### Documentation
+
+* Multi-agent deep analysis: 5 parallel subagents (performance, code review, docs, errors, DX)
+* Performance bottlenecks identified: 5 critical (O(n²) algorithms, memory leaks, network saturation)
+* Code bloat audit: ~530 lines removable (duplicate commands, thin wrappers, dead code)
+* Error handling gaps: 5 user-facing scenarios (unhandled promises, generic errors, race conditions)
+* DX bottlenecks: build broken, sequential pretest, no incremental TS
+* Delete obsolete docs: DEPENDENCY_ASSESSMENT (1,667), PHASE_0_3_DELIVERY (318), StatusService-Design (296)
+* Consolidate docs: 13 → 13 core files, -2,281 lines (43% reduction)
+* Update IMPLEMENTATION_PLAN: 363 → 212 lines, focus next 2 phases only
+* Update CLAUDE.md, ARCHITECTURE_ANALYSIS.md: Phase 2 complete status
+
 ## [2.17.27] (2025-11-10)
 
 ### Documentation

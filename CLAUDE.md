@@ -31,40 +31,35 @@
 - Handles multiple repositories and externals
 - Manages repository lifecycle (open/close)
 
-**Repository (`src/repository.ts`)**
+**Repository (`src/repository.ts`)** - 923 lines (Phase 2 refactored)
 
-- Represents a single SVN working copy
-- Manages resource groups (changes, unversioned, conflicts, changelists)
-- Coordinates operations through `run()` method
-- Handles remote change detection and status bar
-- Stores authentication using VS Code SecretStorage API
+- Represents a single SVN working copy, coordinates operations
+- Delegates to specialized services (StatusService, ResourceGroupManager, RemoteChangeService)
+- Handles file watching, operation queue, auth credential caching
+- VS Code SecretStorage API integration
 
-**Status Service (`src/services/statusService.ts`)**
+**Status Service (`src/services/statusService.ts`)** - 355 lines (Phase 2)
 
-- Stateless service for model state updates
-- Processes SVN status into resource groups
-- Handles file decorations and change lists
-- Zero dependencies on Repository class
-
-**Resource Group Manager (`src/services/resourceGroupManager.ts`)**
-
-- Manages VS Code resource groups lifecycle
-- Changelist creation and disposal
-- Resource ordering and updates
+- Stateless service for SVN status processing
+- Converts status output to resource groups
+- File decorations and changelist handling
 - Zero Repository dependencies
 
-**Remote Change Service (`src/services/remoteChangeService.ts`)**
+**Resource Group Manager (`src/services/resourceGroupManager.ts`)** - 298 lines (Phase 2)
 
-- Manages remote change polling timers
-- Interval setup and teardown
-- Remote status check coordination
-- Minimal dependencies
+- Manages VS Code resource groups lifecycle
+- Changelist creation/disposal, resource ordering
+- Zero Repository dependencies
 
-**Base Repository (`src/svnRepository.ts`)**
+**Remote Change Service (`src/services/remoteChangeService.ts`)** - 107 lines (Phase 2)
 
-- Lower-level repository operations
-- Direct SVN command execution (status, commit, update, etc.)
-- Parses SVN output (status, log, info)
+- Remote change polling timer management
+- Interval setup/teardown, minimal dependencies
+
+**Base Repository (`src/svnRepository.ts`)** - 970 lines
+
+- Lower-level SVN operations (status, commit, update, etc.)
+- Command execution and output parsing
 
 ### Command Pattern
 

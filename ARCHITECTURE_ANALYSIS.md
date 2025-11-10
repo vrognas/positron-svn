@@ -232,23 +232,22 @@ positronImpl/   // Positron implementation
 4. ⚠️ Create UI abstraction interfaces
 5. ⚠️ Implement VS Code providers for interfaces
 
-### Phase 2: Refactoring ✅ **COMPLETE**
-1. ✅ **COMPLETE** Refactor Repository (1,179 → 923 lines, 22% reduction)
-   - ✅ StatusService extracted (355 lines) - v2.17.17
-   - ✅ ResourceGroupManager extracted (298 lines) - v2.17.18
-   - ✅ RemoteChangeService extracted (107 lines) - v2.17.18
-2. ✅ ~~Eliminate unsafe `any` types~~ (v2.17.5-v2.17.8: 21 errors fixed)
-3. ⚠️ Create unified error handling
+### Phase 2: Refactoring ✅ **COMPLETE** (v2.17.17-18)
+1. ✅ Refactored Repository (1,179 → 923 lines, 22% reduction)
+   - StatusService (355 lines), ResourceGroupManager (298), RemoteChangeService (107)
+2. ✅ Eliminated unsafe `any` types (v2.17.5-v2.17.8: strict mode)
+3. ⚠️ Unified error handling (deferred to Phase 4a)
 
-### Phase 3: Testing
-1. ⚠️ Increase test coverage to 50%+
-2. ⚠️ Add integration tests
-3. ⚠️ Performance benchmarks
+### Phase 4a: Security Foundation (Next - Week 1)
+1. ⚠️ Critical security fixes (password exposure, URL validation)
+2. ⚠️ Validator tests (boundary cases, malicious input)
+3. ⚠️ Parser tests (real fixtures, edge cases)
+4. ⚠️ Target: 25-30% test coverage
 
-### Phase 4: Positron Implementation
-1. ⚠️ Implement Positron UI classes
-2. ⚠️ Handle platform-specific APIs
-3. ⚠️ Cross-platform testing
+### Phase 2b: AuthService Extraction (Next - Week 1)
+1. ⚠️ Extract auth logic (70 lines, repository.ts:735-806)
+2. ⚠️ Auth security tests (3 TDD tests)
+3. ⚠️ Target: Repository < 860 lines
 
 ---
 

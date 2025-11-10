@@ -5,3 +5,4 @@
 /out
 /test-reports
 positron-svn*.vsix
+.tsbuildinfo

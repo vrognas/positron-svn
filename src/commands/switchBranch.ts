@@ -2,6 +2,7 @@ import { window } from "vscode";
 import { ISvnErrorData } from "../common/types";
 import { selectBranch } from "../helpers/branch";
 import { Repository } from "../repository";
+import { validateRepositoryUrl } from "../validation";
 import { Command } from "./command";
 
 export class SwitchBranch extends Command {
@@ -13,6 +14,14 @@ export class SwitchBranch extends Command {
     const branch = await selectBranch(repository, true);
 
     if (!branch) {
+      return;
+    }
+
+    // Validate branch URL to prevent SSRF and command injection
+    if (!validateRepositoryUrl(branch.path)) {
+      window.showErrorMessage(
+        `Invalid branch URL. Only http://, https://, svn://, and svn+ssh:// protocols are allowed.`
+      );
       return;
     }
 
