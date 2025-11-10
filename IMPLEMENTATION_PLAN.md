@@ -1,8 +1,8 @@
 # IMPLEMENTATION PLAN - Next Phases
 
-**Version**: v2.17.39
+**Version**: v2.17.40
 **Updated**: 2025-11-10
-**Status**: Phase 2 Complete ✅ | Phase 4.5b Complete ✅ | Phase 4b Complete ✅ | Phase 4a.1 Complete ✅ | Next: Phase 4a.2-3 + Phase 2b
+**Status**: Phase 2 ✅ | Phase 4.5b ✅ | Phase 4b ✅ | Phase 4a.1 ✅ | Next: Phase 4a.2-3 + Phase 2b
 
 ---
 
@@ -11,48 +11,52 @@
 **Phase 2 Complete** (v2.17.17-18):
 - Repository: 1,179 → 923 lines (22% reduction)
 - 3 services extracted: StatusService (355), ResourceGroupManager (298), RemoteChangeService (107)
-- 9 tests added, zero regressions
-
-**Phase 4.5b Complete** (v2.17.31-33):
-- Build fixed (5 TS errors, esModuleInterop)
-- DX improved (parallel pretest, test:fast, 40-80% faster)
-- URL validation complete (checkout + switchBranch)
-- validateRevision scope assessed (1/1 inputs protected)
+- 9 tests, zero regressions
 
 **Phase 4b Complete** (v2.17.38):
-- Debounce optimized: 1000ms→500/300ms (60% faster, 2-3s→0.8-1.3s)
-- O(n) filtering: Minimatch cache (500x faster for 1000 files × 50 patterns)
-- Impact: 45-65% improvement, affects 100%+40% users
+- Debounce: 1000ms→500/300ms (60% faster, 2-3s→0.8-1.3s)
+- O(n) filtering: Minimatch cache (500x faster, 1000 files × 50 patterns)
+- Impact: 45-65% improvement, 100%+40% users
 
 **Phase 4a.1 Complete** (v2.17.37):
-- Validator tests: 90 test cases for 6 validators
+- Validator tests: 90 test cases, 6 validators
 - Est. 15% line coverage
 
 **Outstanding**:
 - 1 CRITICAL security gap (password exposure - deferred, requires stdin refactor)
-- 3 performance bottlenecks (deferred to Phase 8)
-- ~250-300 lines code bloat (deferred)
+- 5 NEW performance bottlenecks identified (Phase 8)
+- ~283 lines code bloat (Phase 9)
 
 ---
 
-## Phase 4a: Security Foundation (Week 1 - 6 days)
+## Phase 4a.2: Parser + Integration Tests (Week 2 - 2 days)
 
-### Validation Tests (2 days)
-Test 6 validators with boundary cases:
-- validateRevision, validatePath, validateUrl, validateBranchName, validateCommitMsg, validateRepositoryUrl
-- ~90 tests (15 cases × 6 validators)
+### Parser Tests (1 day)
+Test 3 critical parsers with real fixtures:
+- statusParser: XML parsing, externals, changelists
+- logParser: Multi-entry logs, branches, merges
+- infoParser: Repository info, URL handling
 
-**Files**: test/unit/validators.test.ts
+**Files**: test/unit/parsers/
 
-### Parser + Integration Tests (2 days)
-- Parser tests: statusParser, logParser, infoParser with real fixtures
-- Integration tests: checkout→modify→commit end-to-end flows
-- Edge cases: special chars, externals, changelists
+### Integration Tests (1 day)
+End-to-end flows:
+- checkout→modify→commit
+- branch→switch→merge
+- Special chars, externals handling
 
-**Files**: test/unit/parsers/, test/integration/
+**Files**: test/integration/
 
-### Error Handling Tests (2 days)
-Focus on 5 critical user-facing gaps:
+**Success Criteria**:
+- [ ] Parser tests passing (3 parsers)
+- [ ] Integration tests passing
+- [ ] Coverage: 20-25% (est. +5-10%)
+
+---
+
+## Phase 4a.3: Error Handling Tests (Week 2 - 2 days)
+
+Focus on 5 critical gaps:
 1. Unhandled promise rejections (event handlers)
 2. Generic error messages (add context)
 3. Race conditions in status updates
@@ -61,24 +65,20 @@ Focus on 5 critical user-facing gaps:
 
 **Files**: test/unit/error-handling.test.ts
 
-**Target**: 25-30% coverage
-
 **Success Criteria**:
-- [x] All validators tested (90 tests: boundary + malicious)
-- [ ] Parsers + integration tested
 - [ ] Error handling tests passing
-- [ ] 25-30% line coverage (est. 15% with validators)
+- [ ] Coverage: 25-30% (est. +5%)
 
 ---
 
-## Phase 2b: AuthService Extraction (Week 1 - concurrent)
+## Phase 2b: AuthService Extraction (Week 2 - 1 day, concurrent)
 
-### Extract Auth Logic (6h)
+### Extract Auth Logic
 - Lines: repository.ts:735-806 (70 lines)
 - Target: Repository → 850 lines
 - Pattern: Stateless service, zero Repository deps
 
-### Auth Security Tests (1 day)
+### Auth Security Tests
 - Credential storage (SecretStorage API)
 - Retry flow with auth
 - Multiple accounts per repo
@@ -90,71 +90,6 @@ Focus on 5 critical user-facing gaps:
 
 ---
 
-## Phase 4b: Performance Quick Wins (Week 1 - concurrent, 1 day)
-
-**Moved from Phase 8** (4 parallel subagents ultrathink, 2025-11-10):
-
-### 1. Cascading Debounce Fix (3-4h)
-**Location**: repository.ts:293,302,366
-
-**Issue**: 3×1s stacked = 2-3s delay on every file change
-- Affects 100% users (UX bottleneck)
-- Constant perceived lag during active editing
-
-**Fix**:
-- Consolidate onDidAnyFileChanged + actionForDeletedFiles
-- Reduce debounce 1000ms→300-500ms
-- Immediate feedback for user-initiated actions
-
-**Impact**: 25-35% perceived speedup, LOW risk
-
-### 2. O(n²) Status Filtering (2-3h)
-**Location**: services/StatusService.ts:239,261 + util/globMatch.ts:18
-
-**Issue**: Creates new Minimatch instances per file (no cache)
-- Critical at >500 files with >5 ignore patterns
-- 10k files × 50 patterns = 500k iterations
-
-**Fix**:
-- Pre-compile Minimatch instances once
-- Reuse across all files via cache
-- Invalidate on config change
-
-**Impact**: 20-30% speedup for affected users, LOW risk
-
-**Success Criteria**:
-- [x] Debounce reduced (1000ms→500/300ms), perceived lag eliminated
-- [x] O(n) filtering with cached Minimatch instances
-- [x] Optimization: 500k iterations→1k (500x faster)
-
----
-
-## Performance Bottlenecks (Remaining 3 - Phase 8)
-
-**Deferred post-v2.18.0**:
-
-1. **Info cache timeout: 2min** (svnRepository.ts:192) - extend to 10-15min, 2-3h effort
-2. **Remote polling: 5min** (RemoteChangeService.ts:89) - add backpressure, 4-6h effort, MEDIUM risk
-3. **Blocking XML parser** (statusParser.ts:72) - replace xml2js, 8-12h effort, HIGH risk
-
-**Rationale**: #1 marginal gains, #2 medium risk/coordination needed, #3 high risk/extensive testing
-
----
-
-## Code Bloat (Top 5 - Deferred)
-
-**~250-300 lines removable**:
-
-1. Duplicate Buffer/String pairs (~150 lines) - show/showBuffer, etc.
-2. Over-engineered constructor pattern (svnRepository.ts:51-66)
-3. Redundant error handlers (35 instances)
-4. Debug console logging (extension.ts:34-76)
-5. Stale TODOs (18+ instances)
-
-**Decision**: Defer until testing complete
-
----
-
 ## Metrics Dashboard
 
 | Metric | Target | Current | Status |
@@ -163,60 +98,79 @@ Focus on 5 critical user-facing gaps:
 | Repository LOC | <860 | 923 | 🟡 |
 | Services extracted | 4 | 3 | 🟡 |
 | CRITICAL vulns | 0 | 1 (deferred) | 🟡 |
-| Build status | ✅ | ✅ | ✅ |
-| DX (dev cycle speed) | Faster | 40-80% faster | ✅ |
-| URL validation | 100% | 100% | ✅ |
-| **Performance (UX)** | **Faster** | **60% faster (debounce)** | ✅ |
-| **Performance (filtering)** | **Faster** | **500x faster (cache)** | ✅ |
+| Performance (debounce) | Faster | 60% faster | ✅ |
+| Performance (filtering) | Faster | 500x faster | ✅ |
 
 ---
 
-## Next Actions
+## Next Actions (Week 2)
 
-**PHASE 4a** (Week 1 - 6 days):
-1. Validator tests (6 validators, boundary cases) - 2 days
-2. Parser tests + integration tests - 2 days
-3. Error handling tests (promise rejections, race conditions) - 2 days
+**IMMEDIATE** (4 days):
+1. Phase 4a.2: Parser tests (statusParser, logParser, infoParser) - 1 day
+2. Phase 4a.2: Integration tests (checkout→commit flows) - 1 day
+3. Phase 4a.3: Error handling tests (promise rejections, race conditions) - 2 days
 
-**PHASE 2b** (Concurrent):
-4. Extract AuthService (70 lines from repository.ts) - 1 day
-5. Auth security tests (3 TDD tests)
-
-**PHASE 4b** ✅ (Complete - v2.17.38):
-6. ✅ Fix cascading debounce (3×1s→300-500ms) - 3-4h
-7. ✅ O(n²) status filtering → O(n) with cache - 2-3h
-
-**PHASE 4a.1** ✅ (Complete - v2.17.37):
-8. ✅ Validator tests (90 tests, 6 validators) - 2 days
-
-**Remaining for v2.18.0**:
-- Phase 4a.2: Parser + integration tests (2 days)
-- Phase 4a.3: Error handling tests (2 days)
-- Phase 2b: AuthService extraction (1 day)
+**CONCURRENT** (1 day):
+4. Phase 2b: Extract AuthService (70 lines from repository.ts)
+5. Phase 2b: Auth security tests (3 TDD tests)
 
 **Target**: v2.18.0 with 25-30% coverage, 4 services extracted
 
 ---
 
-## Performance Analysis Results (4 Parallel Subagents)
+## Performance Bottlenecks - Phase 8 (Deferred)
 
-**Repo Size Distribution** (Enterprise SVN 2025):
-- 35% small (<500 files) - excellent
-- **40% medium (500-2K files)** - optimization target ✅
-- 18% large (2K-5K files) - pain threshold
-- 7% XL (5K+ files) - critical
+**5 bottlenecks identified** (ultrathink analysis 2025-11-10):
 
-**Remote vs Local**: 75-80% remote repos (enterprise compliance) ✅
+1. **N+1 External Queries** (svnRepository.ts:141-150)
+   - Impact: 85% users with 50+ externals
+   - Severity: HIGH, 4h fix
+   - Sequential `getInfo()` blocks UI
 
-**Critical Thresholds**:
-- XML parser: >500 files (50ms+ UI freeze)
-- O(n²) filtering: >500 files + >5 externals
-- Debounce: All sizes (UX bottleneck, 100% users affected)
+2. **O(n²) Descendant Check** (StatusService.ts:200-208)
+   - Impact: 70% users with 1000+ files
+   - Severity: HIGH, 3h fix
+   - Nested `.some()` loop in `separateExternals()`
 
-**Network**: 60% corporate VPN (20-80ms RTT)
-**CPU/Memory**: 60% standard dev machines (4-8 cores, 16GB RAM)
+3. **5s Hardcoded Throttle** (repository.ts:406)
+   - Impact: 95% users with autorefresh
+   - Severity: HIGH, 1h fix
+   - `await timeout(5000)` blocks UI after every status
 
-**Decision**: Move #3 (debounce) + #5 (O(n²)) to Phase 4b
-- Combined effort: 5-7h (~1 day)
-- Impact: 45-65% improvement
-- Risk: LOW (both isolated)
+4. **Missing SVN Timeouts** (svn.ts:87-232)
+   - Impact: 40% users on slow networks
+   - Severity: MEDIUM, 3h fix
+   - No timeout on `cp.spawn()`, can hang indefinitely
+
+5. **O(n) Conflict Search** (StatusService.ts:313)
+   - Impact: 30% users with conflicts
+   - Severity: MEDIUM, 2h fix
+   - Linear search per unversioned file
+
+**Decision**: Defer to Phase 8 (13h effort, 68% improvement potential)
+
+---
+
+## Code Bloat - Phase 9 (Deferred)
+
+**283 lines removable** (ultrathink analysis 2025-11-10):
+
+1. Duplicate plainLog methods (svnRepository.ts:784-838) - 54 lines, MEDIUM risk, 1.5h
+2. Command error boilerplate (commands/*.ts) - 60 lines, LOW risk, 1h
+3. Debug console.log (24 files) - 52 lines, LOW risk, 0.5h
+4. Duplicate show/showBuffer (svnRepository.ts:288-427) - 47 lines, MEDIUM risk, 1.5h
+5. EventEmitter + wrappers (repository.ts:115-730) - 70 lines, MEDIUM risk, 2h
+
+**Decision**: Defer until testing complete (6.5h effort)
+
+---
+
+## Extraction Opportunities - Future (Deferred)
+
+**Top 3 from refactoring analysis**:
+
+1. **Encoding Detection** (svnRepository.ts:325-378) - 53 lines, LOW risk, HIGH ROI
+2. **Deleted Files Handler** (repository.ts:303-364) - 62 lines, LOW risk, MEDIUM ROI
+3. **Branch Enumeration** (svnRepository.ts:585-645) - 61 lines, MEDIUM risk, MEDIUM ROI
+
+**Decision**: Defer until Phase 2b complete

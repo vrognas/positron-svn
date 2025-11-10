@@ -1,3 +1,23 @@
+## [2.17.40] (2025-11-10)
+
+### Documentation
+
+* **Audit**: Performance bottlenecks identified (5 new, Phase 8 deferred)
+  - N+1 external queries (85% users, HIGH, 4h)
+  - O(n²) descendant check (70% users, HIGH, 3h)
+  - 5s hardcoded throttle (95% users, HIGH, 1h)
+  - Missing SVN timeouts (40% users, MEDIUM, 3h)
+  - O(n) conflict search (30% users, MEDIUM, 2h)
+* **Audit**: Code bloat identified (283 lines, Phase 9 deferred)
+  - Duplicate plainLog methods (54 lines)
+  - Command error boilerplate (60 lines)
+  - Debug console.log (52 lines)
+  - Duplicate show/showBuffer (47 lines)
+  - EventEmitter + wrappers (70 lines)
+* **Cleanup**: Deleted DX_ANALYSIS.md (outdated)
+* **Updated**: IMPLEMENTATION_PLAN.md (focus Phase 4a.2-3 + Phase 2b only)
+* **Updated**: ARCHITECTURE_ANALYSIS.md (streamlined, current state)
+
 ## [2.17.39] (2025-11-10)
 
 ### Summary
