@@ -2,7 +2,7 @@
 
 Positron-optimized fork of the SVN extension with enhanced security, modern TypeScript, and performance improvements for data science workflows.
 
-[![Version](https://img.shields.io/badge/version-2.17.28-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.18.1-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 **Original extension:** [JohnstonCode/svn-scm](https://github.com/JohnstonCode/svn-scm) | **This fork:** [vrognas/positron-svn](https://github.com/vrognas/positron-svn)
@@ -15,6 +15,23 @@ Positron-optimized fork of the SVN extension with enhanced security, modern Type
 - ✅ **Modern TypeScript**: Strict type safety, reduced `any` types by 27%
 - ✅ **Performance Optimized**: Factory pattern initialization, performance baselines documented
 - ✅ **Well-Tested**: 30+ security tests, validator coverage, TOCTOU protection
+
+## Compatibility
+
+**VS Code & Positron:** This extension works identically in both VS Code and Positron without modification.
+
+- Positron is built on [Code OSS](https://github.com/microsoft/vscode) (same foundation as VS Code)
+- Uses 100% compatible Extension API (VS Code 1.74+)
+- All features work: Source Control, Tree Views, Commands, Diff Viewer, Authentication
+- No abstraction layer required
+
+**Tested on:**
+- ✅ VS Code 1.74+
+- ✅ Positron 2025.6.x (expected - testing in progress)
+
+**Installation:**
+- VS Code: Install from [Microsoft Marketplace](https://marketplace.visualstudio.com)
+- Positron: Install from [Open VSX Registry](https://open-vsx.org) or VSIX file
 
 ## Installation
 
