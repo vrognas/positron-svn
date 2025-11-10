@@ -1,8 +1,8 @@
 # IMPLEMENTATION PLAN - Next Phases
 
-**Version**: v2.17.29
+**Version**: v2.17.30
 **Updated**: 2025-11-10
-**Status**: Phase 2 Complete ✅ | Audit Complete | Next: Security & Testing
+**Status**: Phase 2 Complete ✅ | Audit Complete | Plan Revised | Next: Build Fix → DX → Security
 
 ---
 
@@ -21,51 +21,68 @@
 
 ---
 
-## Phase 4.5a: Critical Security (IMMEDIATE - 4 hours)
+## Phase 4.5a: Critical Security (INCOMPLETE - 40% done)
 
-**Priority**: BLOCKER - must fix before any other work
+**Status**: Partial implementation, gaps identified
 
-### Security Fixes
-1. **Password exposure in process args** (2h)
-   - File: svn.ts - use stdin for credentials
-   - Impact: CRITICAL - trivial exploit
+### Completed
+- ✅ validateRepositoryUrl() added, applied to checkout.ts
+- ✅ validateRevision() applied to search_log_by_revision.ts (1/12 files)
+- ⚠️ Password exposure: documented as TODO, not implemented
 
-2. **URL validation missing** (1h)
-   - Files: checkout, switch commands
-   - Impact: CRITICAL - SSRF/command injection
+### Remaining (Phase 4.5b - 6 hours)
+1. **URL validation gaps** (1h)
+   - Missing: switchBranch.ts, update.ts
+   - Impact: CRITICAL - SSRF/command injection still possible
 
-3. **Apply validateRevision()** (1h)
-   - Locations: 12+ command files
-   - Impact: HIGH - input sanitization
+2. **Apply validateRevision to 11 files** (2h)
+   - Files: update, merge, diff, patch, log, info, etc.
+   - Impact: HIGH - input sanitization incomplete
 
-**Success Criteria**:
-- [x] Zero password leaks in process args
-- [x] URL validation on all checkout/switch
-- [x] validateRevision applied everywhere
+3. **Password exposure** (deferred)
+   - File: svn.ts - requires stdin refactor
+   - Impact: CRITICAL - process args expose credentials
+
+4. **Security tests** (3h)
+   - Validator boundary tests
+   - URL injection tests
+   - Revision validation tests
 
 ---
 
-## Phase 4a: Security Foundation (Week 1 - 5 days)
+## Phase 4a: Security Foundation (Week 1 - 6 days revised)
 
-### Validation Tests (3 days)
-Test all 5 validators with boundary cases:
-- validateRevision, validatePath, validateUrl, validateBranchName, validateCommitMsg
+### Validation Tests (2 days)
+Test 6 validators with boundary cases:
+- validateRevision, validatePath, validateUrl, validateBranchName, validateCommitMsg, validateRepositoryUrl
+- ~90 tests (15 cases × 6 validators)
 
 **Files**: test/unit/validators.test.ts
 
-### Parser Tests (2 days)
-Test with real SVN fixtures:
-- statusParser, logParser, infoParser
+### Parser + Integration Tests (2 days)
+- Parser tests: statusParser, logParser, infoParser with real fixtures
+- Integration tests: checkout→modify→commit end-to-end flows
 - Edge cases: special chars, externals, changelists
 
-**Files**: test/unit/parsers/
+**Files**: test/unit/parsers/, test/integration/
+
+### Error Handling Tests (2 days)
+Focus on 5 critical user-facing gaps:
+1. Unhandled promise rejections (event handlers)
+2. Generic error messages (add context)
+3. Race conditions in status updates
+4. Silent auth failures
+5. Activation failures
+
+**Files**: test/unit/error-handling.test.ts
 
 **Target**: 25-30% coverage
 
 **Success Criteria**:
-- [x] All validators tested (boundary + malicious input)
-- [x] Parsers tested with real fixtures
-- [x] 25-30% line coverage
+- [ ] All validators tested (boundary + malicious)
+- [ ] Parsers + integration tested
+- [ ] Error handling tests passing
+- [ ] 25-30% line coverage
 
 ---
 
@@ -170,24 +187,41 @@ Test with real SVN fixtures:
 | Test coverage (line) | 25-30% | 12% | 🔴 |
 | Repository LOC | <860 | 923 | 🟡 |
 | Services extracted | 4 | 3 | 🟡 |
-| CRITICAL vulns | 0 | 2 | 🔴 |
-| Build status | ✅ | 🔴 Broken | 🔴 |
+| CRITICAL vulns | 0 | 2 (partial fixes) | 🔴 |
+| Build status | ✅ | 🔴 Broken (5 TS errors) | 🔴 |
+| validateRevision applied | 12+ files | 1 file | 🔴 |
+| URL validation | checkout+switch | checkout only | 🟡 |
 
 ---
 
-## Next Actions (Priority Order)
+## Critical Findings (5 Subagents Analysis)
 
-**TODAY**:
-1. Fix build (TS compilation errors) - 15 min
-2. Fix critical security (passwords + URL) - 4h
-3. DX improvements (parallel pretest, incremental TS) - 45 min
+**Build Priority**: FIX FIRST - 5 TS errors block all tests/validation
+**Phase 4.5a Gap**: 30-40% complete (URL validation incomplete, validateRevision 1/12 files, password TODO)
+**DX Timing**: NOW - immediate ROI on ongoing dev cycles
+**Phase 4a**: FEASIBLE but needs integration tests + explicit error handling scope
+**Missing**: Integration testing, error handling dedicated time
+
+---
+
+## Revised Next Actions
+
+**IMMEDIATE** (30 min):
+1. Fix build (5 TS errors: dayjs imports, canSelectMany) - 5 min
+2. DX improvements (parallel pretest, incremental TS, lint separation) - 25 min
+
+**PHASE 4.5b** (6h - complete security gaps):
+3. URL validation: switchBranch.ts - 1h
+4. Apply validateRevision: 11 remaining files - 2h
+5. Security tests (validators, URL, revision) - 3h
 
 **WEEK 1**:
-4. Security foundation tests - 3 days
-5. Parser tests - 2 days
-6. AuthService extraction - 1 day (concurrent)
+6. Validator tests (5 validators, boundary cases) - 2 days
+7. Parser tests + integration tests - 2 days
+8. Error handling (promise rejections, race conditions) - 2 days
+9. AuthService extraction (concurrent) - 1 day
 
-**Target**: v2.18.0 with security-first foundation
+**Target**: v2.18.0 with complete security + 30% coverage
 
 ---
 
