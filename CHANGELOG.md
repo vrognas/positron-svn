@@ -1,3 +1,17 @@
+## [2.17.27] (2025-11-10)
+
+### Documentation
+
+* Multi-agent performance audit (5 specialists)
+* Identify 15 critical bottlenecks: O(n²) loops, sync operations, polling
+* Code bloat analysis: 200+ lines duplicate commands, excessive wrappers
+* Consolidate docs: 20 → 13 files, eliminate 1000+ redundant lines
+* Merge SECURITY_EXAMPLES → SECURITY_FRAMEWORK
+* Consolidate 3 performance docs → PERFORMANCE_ANALYSIS.md
+* Delete redundant: PHASE_0_3_SUMMARY, VERIFICATION_CHECKLIST
+* Update CONTRIBUTING.md: Node 12.4→20.x, yarn→npm
+* Rename PLAN_UPDATE → IMPLEMENTATION_PLAN with audit findings
+
 ## [2.17.26] (2025-11-10)
 
 ### Refactoring

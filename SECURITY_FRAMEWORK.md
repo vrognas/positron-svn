@@ -153,6 +153,28 @@ Phase 0.4+ considerations:
 - Audit trail for sanitization actions
 - Integration with SIEM systems
 
+## Real-World Examples
+
+### Authentication Error
+**Before:** `C:\Users\john\Projects\myapp with password=MySecureP@ssw0rd123`
+**After:** `[PATH] with password=[REDACTED]`
+
+### Network Error
+**Before:** `https://svn.internal-corp.com:8443/repo --username admin --password corp123!`
+**After:** `[DOMAIN] --username admin --password [REDACTED]`
+
+### API Error
+**Before:** `api_key=sk_live_REDACTED_EXAMPLE, Session: 550e8400-e29b-41d4-a716-446655440000`
+**After:** `api_key=[REDACTED], Session: [UUID]`
+
+### AWS Credential
+**Before:** `Accessing remote with AKIA1234567890ABCDEF`
+**After:** `Accessing remote with [AWS_KEY]`
+
+### Multi-Factor Auth
+**Before:** `fe80::1, Basic YWRtaW46c2VjcmV0IQ==, C:\credentials\vault.json`
+**After:** `[IP], Basic [REDACTED], [PATH]`
+
 ## Related Security Phases
 
 - **Phase 0.1**: Secret scanning in CI/CD

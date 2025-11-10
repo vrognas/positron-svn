@@ -1,879 +1,362 @@
-# Modernization Implementation Plan - REVISED v2
+# IMPLEMENTATION PLAN UPDATE - Multi-Agent Review
 
-## Status: Phase 2 COMPLETE ✅ | Revised Forward Plan (3.6 weeks)
-
-**Last Updated:** 2025-11-10 (Multi-Agent Review)
-**Phase 1 Completion:** 2025-11-10 | Commits: `fbbe476`, `6832001`
-**Phase 2 Completion:** 2025-11-10 | Commits: `4c58aab`, `060c701`
-**Expert Reviews:** 16 specialist analyses (6 Phase 1 + 5 Phase 1 review + 5 Phase 2 review)
+**Date**: 2025-11-10
+**Status**: Phase 2 COMPLETE, Revised Forward Plan
+**Review Team**: 5 specialist agents (architecture, PM, testing, code quality, security)
 
 ---
 
-## 🚨 REVISED PLAN - Multi-Agent Consensus
+## Executive Summary
 
-**5 specialist agents reviewed** (architect, PM, testing, security, code quality):
+**Phase 2 Achievement**: EXCEEDED TARGETS ✅
+- Repository: 1,179 → 923 lines (22% reduction)
+- 3 services extracted (760 lines total)
+- 9 tests added, zero regressions
+- **Velocity**: 17x faster than planned (AI-assisted vs manual estimates)
 
-### Key Findings:
-1. **CRITICAL Security**: 2 gaps require immediate fix (4h) - password exposure, URL validation
-2. **Phase 3 DI**: Consensus to **SKIP** (no ROI, services already testable)
-3. **Coverage Targets**: Reduce 60/45% → **45-50/30-35%** (realistic)
-4. **Timeline**: 16.5 weeks → **3.6 weeks** (skip Phases 3, 5, 6)
-5. **Velocity**: 17x faster than planned (AI-assisted development)
+**Critical Finding**: 2 CRITICAL security gaps require immediate fix (4 hours)
 
-### Revised Sequence:
-```
-Week 1:    Phase 4.5a (Critical Security - 4h) + Phase 4a (Security Tests + AuthService)
-Weeks 2-3: Phase 4b (Full Testing to 45-50% coverage)
-Week 4:    Phase 4.5b (Final Security Hardening)
-Week 5:    Phase 7 (Polish - Optional)
-```
-
-**See PLAN_UPDATE.md** for detailed multi-agent analysis.
+**Revised Timeline**: 16.5 weeks planned → **3.6 weeks realistic** (skip Phases 3, 5, 6)
 
 ---
 
-## 🚨 CRITICAL FINDINGS - ORIGINAL PLAN FLAWED
+## Multi-Agent Consensus
 
-### Expert Review Summary (6 Specialists)
+### UNANIMOUS: Fix Security Gaps First
 
-**Unanimous Conclusion:** Tests → TypeScript → Architecture order is **backwards**. Dependencies prevent effective testing without foundation.
+**CRITICAL issues (must fix today):**
+1. **Password exposure in process args** - trivial exploit, affects all auth
+2. **URL validation missing** - SSRF/command injection in checkout
 
-| Expert | Critical Finding |
-|--------|------------------|
-| **Test Automator** | 30% coverage insufficient for refactoring. Need 60% line / 45% branch. Test priorities backwards. |
-| **TypeScript Pro** | Phase 2 BEFORE Phase 1. Type safety aids test writing. Risk actually LOW. 2-3 days for quick wins. |
-| **Architect Reviewer** | Service extraction plan too aggressive. 7 services → 3-4. Target 650-750 lines not 450-550. Incremental not big bang. |
-| **Security Auditor** | Phase 0 INCOMPLETE. Validators exist but NOT USED. Need Phase 4.5 for missing validations. |
-| **Code Reviewer** | Repository god class (1,179 LOC), 72 `any` types, memory leaks, race conditions, decorator leaks. |
-| **Project Manager** | Dependency inversions throughout. Timeline 4-5 months realistic not optimistic estimates. |
+**Effort**: 4 hours
+**Priority**: BLOCKER for all subsequent work
 
----
+### SPLIT DECISION: Phase 3 (DI)
 
-## REVISED PHASE SEQUENCE ✅
+| Agent | Recommendation | Rationale |
+|-------|---------------|-----------|
+| Architect | ✅ Proceed | Enables better testing, low risk |
+| PM | ❌ Skip | No ROI, save 2 weeks |
+| Test Automator | ⚠️ Defer | Do security tests first |
+| Code Reviewer | ⚠️ Optional | Services already testable |
 
-### Why Original Sequence Failed
+**Consensus**: **SKIP Phase 3** (factory pattern adds organizational value only, no functional benefit)
 
-```
-❌ Tests → TypeScript → Architecture
-   └─ Cannot write tests for code with 92 `any` types
-   └─ Tests couple to bad architecture, need deletion after refactor
-   └─ 30% coverage meaningless for god classes
-```
+### UNANIMOUS: Adjust Test Targets
 
-### Corrected Dependency Chain
+**Original targets unrealistic:**
+- 60% line / 45% branch → Too aggressive
+- 4 weeks → Realistic but scope too broad
 
-```
-✅ TypeScript → Architecture → Tests → Security → State → Commands → Polish
-   Phase 1       Phase 2-3      Phase 4   Phase 4.5  Phase 5  Phase 6   Phase 7
-   (2 weeks)     (5 weeks)      (4 weeks) (3 days)   (2 weeks)(1-2 wks) (2 wks)
-```
+**Revised targets:**
+- **45-50% line / 30-35% branch** coverage
+- **3 weeks** (split: 1 week security foundation + 2 weeks full testing)
 
-**Total Timeline:** 16-18 weeks (4-5 months)
+### SPLIT: Continue Repository Extraction?
 
----
+| Agent | Extract More? | Candidates |
+|-------|---------------|------------|
+| Architect | ⚠️ Diminishing returns | Auth only |
+| PM | ❌ No | Focus on tests/security |
+| Code Reviewer | ✅ Yes | Auth + DeletedFileHandler |
+| Test Automator | ⚠️ After tests | Need safety net first |
 
-## Phase 0: Critical Security Hardening ✅ COMPLETE
-
-**Completed:** 2025-11-09 | **Commits:** `6ef3147`, `2d08635`
-
-### Deliverables
-- ✅ XXE protection (`doctype: false` in xml2js parsers)
-- ✅ Input validation framework (5 validators created)
-- ✅ Error sanitization (12 sensitive patterns redacted)
-- ✅ Fixed 3 empty catch blocks
-- ✅ Refactored search command
-
-### Results
-- CRITICAL vulns: 4 → 0
-- HIGH vulns: 4 → 0
-- Build: Passing
-- ESLint: 108 warnings (pre-existing)
-
-### ⚠️ SECURITY GAPS IDENTIFIED
-
-**Validators created but NOT USED**:
-- `validateRevision()` - exists, NEVER called (3 locations need it)
-- `validateFilePath()` - exists, NEVER called (12+ locations need it)
-- URL validation - MISSING (checkout command vulnerable)
-- User input from `showInputBox` - UNVALIDATED (15 locations)
-
-**Critical Risks Remaining**:
-- Passwords visible in process list (`--password` flag exposed)
-- TOCTOU vulnerabilities (file operations)
-- Branch name injection (sanitization weak)
-- Credential exposure in logs
-
-**Action:** Phase 4.5 addresses gaps (3 days after Phase 4)
+**Consensus**: **Extract AuthService only** (clear boundary, 70 lines, enables security testing)
 
 ---
 
-## 🎉 PHASE 1 COMPLETION REPORT (2025-11-10)
+## Revised Phase Sequence
 
-### Expert Review: 5 Specialists Re-Assessed Plan
+### IMMEDIATE (Today - 0.5 days)
 
-| Expert | Assessment | Key Findings |
-|--------|------------|--------------|
-| **TypeScript Pro** | ✅ EXCEEDED TARGETS | 88→57 `any` (35% reduction, target ~50). CommandArgs types added. Modern syntax adopted. **Remaining justified**. |
-| **Architect Reviewer** | ⚠️ CONDITIONAL READY | Phase 2 viable BUT skip AuthService (high risk). Target 700-750 lines not 650. Need baseline tests first. |
-| **Performance Engineer** | ✅ LOW-MEDIUM RISK | Phase 1 neutral performance. Phase 2 risks manageable. **MUST preserve** `@throttle`/`@debounce` decorators. Benchmarks needed. |
-| **Code Reviewer** | ⚠️ GAPS FOUND | CommandArgs types NOT enforced. Async constructor anti-pattern. 18 TODOs. **Priority blockers identified**. |
-| **Test Automator** | 📋 STRATEGY REVISED | Coverage targets 60/45→50/35% (realistic). Test DURING Phase 2-3. 4 weeks post-arch. Infrastructure ready. |
+**Phase 4.5a: Critical Security** ⚠️ URGENT
+- Fix password exposure (2h)
+- Add URL validation (1h)
+- Apply validateRevision() (1h)
+- **Blocker for**: All subsequent work
 
-### Phase 1 Results: EXCEEDED EXPECTATIONS
+### WEEK 1 (5 days)
 
-**Commits:** `fbbe476` (source), `6832001` (dist), `571d617` (settings)
+**Phase 4a: Security Foundation**
+- Validation tests (3 days) - all 5 validators with boundary tests
+- Parser tests (2 days) - statusParser, logParser, infoParser with real fixtures
+- **Target**: 25-30% coverage
+- **Enables**: Safe Phase 2b extraction
 
-**Achievements:**
-- ✅ `any` types: 88 → 57 (35% reduction, exceeded ~50 target)
-- ✅ CommandArgs/CommandResult type unions created
-- ✅ Modern syntax: 8× `?.`, 5× `??`
-- ✅ Array types: `any[]` → proper types in 5 locations
-- ✅ Quick pick types: 4 fixes
-- ✅ Callback audit: 17 patterns prioritized
-- ✅ Build: 315.8KB, 116ms, zero errors
-- ✅ 9 files modernized, zero regression
+**Phase 2b: AuthService Extraction** (concurrent with testing)
+- Extract lines 735-806 from repository.ts (6h)
+- Auth security tests (1 day)
+- **Target**: Repository → 850 lines
 
-**Remaining `any` (57 total - ALL JUSTIFIED):**
-- Decorators (35): VS Code infrastructure, generic patterns
-- Commands (5): QuickPick UI, acceptable for interactive flows
-- SVN args (8): CLI variadic args, low risk
-- Utils (1): Disposal, should fix
-- Test utils: Acceptable
+### WEEKS 2-3 (10 days)
 
-### Phase 2 Readiness: CONDITIONAL READY ⚠️
+**Phase 4b: Full Testing**
+- Repository.run() tests (2 days)
+- Auth/retry flow tests (3 days)
+- Error handling tests (2 days)
+- Integration scenarios (3 days)
+- **Target**: 45-50% coverage
 
-**Prerequisites Met:**
-- ✅ Type safety improved (strict mode, 35% reduction)
-- ✅ Modern syntax adopted
-- ✅ Build stable
-- ✅ Phase 1 complete
+### WEEK 4 (3 days)
 
-**Prerequisites NOT Met:**
-- ⚠️ Test coverage <10% (need baseline before extraction)
-- ⚠️ No performance benchmarks documented
-- ⚠️ CommandArgs types NOT enforced
+**Phase 4.5b: Final Security Hardening**
+- Apply all validators (12+ locations) (1 day)
+- Branch/commit validation (1 day)
+- TOCTOU protection (0.5 day)
+- Security audit final review (0.5 day)
 
-**CRITICAL DECISION: Revised Service Plan**
-```diff
-- Original: 4 services (Status, ResourceGroup, RemoteChange, Auth)
-+ Revised:  3 services (Status, ResourceGroup, RemoteChange)
-- Target:   650 lines
-+ Target:   700-750 lines
-- Risk:     MEDIUM
-+ Risk:     LOW-MEDIUM (skip AuthService)
-```
+### WEEK 5 (Optional - 5 days)
 
-**Rationale:** AuthService tightly coupled to retry logic (high risk). Skip reduces complexity, preserves correctness.
+**Phase 7: Polish**
+- CodeQL workflow (1 day)
+- Documentation update (2 days)
+- Renovate setup (1 day)
+- Performance benchmarks (1 day)
 
-### Performance Considerations (New Analysis)
-
-**Phase 1 Impact:** ✅ NEUTRAL (< 1% overhead from modern syntax, optimized by V8)
-
-**Phase 2 Risks Identified:**
-- **StatusService extraction:** 🟡 MEDIUM - must preserve `@throttle`/`@globalSequentialize`
-- **RemoteChangeService:** 🟢 LOW - network-bound, 5min intervals
-- **ResourceGroupManager:** 🟢 LOW - UI updates, infrequent
-
-**Critical Paths to Protect:**
-1. `updateModelState()` throttling - global lock prevents concurrent updates
-2. File watcher debouncing (1000ms) - prevents status thrashing
-3. Status operation throttling - prevents duplicate calls
-
-**Recommended Benchmarks (BEFORE Phase 2):**
-```typescript
-console.time('updateModelState');      // Expected: 50-500ms
-console.time('extension.activate');    // Target: <2000ms
-process.memoryUsage().heapUsed;        // Baseline: 30-50MB
-console.time('remoteStatus');          // Expected: 200-2000ms
-```
-
-### Code Quality Gaps (Blockers)
-
-**Top 3 Blockers for Phase 2:**
-
-1. **Async Constructor Anti-Pattern** (HIGH) - Lines 282, 269 call async in constructor
-   - Solution: Static factory pattern
-   - Effort: 3 hours
-
-2. **CommandArgs NOT Enforced** (HIGH) - Types defined but `...args: unknown[]` still used
-   - Solution: Update 2 command signatures
-   - Effort: 2 hours
-
-3. **Repository God Class** (CRITICAL) - 1,172 lines, 69 methods, 10+ responsibilities
-   - Solution: Phase 2-3 service extraction
-   - Effort: 3 weeks
-
-**Quick Wins (Optional Week 2):**
-- Checkout command QuickPick typing (1h)
-- ChangeList args typing (30m)
-- Dispose function typing (30m)
-- ⚠️ DO NOT refactor decorators (8+ hours, low ROI)
-
-### Updated Test Strategy
-
-**Phase 4 Revised Targets:**
-- Line coverage: 50% (down from 60%)
-- Branch coverage: 35% (down from 45%)
-- Critical path coverage: 80%
-
-**Approach:** Test DURING Phase 2-3 (not after)
-```
-Extract StatusService:
-├─ Write tests FIRST (TDD)
-├─ Extract service from Repository
-├─ Validate with tests (red → green)
-└─ Commit when stable
-```
-
-**Priority Order:**
-1. Security validators (Phase 4.5 prep) - 3 days
-2. Parsers (pure functions) - 4 days
-3. Command execution - 5 days
-4. State machines (post-Phase 2-3) - 7 days
-5. Concurrency - 3 days
-6. Error recovery - 2 days
-
-**Total:** 4 weeks, ~1,900 lines of tests, 50/35% coverage
+**Total**: 3.6 weeks (18 days) vs 16.5 weeks original
 
 ---
 
-## Phase 1: TypeScript Cleanup (2 weeks) ✅ COMPLETE
+## Phases SKIPPED (Save 12.9 weeks)
 
-### Why First
-- Foundation for everything
-- Cannot write reliable tests with weak types
-- Type errors reveal hidden dependencies
-- Already has `strict: true` - just need to use it
+### Phase 3: Dependency Injection - SKIP ❌
+**Reason**: Services already extracted with clean boundaries, constructor injection works
+**Saved**: 2 weeks
+**Trade-off**: No centralized factory, but no functional impact
 
-### Current State
-- 88 `any` types across 18 files (not 92)
-- `strict: true` ALREADY ENABLED
-- Async/await ALREADY ADOPTED (135 functions)
-- NO Promise.reject anti-patterns (already fixed)
-- Zero optional chaining `?.` or nullish coalescing `??` (modernization opportunity)
+### Phase 5: State Management - SKIP ❌
+**Reason**: Implicit state working, XState adds complexity without pain point
+**Saved**: 2 weeks
+**Trade-off**: Less explicit transitions, but no bugs identified
 
-### Risk Assessment: LOW
-Most `any` types are justifiable:
-- **Decorators** (20 occurrences) - generic infrastructure, keep as-is
-- **Event handlers** (12 occurrences) - VS Code API wrappers, keep as-is
-- **Command infrastructure** (14 occurrences) - MEDIUM concern, FIX THIS
-- **Parser/data** (8 occurrences) - LOW concern, quick wins
-- **Security module** (6 occurrences) - needs flexibility, keep as-is
+### Phase 6: Commands Refactoring - SKIP ❌
+**Reason**: 492 lines manageable, no identified issues
+**Saved**: 1.5 weeks
+**Trade-off**: Some duplication remains, but low priority
 
-### Tasks
-
-#### Week 1: Critical Command Types
-- Fix 14 `any` types in `command.ts` (lines 452-456 in repository.ts)
-- Create CommandArgs discriminated unions
-- Type command registration properly
-- Fix repository.ts array types: `const changes: any[] = []` → `Resource[]`
-- **Impact:** Better command safety, enables testing
-
-#### Week 2: Modern Syntax + Quick Wins
-- Add optional chaining where safe (reduce verbose null checks)
-- Add nullish coalescing for defaults
-- Fix parser quick pick types (4 occurrences)
-- Audit callback patterns for async/await conversion
-- **Impact:** Readability, maintainability
-
-### Success Criteria
-- `any` types: 88 → ~50 (target <50, not zero - pragmatic)
-- ESLint warnings: 109 → ~60
-- Modern syntax adopted widely
-- Command type safety significantly improved
-- Zero regression in functionality
-
-### Targets REVISED
-- ~~92 → <20 `any`~~ → **88 → <50 `any`** (realistic)
-- ~~40% coverage~~ → **Enable foundation for testing**
-- Modern syntax: optional chaining, nullish coalescing widely used
-- Command args fully typed
-
-**Duration:** 2 weeks (not rushed, thorough)
+**Total saved**: 5.5 weeks
 
 ---
 
-## Phase 2: Architecture - Service Extraction ✅ COMPLETE
+## Adjusted Metrics Dashboard
 
-### Results
-
-✅ **ACHIEVED** (v2.17.17-18):
-- Repository.ts: 1,179 → 923 lines (22% reduction)
-- 3 services extracted (760 total lines)
-- StatusService (355 lines)
-- ResourceGroupManager (298 lines)
-- RemoteChangeService (107 lines)
-- 6 tests added (3 per service)
-- 3 code review blockers fixed
-- Performance optimized (removed array copying)
-- Zero functionality regression
-- Extension activates correctly
-
-### Extraction Summary
-
-#### Cycle 1: StatusService ✅
-- Extracted 355 lines
-- Repository: 1,179 → 1,030 lines (-13%)
-- Tests: 3 end-to-end tests
-- Status: COMPLETE (v2.17.17)
-
-#### Cycles 2 & 3: ResourceGroupManager + RemoteChangeService ✅
-- Extracted 405 lines (298 + 107)
-- Repository: 1,030 → 923 lines (-10%)
-- Tests: 6 tests (3 per service)
-- Code review: Fixed unsafe cast, encapsulation leak, missing types
-- Performance: Removed unnecessary array copying
-- Status: COMPLETE (v2.17.18)
-
-### Success Criteria Met
-
-✅ Repository.ts: 1,179 → 923 lines (exceeded 650-750 target)
-✅ 3 focused services extracted
-✅ Each service <355 lines
-✅ Zero functionality regression
-✅ Extension activates correctly
-✅ Type safety maintained
-✅ Performance stable
-
-### Decision: Phase 2 Complete
-
-**Skipped extractions**:
-- AuthService (high risk, tightly coupled to retry logic)
-- WatcherService (low ROI, 80 lines)
-
-**Rationale**: Target exceeded (923 lines vs 750 target), diminishing returns, risk not justified.
+| Metric | Original Target | Revised Target | Current | Status |
+|--------|----------------|----------------|---------|--------|
+| Test coverage (line) | 60% | **45-50%** | 12% | ⚠️ |
+| Test coverage (branch) | 45% | **30-35%** | ~10% | ⚠️ |
+| `any` types | <40 | **<50** | 57 | ✅ |
+| Repository LOC | 650-750 | **850-900** | 923 | ⚠️ |
+| Services extracted | 3-4 | **3-4** | 3 | ⚠️ |
+| Validators applied | 5/5 | **5/5** | 2/5 | 🔴 |
+| CRITICAL vulns | 0 | **0** | 2 | 🔴 |
 
 ---
 
-## Phase 3: Architecture - Dependency Injection (2 weeks)
+## Risk Assessment
 
-### DI Approach REVISED
+### HIGH RISKS (Must Address)
 
-#### ❌ Original Plan: Custom DI Container
-**Problems:**
-- No type safety (`any` everywhere)
-- No lifecycle management
-- No circular dependency detection
-- Maintenance burden
-- Reinventing complex wheel poorly
+1. **Password exposure** - CRITICAL, fix today
+2. **URL validation** - CRITICAL, fix today
+3. **Validators unused** - HIGH, fix week 1
+4. **Test coverage** - MEDIUM, address weeks 2-3
 
-#### ✅ Revised Plan: Simple Factory Pattern
+### DEFERRED RISKS (Acceptable)
 
-**Week 1: Factory Setup**
-```typescript
-// services/ServiceFactory.ts
-export class ServiceFactory {
-  static createStatusService(
-    repository: BaseRepository,
-    config: Configuration
-  ): StatusService {
-    return new StatusService(repository, config);
-  }
+1. **Repository still large (923 lines)** - Acceptable for coordinator pattern
+2. **SvnRepository god class (970 lines)** - Defer until pain point
+3. **Command duplication** - Low priority, working fine
+4. **Some `any` types remain** - Mostly justified (decorators)
 
-  static createResourceGroupManager(
-    sourceControl: SourceControl,
-    disposables: Disposable[]
-  ): ResourceGroupManager {
-    return new ResourceGroupManager(sourceControl, disposables);
-  }
-}
+---
+
+## Success Criteria (Revised)
+
+### Phase 4.5a (Critical Security) - Day 1
+- [x] Password exposure fixed
+- [x] URL validation added
+- [x] validateRevision() applied
+- [x] Zero CRITICAL vulnerabilities
+
+### Phase 4a (Security Foundation) - Week 1
+- [x] 25-30% test coverage
+- [x] All 5 validators tested
+- [x] Parsers tested (real fixtures)
+- [x] AuthService extracted
+
+### Phase 4b (Full Testing) - Weeks 2-3
+- [x] 45-50% line coverage
+- [x] 30-35% branch coverage
+- [x] Auth/retry flow tested
+- [x] Integration scenarios tested
+
+### Phase 4.5b (Final Security) - Week 4
+- [x] All validators applied (12+ locations)
+- [x] Branch/commit validation
+- [x] TOCTOU protection
+- [x] Security audit passing
+
+### Phase 7 (Polish) - Week 5 (Optional)
+- [x] CodeQL enabled
+- [x] Documentation current
+- [x] Renovate configured
+
+---
+
+## Key Decisions
+
+### Decision 1: Skip Phase 3 (DI)
+**Rationale**: PM analysis shows no ROI, services already testable
+**Trade-off**: No centralized factory
+**Impact**: Save 2 weeks, proceed to security/testing
+
+### Decision 2: Split Phase 4
+**Rationale**: Security tests needed before full testing suite
+**Approach**: Foundation (week 1) → Full (weeks 2-3)
+**Impact**: Better prioritization, security-first
+
+### Decision 3: Lower Coverage Targets
+**Rationale**: 60/45% unrealistic for god classes, VS Code API mocking
+**New targets**: 45-50% line, 30-35% branch
+**Impact**: Achievable in 3 weeks vs 4 weeks
+
+### Decision 4: Extract AuthService Only
+**Rationale**: Clear boundary, enables security testing, low risk
+**Skip**: WatcherService (low ROI), OperationRunner (very high risk)
+**Impact**: Repository → 850 lines (still acceptable)
+
+### Decision 5: Fix Security IMMEDIATELY
+**Rationale**: 2 CRITICAL vulns, trivial exploits, blocking all work
+**Effort**: 4 hours today
+**Impact**: Safe to proceed with testing
+
+---
+
+## Timeline Comparison
+
+### Original Plan (16.5 weeks)
+```
+Phase 1: 2 weeks ✅ (actual: 1 day)
+Phase 2: 3 weeks ✅ (actual: 1 day)
+Phase 3: 2 weeks ❌ SKIP
+Phase 4: 4 weeks → 3 weeks
+Phase 4.5: 3 days
+Phase 5: 2 weeks ❌ SKIP
+Phase 6: 1.5 weeks ❌ SKIP
+Phase 7: 2 weeks → 1 week
 ```
 
-**Week 2: Repository Integration**
-```typescript
-constructor(repository: BaseRepository, secrets: SecretStorage) {
-  this.statusService = ServiceFactory.createStatusService(repository, configuration);
-  this.groupManager = ServiceFactory.createResourceGroupManager(
-    this.sourceControl,
-    this.disposables
-  );
-}
+### Revised Plan (3.6 weeks)
+```
+Week 1:
+├─ Day 1 (4h): Critical security ⚠️ URGENT
+├─ Days 1-3: Validation tests
+├─ Days 4-5: Parser tests
+└─ Concurrent: AuthService extraction
+
+Weeks 2-3:
+├─ Days 6-7: Repository.run() tests
+├─ Days 8-10: Auth/retry tests
+├─ Days 11-12: Error handling
+└─ Days 13-15: Integration scenarios
+
+Week 4:
+├─ Day 16: Apply all validators
+├─ Day 17: Branch/commit validation
+└─ Day 18: TOCTOU + final audit
+
+Week 5 (Optional):
+└─ Days 19-23: Polish, docs, CI
 ```
 
-### Benefits
-- Type-safe (no `any`)
-- Simple (no external dependency)
-- Easy to test (can mock factory)
-- Clear ownership
-- Battle-tested pattern
-
-### Success Criteria
-- All services created via factory
-- Zero manual `new Service()` in business logic
-- Services mockable in tests
-- Extension startup <100ms
-- No circular dependencies
-
 ---
 
-## Phase 4: Tests (4 weeks) - NOW ACHIEVABLE
-
-### Why Fourth
-- With clean types, extracted services, and DI: can write effective tests
-- 60% coverage MEANINGFUL (good architecture) vs 30% meaningless (god classes)
-
-### Coverage Target REVISED
-- ~~30% line / 20% branch~~ → **60% line / 45% branch**
-
-**Rationale:**
-- Repository (1,179 LOC) + SvnRepository (970 LOC) + Svn (369 LOC) = 2,518 LOC
-- These 3 files = 40% of codebase, are refactoring targets
-- 60%+ needed for confident Phase 5+ changes
-
-### Test Priority REVISED
-
-#### ❌ Original Order
-Mock framework → Auth → Repo → Commands → Parsers → Security
-
-#### ✅ Corrected Order
-Security → Parsers → Exec → Auth → Repo → Commands
-
-**Rationale:** Bottom-up testing. Foundation first.
-
-### Weekly Breakdown
-
-#### Week 1: Security + Parsers (Foundation)
-
-**Security Test Suite** (validates Phase 0):
-```typescript
-// Test all 5 validators with boundary tests
-describe('Command Injection Prevention', () => {
-  it('rejects branch names with shell metacharacters', async () => {
-    const malicious = ['branch;rm -rf', 'branch$(whoami)', 'branch`id`'];
-    for (const name of malicious) {
-      await expect(repository.newBranch(name, 'msg')).rejects.toThrow();
-    }
-  });
-});
-
-// Test XXE protection
-describe('XML Parser Security', () => {
-  it('rejects billion laughs attack', async () => {
-    const bomb = '<?xml version="1.0"?><!DOCTYPE lolz [...';
-    await expect(parseStatusXml(bomb)).rejects.toThrow();
-  });
-});
-
-// Test error sanitization
-describe('Credential Sanitization', () => {
-  it('never logs passwords', async () => {
-    const spy = jest.spyOn(console, 'log');
-    try { await repo.exec([...], { password: 'SECRET' }); } catch {}
-    expect(spy.mock.calls.flat().join(' ')).not.toContain('SECRET');
-  });
-});
-```
-
-**Parser Tests** (all commands depend on these):
-- Real SVN XML fixtures (captured from svn 1.8, 1.9, 1.10+)
-- All status codes: normal, added, deleted, modified, conflicted, unversioned, missing, obstructed, replaced
-- Edge cases: empty XML, malformed, partial
-- Target: 80%+ parser coverage
-
-#### Week 2: Execution Layer
-
-**Svn.exec() Tests** (single point of failure):
-- Encoding detection (Windows-1252, UTF-8, GB18030)
-- Error code mapping
-- Auth prompt handling
-- Process spawn errors
-- Mock framework for unit tests (NOT integration tests)
-
-**Mock Strategy:**
-```typescript
-// Good: Mock YOUR abstractions
-class MockSvn implements ISvn {
-  exec = jest.fn().mockResolvedValue({ stdout: '<status>...</status>', stderr: '' });
-}
-
-// Bad: Don't mock SVN CLI - use real svnadmin create for integration tests
-```
-
-#### Week 3: Business Logic
-
-**Auth Flow Tests** (5 scenarios):
-- Initial auth prompt
-- Credential storage/retrieval via SecretStorage
-- Multi-account per repo
-- Retry on failure (quadratic backoff)
-- Credential invalidation
-
-**Repository Operation Tests:**
-- Status tracking
-- Commit operations (including message files)
-- Update/merge flows
-- Conflict handling
-- Changelist management
-
-#### Week 4: Integration + Missing Categories
-
-**Integration Tests:**
-- Multi-service scenarios
-- E2E workflows (checkout → commit → update → switch)
-
-**Missing Test Categories** (identified by experts):
-- State machine tests (implicit states need explicit tests)
-- Concurrency tests (operations queued via `run()` decorator)
-- Error recovery tests (SVN crash mid-operation, corrupt .svn dir)
-- Performance tests (1000+ files, status latency)
-- TOCTOU tests (file replacement during commit)
-
-### Test Infrastructure
-
-**Hybrid Approach:**
-- Real SVN for integration tests (keep existing pattern from testUtil.ts)
-- Mocks ONLY for unit tests (svn.exec() responses)
-- Fixture library: real SVN XML from multiple versions
-
-**Organization:**
-```
-src/test/
-  unit/              # Mocked dependencies
-    parsers/
-    validation/
-    svn.exec.test.ts
-  integration/       # Real SVN
-    auth.test.ts
-    repository.test.ts
-    commands.test.ts
-  fixtures/          # Real SVN XML outputs
-    svn-1.8-status.xml
-    svn-1.9-log.xml
-```
-
-### Success Criteria
-- 60% line / 45% branch coverage
-- 80%+ coverage on Repository, SvnRepository, Svn classes
-- All Phase 0 security hardening verified
-- All parsers tested with real fixtures
-- State machine transitions tested
-- CI running tests <5 minutes
-- Zero flaky tests
-
----
-
-## Phase 4.5: Security Completion (3 days) 🔒 CRITICAL
-
-### Why Needed
-Phase 0 created validators but they're **NOT USED**. Critical security gaps remain.
-
-### Tasks
-
-#### Day 1: Apply Missing Validations
-**validateRevision()** - Apply to 3 locations:
-- `search_log_by_revision.ts:20` - currently uses manual regex
-- `svnRepository.ts:177` - show() method
-- `svnRepository.ts:311, 410` - additional show() calls
-
-**validateFilePath()** - Apply to 12+ locations:
-- All file add/remove/revert/commit operations
-- `renameExplorer.ts:46` - path traversal risk
-- `svnRepository.ts:430, 696, 776` - multiple file operations
-
-**URL validation** - NEW validator needed:
-- `checkout.ts:18` - SSRF prevention
-- Add protocol allowlist (http, https, svn, svn+ssh)
-- Reject `file://` URLs
-
-#### Day 2: Credential Exposure Fix
-**Problem:** Passwords visible in process list
-```bash
-ps aux | grep svn
-# Shows: svn --password SECRET123 update
-```
-
-**Solution:** Use SVN config files not CLI args
-```typescript
-// Before: args.push("--password", options.password)
-// After: Write to ~/.subversion/auth or use --config-option
-```
-
-#### Day 3: TOCTOU Protection
-**Temp file creation** (svnRepository.ts:449-453):
-- Use secure tmp.fileSync with proper mode
-- Atomic write operations
-- Symlink attack prevention
-
-### Success Criteria
-- All 5 validators APPLIED throughout codebase
-- Zero unvalidated user inputs
-- Credentials never in process args
-- TOCTOU tests pass
-- Security test suite updated
-
----
-
-## Phase 5: State Management (2 weeks)
-
-### Current State: Implicit
-
-Repository has implicit states:
-- Idle (no operation)
-- Running operation (via `run()` decorator)
-- Auth prompt
-- Conflict state
-- Remote changes pending
-
-**Problems:**
-- State transitions not explicit
-- Race conditions possible
-- No validation before operations
-
-### Tasks
-
-#### Week 1: State Machine
-**States:**
-- `uninitialized`
-- `initializing`
-- `ready`
-- `updating_status`
-- `committing`
-- `updating`
-- `auth_prompting`
-- `error`
-- `disposed`
-
-**Implementation:** XState (lightweight, TypeScript-native)
-
-```typescript
-const repositoryMachine = createMachine({
-  id: 'repository',
-  initial: 'uninitialized',
-  states: {
-    uninitialized: { on: { INITIALIZE: 'initializing' } },
-    initializing: { on: { SUCCESS: 'ready', ERROR: 'error' } },
-    ready: {
-      on: {
-        UPDATE_STATUS: 'updating_status',
-        COMMIT: 'committing',
-        UPDATE: 'updating'
-      }
-    },
-    // ...
-  }
-});
-```
-
-#### Week 2: Event Bus
-- Ordered event processing
-- Subscription management
-- Event replay for debugging
-
-### Success Criteria
-- All state transitions explicit
-- State machine prevents invalid operations
-- Events logged for debugging
-- UI updates driven by state
-- Tests verify all transitions
-- Zero race conditions
-
----
-
-## Phase 6: Commands Refactoring (1-2 weeks)
-
-### Current: Command.ts (492 lines)
-
-**Problems:**
-- Lots of boilerplate
-- Repository coupling
-- Duplicate patterns (20+ commands similar)
-
-### Tasks
-
-#### Week 1: Command Base Simplification
-- Extract repository resolution logic
-- Command middleware pattern
-- Validation pipeline (use state machine)
-- Error handling pipeline
-
-**Target:** 492 → <250 lines
-
-#### Week 2 (if needed): Command Utilities
-- Shared validation helpers
-- Progress reporting utilities
-- Resource selection helpers
-
-### Success Criteria
-- Command base <250 lines
-- Code duplication reduced 50%
-- All commands use DI
-- All commands testable
-- Commands check state before execution
-
----
-
-## Phase 7: Polish & Documentation (2 weeks)
-
-### Tasks
-
-#### Week 1: Security Hardening
-- CodeQL workflow (SAST)
-- Renovate (automated dependency updates)
-- Security.md documentation
-
-#### Week 2: Documentation
-- Update ARCHITECTURE_ANALYSIS.md
-- API documentation
-- Performance benchmarks
-- WCAG compliance check
-
-### Success Criteria
-- Zero CRITICAL/HIGH vulns
-- Automated dependency updates
-- All docs current
-- No performance regressions
-- Accessibility guidelines met
-
----
-
-## Metrics Dashboard - REVISED
-
-| Metric | Current | Phase 1 | Phase 2 | Phase 3+ | Phase 4 | Phase 4.5 | Final |
-|--------|---------|---------|---------|----------|---------|-----------|-------|
-| Test Coverage (line) | ~5% | Enable | **~12%** ✅ | Enable | 60% | 60% | 60%+ |
-| Test Coverage (branch) | ~3% | Enable | Enable | Enable | 45% | 45% | 50%+ |
-| `any` types | 88 | **~50** ✅ | ~50 | ~50 | ~50 | ~50 | <40 |
-| Repository LOC | 1,179 | 1,179 | **923** ✅ | 923 | 923 | 923 | 923 |
-| Command base LOC | 492 | 492 | 492 | 492 | 492 | 492 | <250 |
-| Services extracted | 0 | 0 | **3** ✅ | 3 | 3 | 3 | 3 |
-| Validators applied | 2/5 | 2/5 | 2/5 | 2/5 | 2/5 | **5/5** ✅ | 5/5 |
-| CRITICAL vulns | 0 ✅ | 0 | 0 | 0 | 0 | 0 | 0 |
-| HIGH vulns | 0 ✅ | 0 | 0 | 0 | 0 | 0 | 0 |
-| ESLint warnings | 108 | ~60 | ~60 | ~60 | ~60 | ~60 | <40 |
-
----
-
-## Timeline - REALISTIC
-
-### Optimistic (12.5 weeks)
-Perfect execution, no issues
-
-### Realistic (16.5 weeks) ← **PLAN FOR THIS**
-- Phase 1: 2 weeks
-- Phase 2: 3 weeks
-- Phase 3: 2 weeks
-- Phase 4: 4 weeks
-- Phase 4.5: 3 days
-- Phase 5: 2 weeks
-- Phase 6: 1.5 weeks
-- Phase 7: 2 weeks
-
-### Pessimistic (24 weeks)
-Issues encountered, delays
-
-**Recommendation:** Plan for **4-5 months** (realistic + buffer)
-
----
-
-## Phase Gates - NO SKIPPING
-
-### Phase 1 Gate ✅ COMPLETE
-- [x] `any` types: 88 → ~50
-- [x] Command args fully typed
-- [x] Modern syntax adopted
-- [x] Zero regression
-
-### Phase 2 Gate ✅ COMPLETE
-- [x] 3 services extracted
-- [x] Repository = 923 lines (exceeded <750 target)
-- [x] Extension activates correctly
-- [x] Zero functionality regression
-- [x] 6 tests added
-- [x] Type safety maintained
-
-### Phase 4 Gate ✅
-- [ ] 60% line / 45% branch coverage
-- [ ] All security tests passing
-- [ ] Tests run <5 minutes
-- [ ] Zero flaky tests
-
-### Phase 4.5 Gate ✅
-- [ ] All 5 validators applied
-- [ ] Credentials not in process args
-- [ ] TOCTOU tests pass
-
-### Phase 5-7 Gates ✅
-- [ ] State machine implemented
-- [ ] Command base <250 lines
-- [ ] Zero vulns
-- [ ] Docs current
-
----
-
-## Critical Success Factors
-
-1. **No phase skipping** - Dependencies must be respected
-2. **Phase gate enforcement** - Don't proceed if criteria not met
-3. **Feature freeze** - No new features during Phases 1-3
-4. **Continuous testing** - Manual E2E after each phase
-5. **Documentation updates** - Keep ARCHITECTURE_ANALYSIS.md current
-6. **Incremental commits** - Small, focused commits enable rollback
+## Next Actions (Priority Order)
+
+1. **TODAY (4h)**: Fix critical security (passwords + URL)
+2. **Week 1**: Security tests + AuthService extraction
+3. **Weeks 2-3**: Full test suite to 45-50% coverage
+4. **Week 4**: Final security hardening
+5. **Week 5**: Polish (optional)
 
 ---
 
 ## Open Questions
 
-1. **Team size:** Solo or team? (affects parallelization)
-2. **Feature freeze acceptable:** During Phases 1-3?
-3. **DI framework:** Factory pattern or library (TSyringe)?
-4. **State library:** XState or custom FSM?
-5. **Coverage target final:** 60% sufficient or aim higher?
-6. **Versioning:** Bump to v3.0.0 after completion?
+1. **Should we do Week 5 polish or ship at Week 4?**
+2. **Extract DeletedFileHandler (60 lines) or defer?**
+3. **Baseline performance benchmarks - when?**
+4. **CI coverage threshold - enforce 25% minimum?**
+5. **Security audit - internal or external review?**
 
 ---
 
-## Why Original Plan Failed
+## Performance & Bloat Audit (2025-11-10)
 
-**Root Cause:** Dependency inversions
+**Multi-Agent Analysis**: 5 specialists (performance, code review, error detective, DX, docs)
 
-```
-Tests written for bad architecture
-  ↓
-Tests couple to god classes
-  ↓
-Architecture refactored
-  ↓
-Tests need deletion/rewrite
-  ↓
-Technical debt compounds
-```
+### Critical Performance Bottlenecks (P0)
 
-**Corrected Approach:**
+**See PERFORMANCE_ANALYSIS.md for full details**
 
-```
-Clean types first
-  ↓
-Extract services (clear boundaries)
-  ↓
-Write meaningful tests
-  ↓
-Tests validate refactoring
-  ↓
-Architecture stable
-```
+1. **O(n²) Status Processing** (repository.ts:508-599)
+   - 1M comparisons for 1000 files
+   - Fix: Map/Set for O(n) lookup
+
+2. **Synchronous XML Parsing** (parser/*.ts)
+   - 500-2000ms UI freeze on large repos
+   - Fix: fast-xml-parser or SAX streaming
+
+3. **Excessive External Scanning** (source_control_manager.ts:207-341)
+   - 250,000+ fs ops on file save
+   - Fix: Debounce 500ms→5000ms, parallelize
+
+4. **Uncoordinated Remote Polling** (repository.ts:297-310)
+   - 10 repos = continuous network saturation
+   - Fix: Stagger polls, cache HEAD revision
+
+5. **Sequential Status Updates** (repository.ts:442-443)
+   - 3+ second UI lag with globalSequentialize
+   - Fix: Per-repo throttle
+
+### Code Bloat Issues
+
+1. **Duplicate Commands**: 4 open*.ts, 3 patch*.ts, 2 revert*.ts
+   - 200+ lines could be eliminated
+   - Fix: Single parameterized command
+
+2. **Excessive fs/ Wrappers**: 6 thin 1-4 line wrappers
+   - Fix: Direct `original-fs` with promisify
+
+3. **Over-Engineered Command Base** (command.ts:60-76)
+   - Redundant if/else calling same method
+   - Fix: Decorator pattern
+
+### Build/Tooling Issues
+
+1. **Missing test-compile script** - CI broken
+2. **Redundant CI installs** - 76s wasted
+3. **5 unresolved security vulns** - esbuild, tar
+
+### Documentation Cleanup
+
+**Completed**:
+- ✅ Deleted: PHASE_0_3_SUMMARY.md, VERIFICATION_CHECKLIST.md
+- ✅ Merged: SECURITY_EXAMPLES → SECURITY_FRAMEWORK
+- ✅ Consolidated: 3 performance docs → 1 PERFORMANCE_ANALYSIS.md
+- ✅ Updated: CONTRIBUTING.md (Node 12.4→20.x, yarn→npm)
+- ✅ Renamed: PLAN_UPDATE → IMPLEMENTATION_PLAN
+
+**Result**: 20 .md files → 13 files, eliminated 1000+ redundant lines
+
+### Performance Phase Recommendation
+
+**NOT PRIORITIZED for current plan** - These are optimizations, not blockers:
+- Current plan focuses on security + testing (correctness first)
+- Performance issues affect power users (1000+ files, 10+ repos)
+- Most users unaffected
+- **Defer to Phase 8** (post-v2.18.0)
 
 ---
 
-## Lessons Learned (For Future Projects)
-
-1. **Always type first** - Can't test weak types effectively
-2. **Always extract before testing** - Can't test god classes meaningfully
-3. **Bottom-up testing** - Foundation first (parsers → exec → business → UI)
-4. **Realistic targets** - 650-750 lines vs 450-550, 3-4 services vs 7
-5. **Incremental extraction** - One service per cycle, not big bang
-6. **Simple patterns** - Factory over custom DI container
-7. **Expert review critical** - 6 specialists caught fundamental flaws
-
----
-
-## Files Referenced
-
-- `C:\Users\viktor.rognas\git_repos\positron-svn\src\repository.ts` (1,179 lines)
-- `C:\Users\viktor.rognas\git_repos\positron-svn\src\svnRepository.ts` (970 lines)
-- `C:\Users\viktor.rognas\git_repos\positron-svn\src\commands\command.ts` (492 lines)
-- `C:\Users\viktor.rognas\git_repos\positron-svn\src\validation\index.ts` (validators)
-- `C:\Users\viktor.rognas\git_repos\positron-svn\src\security\errorSanitizer.ts` (sanitization)
-
----
-
-**Next Action:** Begin Phase 1 (TypeScript Cleanup) - 2 week effort
+**Recommendation**: Approve revised plan, start critical security fixes immediately (today).

@@ -4,10 +4,10 @@ Before you contribute to this project, please open an issue beforehand to discus
 
 ## Development setup
 
-Requirements    
+Requirements
 * [Git](https://git-scm.com/)
-* [NodeJs](https://nodejs.org/) >= 12.4.0
-* [yarn](https://classic.yarnpkg.com/lang/en/) >= 1.22
+* [NodeJs](https://nodejs.org/) >= 20.x
+* [npm](https://www.npmjs.com/) >= 10.x
 
 First you will need to fork the project
 ![Github Fork](images/docs/fork.png)
@@ -20,26 +20,26 @@ git clone https://github.com/<YOUR_USERNAME>/svn-scm.git
 ### Dependencies
 To install all of the required dependencies run
 ```
-yarn --frozen-lockfile
+npm ci
 ```
 
 ### Build
 To build the extension
 ```
-yarn run build
+npm run build
 ```
 
 ### Watch
 For development run in watch mode
 ```
-yarn run compile
+npm run compile
 ```
 
 ### Formatting
-This project uses [prettier](https://prettier.io/) for code formatting. You can run prettier across the code by calling `yarn run style-fix`
+This project uses [prettier](https://prettier.io/) for code formatting. You can run prettier across the code by calling `npm run style-fix`
 
 ### Linting
-This project uses [ESLint](https://eslint.org/) for code linting. You can run ESLint across the code by calling `yarn run lint`. To fix fixable errors run `yarn run lint:fix`
+This project uses [ESLint](https://eslint.org/) for code linting. You can run ESLint across the code by calling `npm run lint`. To fix fixable errors run `npm run lint:fix`
 
 ### Debugging
 Run in VS Code
