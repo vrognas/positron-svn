@@ -1,49 +1,88 @@
 # Contributing
 
-Before you contribute to this project, please open an issue beforehand to discuss the changes you want to make.
+Before contributing, open an issue to discuss proposed changes.
 
-## Development setup
+## Development Setup
 
-Requirements    
-* [Git](https://git-scm.com/)
-* [NodeJs](https://nodejs.org/) >= 12.4.0
-* [yarn](https://classic.yarnpkg.com/lang/en/) >= 1.22
+**Requirements:**
+- [Git](https://git-scm.com/)
+- [Node.js](https://nodejs.org/) >= 20.x
+- npm (comes with Node.js)
 
-First you will need to fork the project
-![Github Fork](images/docs/fork.png)
-
-Then clone your fork
-```
-git clone https://github.com/<YOUR_USERNAME>/svn-scm.git
+**Fork and clone:**
+```bash
+git clone https://github.com/<YOUR_USERNAME>/positron-svn.git
+cd positron-svn
 ```
 
-### Dependencies
-To install all of the required dependencies run
-```
-yarn --frozen-lockfile
-```
-
-### Build
-To build the extension
-```
-yarn run build
+**Install dependencies:**
+```bash
+npm install
 ```
 
-### Watch
-For development run in watch mode
-```
-yarn run compile
+## Development Workflow
+
+### Build Commands
+
+```bash
+# Full build (TypeScript + CSS)
+npm run build
+
+# TypeScript only (faster)
+npm run build:ts
+
+# Watch mode (auto-rebuild)
+npm run compile
+
+# Package as VSIX
+npm run package
 ```
 
-### Formatting
-This project uses [prettier](https://prettier.io/) for code formatting. You can run prettier across the code by calling `yarn run style-fix`
+### Testing Changes in Positron/VS Code
 
-### Linting
-This project uses [ESLint](https://eslint.org/) for code linting. You can run ESLint across the code by calling `yarn run lint`. To fix fixable errors run `yarn run lint:fix`
+1. Make code changes in `src/`
+2. Build: `npm run build`
+3. Package: `npm run package`
+4. Install VSIX:
+   - Open Extensions (Ctrl+Shift+X)
+   - Click `...` menu → "Install from VSIX..."
+   - Select generated `.vsix` file
+   - Reload window
+
+### Code Quality
+
+**Formatting (Prettier):**
+```bash
+npm run style-fix
+```
+
+**Linting (ESLint):**
+```bash
+npm run lint          # Check
+npm run lint:fix      # Fix
+```
 
 ### Debugging
-Run in VS Code
-1. Open the `svn-scm` folder
-2. Make sure the [dependencies](#dependencies) are installed
-3. Run in [watch](#watch) mode
-4. Choose the `Launch Extension` launch configuration from the launch dropdown in the Debug viewlet and press `F5`.
+
+1. Open project in VS Code
+2. Run `npm run compile` (watch mode)
+3. Press `F5` or select "Launch Extension" from Debug dropdown
+4. Extension opens in new VS Code window
+
+## Publishing
+
+**To OpenVSX:**
+```bash
+npx ovsx publish positron-svn-VERSION.vsix -p YOUR_TOKEN
+```
+Get token: https://open-vsx.org/user-settings/tokens
+
+## Project Guidelines
+
+- **TDD**: Write tests before implementation
+- **Commits**: Small, focused commits
+- **Versioning**: Update version + changelog with every commit
+- **Docs**: Keep CLAUDE.md, ARCHITECTURE.md, DEV_WORKFLOW.md updated
+- **Tool calls**: <5 for simple queries, <15 for complex
+
+See CLAUDE.md for architecture details and development practices.
