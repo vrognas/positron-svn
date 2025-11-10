@@ -290,7 +290,7 @@ export class Repository implements IRemoteRepository {
     );
   }
 
-  @debounce(1000)
+  @debounce(500)
   private async onDidAnyFileChanged(e: Uri) {
     await this.repository.updateInfo();
     this._onDidChangeRepository.fire(e);
@@ -299,7 +299,7 @@ export class Repository implements IRemoteRepository {
   /**
    * Check all recently deleted files and compare with svn status "missing"
    */
-  @debounce(1000)
+  @debounce(300)
   private async actionForDeletedFiles() {
     if (!this.deletedUris.length) {
       return;
@@ -363,7 +363,7 @@ export class Repository implements IRemoteRepository {
     return;
   }
 
-  @debounce(1000)
+  @debounce(500)
   public async updateRemoteChangedFiles() {
     const updateFreq = configuration.get<number>(
       "remoteChanges.checkFrequency",
@@ -394,7 +394,7 @@ export class Repository implements IRemoteRepository {
     this.eventuallyUpdateWhenIdleAndWait();
   }
 
-  @debounce(1000)
+  @debounce(500)
   private eventuallyUpdateWhenIdleAndWait(): void {
     this.updateWhenIdleAndWait();
   }

@@ -114,7 +114,7 @@ export class RepositoryFilesWatcher implements IDisposable {
     );
   }
 
-  @debounce(1000)
+  @debounce(500)
   private repoWatch(event: string, filename: string | null): void {
     if (!filename) {
       return;
