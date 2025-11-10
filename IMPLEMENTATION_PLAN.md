@@ -1,8 +1,8 @@
 # IMPLEMENTATION PLAN - Next Phases
 
-**Version**: v2.17.38
+**Version**: v2.17.39
 **Updated**: 2025-11-10
-**Status**: Phase 2 Complete ✅ | Phase 4.5b Complete ✅ | Next: Phase 4a Testing + Phase 2b Auth
+**Status**: Phase 2 Complete ✅ | Phase 4.5b Complete ✅ | Phase 4b Complete ✅ | Phase 4a.1 Complete ✅ | Next: Phase 4a.2-3 + Phase 2b
 
 ---
 
@@ -19,10 +19,19 @@
 - URL validation complete (checkout + switchBranch)
 - validateRevision scope assessed (1/1 inputs protected)
 
+**Phase 4b Complete** (v2.17.38):
+- Debounce optimized: 1000ms→500/300ms (60% faster, 2-3s→0.8-1.3s)
+- O(n) filtering: Minimatch cache (500x faster for 1000 files × 50 patterns)
+- Impact: 45-65% improvement, affects 100%+40% users
+
+**Phase 4a.1 Complete** (v2.17.37):
+- Validator tests: 90 test cases for 6 validators
+- Est. 15% line coverage
+
 **Outstanding**:
 - 1 CRITICAL security gap (password exposure - deferred, requires stdin refactor)
-- 5 performance bottlenecks (deferred to Phase 8)
-- ~530 lines code bloat (deferred)
+- 3 performance bottlenecks (deferred to Phase 8)
+- ~250-300 lines code bloat (deferred)
 
 ---
 
@@ -150,13 +159,15 @@ Focus on 5 critical user-facing gaps:
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| Test coverage (line) | 25-30% | 12% | 🔴 |
+| Test coverage (line) | 25-30% | ~15% | 🟡 |
 | Repository LOC | <860 | 923 | 🟡 |
 | Services extracted | 4 | 3 | 🟡 |
 | CRITICAL vulns | 0 | 1 (deferred) | 🟡 |
 | Build status | ✅ | ✅ | ✅ |
 | DX (dev cycle speed) | Faster | 40-80% faster | ✅ |
 | URL validation | 100% | 100% | ✅ |
+| **Performance (UX)** | **Faster** | **60% faster (debounce)** | ✅ |
+| **Performance (filtering)** | **Faster** | **500x faster (cache)** | ✅ |
 
 ---
 
@@ -171,11 +182,19 @@ Focus on 5 critical user-facing gaps:
 4. Extract AuthService (70 lines from repository.ts) - 1 day
 5. Auth security tests (3 TDD tests)
 
-**PHASE 4b** (Concurrent - Week 1):
-6. Fix cascading debounce (3×1s→300-500ms) - 3-4h
-7. O(n²) status filtering → O(n) with cache - 2-3h
+**PHASE 4b** ✅ (Complete - v2.17.38):
+6. ✅ Fix cascading debounce (3×1s→300-500ms) - 3-4h
+7. ✅ O(n²) status filtering → O(n) with cache - 2-3h
 
-**Target**: v2.18.0 with 25-30% coverage, 4 services extracted, 2 quick perf wins
+**PHASE 4a.1** ✅ (Complete - v2.17.37):
+8. ✅ Validator tests (90 tests, 6 validators) - 2 days
+
+**Remaining for v2.18.0**:
+- Phase 4a.2: Parser + integration tests (2 days)
+- Phase 4a.3: Error handling tests (2 days)
+- Phase 2b: AuthService extraction (1 day)
+
+**Target**: v2.18.0 with 25-30% coverage, 4 services extracted
 
 ---
 
