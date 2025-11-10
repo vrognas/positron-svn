@@ -6,6 +6,7 @@ import { getBranchName } from "../helpers/branch";
 import { configuration } from "../helpers/configuration";
 import { SourceControlManager } from "../source_control_manager";
 import { svnErrorCodes } from "../svn";
+import { validateRepositoryUrl } from "../validation";
 import { Command } from "./command";
 
 export class Checkout extends Command {
@@ -22,6 +23,14 @@ export class Checkout extends Command {
     }
 
     if (!url) {
+      return;
+    }
+
+    // Validate URL to prevent SSRF and command injection
+    if (!validateRepositoryUrl(url)) {
+      window.showErrorMessage(
+        `Invalid repository URL. Only http://, https://, svn://, and svn+ssh:// protocols are allowed.`
+      );
       return;
     }
 

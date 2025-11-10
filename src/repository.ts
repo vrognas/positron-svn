@@ -1,5 +1,4 @@
 import * as path from "path";
-import { clearInterval, setInterval } from "timers";
 import {
   commands,
   Disposable,
@@ -15,6 +14,9 @@ import {
   window,
   workspace
 } from "vscode";
+import { StatusService } from "./services/StatusService";
+import { ResourceGroupManager } from "./services/ResourceGroupManager";
+import { RemoteChangeService } from "./services/RemoteChangeService";
 import {
   IAuth,
   IFileStatus,
@@ -50,10 +52,9 @@ import {
   getSvnDir,
   isDescendant,
   isReadOnly,
-  timeout,
-  toDisposable
+  timeout
 } from "./util";
-import { match, matchAll } from "./util/globMatch";
+import { match } from "./util/globMatch";
 import { RepositoryFilesWatcher } from "./watchers/repositoryFilesWatcher";
 
 function shouldShowProgress(operation: Operation): boolean {
@@ -70,11 +71,6 @@ function shouldShowProgress(operation: Operation): boolean {
 export class Repository implements IRemoteRepository {
   public sourceControl: SourceControl;
   public statusBar: StatusBarCommands;
-  public changes: ISvnResourceGroup;
-  public unversioned: ISvnResourceGroup;
-  public remoteChanges?: ISvnResourceGroup;
-  public changelists: Map<string, ISvnResourceGroup> = new Map();
-  public conflicts: ISvnResourceGroup;
   public statusIgnored: IFileStatus[] = [];
   public statusExternal: IFileStatus[] = [];
   private disposables: Disposable[] = [];
@@ -82,9 +78,32 @@ export class Repository implements IRemoteRepository {
   public remoteChangedFiles: number = 0;
   public isIncomplete: boolean = false;
   public needCleanUp: boolean = false;
-  private remoteChangedUpdateInterval?: NodeJS.Timeout;
   private deletedUris: Uri[] = [];
   private canSaveAuth: boolean = false;
+  private statusService: StatusService;
+  private groupManager: ResourceGroupManager;
+  private remoteChangeService: RemoteChangeService;
+
+  // Property accessors for backward compatibility
+  get changes(): ISvnResourceGroup {
+    return this.groupManager.changes;
+  }
+
+  get conflicts(): ISvnResourceGroup {
+    return this.groupManager.conflicts;
+  }
+
+  get unversioned(): ISvnResourceGroup {
+    return this.groupManager.unversioned;
+  }
+
+  get changelists(): ReadonlyMap<string, ISvnResourceGroup> {
+    return this.groupManager.changelists;
+  }
+
+  get remoteChanges(): ISvnResourceGroup | undefined {
+    return this.groupManager.remoteChanges;
+  }
 
   private lastPromptAuth?: Thenable<IAuth | undefined>;
 
@@ -137,14 +156,7 @@ export class Repository implements IRemoteRepository {
     this._state = state;
     this._onDidChangeState.fire(state);
 
-    this.changes.resourceStates = [];
-    this.unversioned.resourceStates = [];
-    this.conflicts.resourceStates = [];
-    this.changelists.forEach((group, _changelist) => {
-      group.resourceStates = [];
-    });
-
-    this.remoteChanges?.dispose();
+    this.groupManager.clearAll();
 
     this.isIncomplete = false;
     this.needCleanUp = false;
@@ -187,6 +199,12 @@ export class Repository implements IRemoteRepository {
     public repository: BaseRepository,
     private secrets: SecretStorage
   ) {
+    this.statusService = new StatusService(
+      repository,
+      repository.workspaceRoot,
+      repository.root
+    );
+
     this._fsWatcher = new RepositoryFilesWatcher(repository.root);
     this.disposables.push(this._fsWatcher);
 
@@ -224,33 +242,20 @@ export class Repository implements IRemoteRepository {
       this.disposables
     );
 
-    this.changes = this.sourceControl.createResourceGroup(
-      "changes",
-      "Changes"
-    ) as ISvnResourceGroup;
-    this.conflicts = this.sourceControl.createResourceGroup(
-      "conflicts",
-      "Conflicts"
-    ) as ISvnResourceGroup;
-    this.unversioned = this.sourceControl.createResourceGroup(
-      "unversioned",
-      "Unversioned"
-    ) as ISvnResourceGroup;
+    // Initialize ResourceGroupManager
+    this.groupManager = new ResourceGroupManager(
+      this.sourceControl,
+      this.disposables
+    );
 
-    this.changes.hideWhenEmpty = true;
-    this.unversioned.hideWhenEmpty = true;
-    this.conflicts.hideWhenEmpty = true;
-
-    this.disposables.push(this.changes);
-    this.disposables.push(this.conflicts);
-
-    // The this.unversioned can recreated by update state model
-    this.disposables.push(toDisposable(() => this.unversioned.dispose()));
-
-    // Dispose the setInterval of Remote Changes
-    this.disposables.push(
-      toDisposable(() => {
-        this.remoteChangedUpdateInterval && clearInterval(this.remoteChangedUpdateInterval);
+    // Initialize RemoteChangeService
+    this.remoteChangeService = new RemoteChangeService(
+      () => this.updateRemoteChangedFiles(),
+      () => ({
+        checkFrequencySeconds: configuration.get<number>(
+          "remoteChanges.checkFrequency",
+          300
+        )
       })
     );
 
@@ -264,17 +269,14 @@ export class Repository implements IRemoteRepository {
     // Only check deleted files after the status list is fully updated
     this.onDidChangeStatus(this.actionForDeletedFiles, this, this.disposables);
 
-    this.createRemoteChangedInterval();
-
+    // Start remote change polling
+    this.remoteChangeService.start();
     this.updateRemoteChangedFiles();
 
-    // On change config, dispose current interval and create a new.
+    // On change config, restart remote change service
     configuration.onDidChange(e => {
       if (e.affectsConfiguration("svn.remoteChanges.checkFrequency")) {
-        this.remoteChangedUpdateInterval && clearInterval(this.remoteChangedUpdateInterval);
-
-        this.createRemoteChangedInterval();
-
+        this.remoteChangeService.restart();
         this.updateRemoteChangedFiles();
       }
     });
@@ -292,21 +294,6 @@ export class Repository implements IRemoteRepository {
   private async onDidAnyFileChanged(e: Uri) {
     await this.repository.updateInfo();
     this._onDidChangeRepository.fire(e);
-  }
-
-  private createRemoteChangedInterval() {
-    const updateFreq = configuration.get<number>(
-      "remoteChanges.checkFrequency",
-      300
-    );
-
-    if (!updateFreq) {
-      return;
-    }
-
-    this.remoteChangedUpdateInterval = setInterval(() => {
-      this.updateRemoteChangedFiles();
-    }, 1000 * updateFreq);
   }
 
   /**
@@ -386,9 +373,10 @@ export class Repository implements IRemoteRepository {
     if (updateFreq) {
       this.run(Operation.StatusRemote);
     } else {
-      // Remove list of remote changes
-      this.remoteChanges?.dispose();
-      this.remoteChanges = undefined;
+      // Clear remote changes when disabled
+      if (this.groupManager.remoteChanges) {
+        this.groupManager.remoteChanges.resourceStates = [];
+      }
     }
   }
 
@@ -441,255 +429,43 @@ export class Repository implements IRemoteRepository {
   @throttle
   @globalSequentialize("updateModelState")
   public async updateModelState(checkRemoteChanges: boolean = false) {
-    const changes: Resource[] = [];
-    const unversioned: Resource[] = [];
-    const conflicts: Resource[] = [];
-    const changelists: Map<string, Resource[]> = new Map();
-    const remoteChanges: Resource[] = [];
-
-    this.statusExternal = [];
-    this.statusIgnored = [];
-    this.isIncomplete = false;
-    this.needCleanUp = false;
-
-    const combineExternal = configuration.get<boolean>(
-      "sourceControl.combineExternalIfSameServer",
-      false
-    );
-
-    const statuses =
-      (await this.retryRun(async () => {
-        return this.repository.getStatus({
-          includeIgnored: true,
-          includeExternals: combineExternal,
-          checkRemoteChanges
-        });
-      })) ?? [];
-
-    const fileConfig = workspace.getConfiguration("files", Uri.file(this.root));
-
-    const filesToExclude = fileConfig.get<any>("exclude");
-
-    const excludeList: string[] = [];
-    for (const pattern in filesToExclude) {
-      if (filesToExclude.hasOwnProperty(pattern)) {
-        const negate = !filesToExclude[pattern];
-        excludeList.push((negate ? "!" : "") + pattern);
-      }
-    }
-
-    this.statusExternal = statuses.filter(
-      status => status.status === Status.EXTERNAL
-    );
-
-    if (combineExternal && this.statusExternal.length) {
-      const repositoryUuid = await this.repository.getRepositoryUuid();
-      this.statusExternal = this.statusExternal.filter(
-        status => repositoryUuid !== status.repositoryUuid
-      );
-    }
-
-    const statusesRepository = statuses.filter(status => {
-      if (status.status === Status.EXTERNAL) {
-        return false;
-      }
-
-      return !this.statusExternal.some(external =>
-        isDescendant(external.path, status.path)
-      );
+    // Get categorized status from StatusService
+    const result = await this.retryRun(async () => {
+      return this.statusService.updateStatus({ checkRemoteChanges });
     });
 
-    const hideUnversioned = configuration.get<boolean>(
-      "sourceControl.hideUnversioned"
-    );
+    // Update metadata
+    this.statusExternal = [...result.statusExternal];
+    this.statusIgnored = [...result.statusIgnored];
+    this.isIncomplete = result.isIncomplete;
+    this.needCleanUp = result.needCleanUp;
 
-    const ignoreList = configuration.get<string[]>("sourceControl.ignore");
-
-    for (const status of statusesRepository) {
-      if (status.path === ".") {
-        this.isIncomplete = status.status === Status.INCOMPLETE;
-        this.needCleanUp = status.wcStatus.locked;
-      }
-
-      // If exists a switched item, the repository is incomplete
-      // To simulate, run "svn switch" and kill "svn" proccess
-      // After, run "svn update"
-      if (status.wcStatus.switched) {
-        this.isIncomplete = true;
-      }
-
-      if (
-        status.wcStatus.locked ||
-        status.wcStatus.switched ||
-        status.status === Status.INCOMPLETE
-      ) {
-        // On commit, `svn status` return all locked files with status="normal" and props="none"
-        continue;
-      }
-
-      if (matchAll(status.path, excludeList, { dot: true })) {
-        continue;
-      }
-
-      const uri = Uri.file(path.join(this.workspaceRoot, status.path));
-      const renameUri = status.rename
-        ? Uri.file(path.join(this.workspaceRoot, status.rename))
-        : undefined;
-
-      if (status.reposStatus) {
-        remoteChanges.push(
-          new Resource(
-            uri,
-            status.reposStatus.item,
-            undefined,
-            status.reposStatus.props,
-            true
-          )
-        );
-      }
-
-      const resource = new Resource(
-        uri,
-        status.status,
-        renameUri,
-        status.props
-      );
-
-      if (
-        (status.status === Status.NORMAL || status.status === Status.NONE) &&
-        (status.props === Status.NORMAL || status.props === Status.NONE) &&
-        !status.changelist
-      ) {
-        // Ignore non changed itens
-        continue;
-      } else if (status.status === Status.IGNORED) {
-        this.statusIgnored.push(status);
-      } else if (status.status === Status.CONFLICTED) {
-        conflicts.push(resource);
-      } else if (status.status === Status.UNVERSIONED) {
-        if (hideUnversioned) {
-          continue;
-        }
-
-        const matches = status.path.match(
-          /(.+?)\.(mine|working|merge-\w+\.r\d+|r\d+)$/
-        );
-
-        // If file end with (mine, working, merge, etc..) and has file without extension
-        if (
-          matches &&
-          matches[1] &&
-          statuses.some(s => s.path === matches[1])
-        ) {
-          continue;
-        }
-        if (
-          ignoreList.length > 0 &&
-          matchAll(path.sep + status.path, ignoreList, {
-            dot: true,
-            matchBase: true
-          })
-        ) {
-          continue;
-        }
-        unversioned.push(resource);
-      } else if (status.changelist) {
-        let changelist = changelists.get(status.changelist);
-        if (!changelist) {
-          changelist = [];
-        }
-        changelist.push(resource);
-        changelists.set(status.changelist, changelist);
-      } else {
-        changes.push(resource);
-      }
-    }
-
-    this.changes.resourceStates = changes;
-    this.conflicts.resourceStates = conflicts;
-
-    const prevChangelistsSize = this.changelists.size;
-
-    this.changelists.forEach((group, _changelist) => {
-      group.resourceStates = [];
-    });
-
-    const counts = [this.changes, this.conflicts];
-
-    const ignoreOnStatusCountList = configuration.get<string[]>(
-      "sourceControl.ignoreOnStatusCount"
-    );
-
-    changelists.forEach((resources, changelist) => {
-      let group = this.changelists.get(changelist);
-      if (!group) {
-        // Prefix 'changelist-' to prevent double id with 'change' or 'external'
-        group = this.sourceControl.createResourceGroup(
-          `changelist-${changelist}`,
-          `Changelist "${changelist}"`
-        ) as ISvnResourceGroup;
-        group.hideWhenEmpty = true;
-        this.disposables.push(group);
-
-        this.changelists.set(changelist, group);
-      }
-
-      group.resourceStates = resources;
-
-      if (!ignoreOnStatusCountList.includes(changelist)) {
-        counts.push(group);
+    // Delegate group management to ResourceGroupManager
+    const count = this.groupManager.updateGroups({
+      result,
+      config: {
+        ignoreOnStatusCountList: configuration.get<string[]>(
+          "sourceControl.ignoreOnStatusCount",
+          []
+        ),
+        countUnversioned: configuration.get<boolean>(
+          "sourceControl.countUnversioned",
+          false
+        )
       }
     });
 
-    // Recreate unversioned group to move after changelists
-    if (prevChangelistsSize !== this.changelists.size) {
-      this.unversioned.dispose();
+    this.sourceControl.count = count;
 
-      this.unversioned = this.sourceControl.createResourceGroup(
-        "unversioned",
-        "Unversioned"
-      ) as ISvnResourceGroup;
-
-      this.unversioned.hideWhenEmpty = true;
+    // Set repository reference on remote changes group
+    if (this.groupManager.remoteChanges) {
+      this.groupManager.remoteChanges.repository = this;
     }
 
-    this.unversioned.resourceStates = unversioned;
-
-    if (configuration.get<boolean>("sourceControl.countUnversioned", false)) {
-      counts.push(this.unversioned);
-    }
-
-    this.sourceControl.count = counts.reduce(
-      (a, b) => a + b.resourceStates.length,
-      0
-    );
-
-    // Recreate remoteChanges group to move after unversioned
-    if (!this.remoteChanges || prevChangelistsSize !== this.changelists.size) {
-      /**
-       * Destroy and create for keep at last position
-       */
-      const tempResourceStates: Resource[] = this.remoteChanges?.resourceStates ?? [];
-      this.remoteChanges?.dispose();
-
-      this.remoteChanges = this.sourceControl.createResourceGroup(
-        "remotechanges",
-        "Remote Changes"
-      ) as ISvnResourceGroup;
-
-      this.remoteChanges.repository = this;
-      this.remoteChanges.hideWhenEmpty = true;
-      this.remoteChanges.resourceStates = tempResourceStates;
-    }
-
-    // Update remote changes group
-    if (checkRemoteChanges) {
-      this.remoteChanges.resourceStates = remoteChanges;
-
-      if (remoteChanges.length !== this.remoteChangedFiles) {
-        this.remoteChangedFiles = remoteChanges.length;
-        this._onDidChangeRemoteChangedFiles.fire();
-      }
+    // Update remote changes count
+    if (checkRemoteChanges && result.remoteChanges.length !== this.remoteChangedFiles) {
+      this.remoteChangedFiles = result.remoteChanges.length;
+      this._onDidChangeRemoteChangedFiles.fire();
     }
 
     this._onDidChangeStatus.fire();
@@ -700,31 +476,7 @@ export class Repository implements IRemoteRepository {
   }
 
   public getResourceFromFile(uri: string | Uri): Resource | undefined {
-    if (typeof uri === "string") {
-      uri = Uri.file(uri);
-    }
-
-    const groups = [
-      this.changes,
-      this.conflicts,
-      this.unversioned,
-      ...this.changelists.values()
-    ];
-
-    const uriString = uri.toString();
-
-    for (const group of groups) {
-      for (const resource of group.resourceStates) {
-        if (
-          uriString === resource.resourceUri.toString() &&
-          resource instanceof Resource
-        ) {
-          return resource;
-        }
-      }
-    }
-
-    return undefined;
+    return this.groupManager.getResourceFromFile(uri);
   }
 
   public provideOriginalResource(uri: Uri): Uri | undefined {

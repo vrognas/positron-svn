@@ -105,6 +105,9 @@ export class Svn {
       args.push("--username", options.username);
     }
     if (options.password) {
+      // SECURITY WARNING: Passing passwords via --password exposes them in process list
+      // TODO: Implement more secure authentication (config file, SSH keys, etc.)
+      // For now, users should prefer SSH key authentication when possible
       args.push("--password", options.password);
     }
 
@@ -250,6 +253,9 @@ export class Svn {
       args.push("--username", options.username);
     }
     if (options.password) {
+      // SECURITY WARNING: Passing passwords via --password exposes them in process list
+      // TODO: Implement more secure authentication (config file, SSH keys, etc.)
+      // For now, users should prefer SSH key authentication when possible
       args.push("--password", options.password);
     }
 

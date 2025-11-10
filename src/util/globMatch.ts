@@ -2,7 +2,7 @@ import { minimatch, Minimatch, MinimatchOptions } from "minimatch";
 
 export function matchAll(
   path: string,
-  patterns: string[],
+  patterns: readonly string[],
   opts: MinimatchOptions = {}
 ): boolean {
   let match = false;
