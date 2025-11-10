@@ -1,3 +1,13 @@
+## [2.17.32] (2025-11-10)
+
+### Security
+
+* Add URL validation to switchBranch command (SSRF/command injection prevention)
+* Import and apply validateRepositoryUrl before branch.path operations
+* Validate branch URLs: only http://, https://, svn://, svn+ssh:// allowed
+* Assess validateRevision scope: only 1 user input (search_log_by_revision, already protected)
+* Phase 4.5b: URL validation 100%, validateRevision 100% (1/1 inputs validated)
+
 ## [2.17.31] (2025-11-10)
 
 ### Build
