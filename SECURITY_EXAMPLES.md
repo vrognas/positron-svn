@@ -68,7 +68,7 @@ SVN error: Connection refused from server at [DOMAIN]
 
 ### Before Sanitization
 ```
-SVN error: Failed to retrieve metadata from /app/svn/handler with api_key=sk_live_4eC39HqLyjWDarhtT657s9q1
+SVN error: Failed to retrieve metadata from /app/svn/handler with api_key=sk_live_REDACTED_EXAMPLE
 
 {
   "exitCode": 1,
