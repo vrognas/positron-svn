@@ -51,6 +51,46 @@ export function filterEvent<T>(
     );
 }
 
+/**
+ * Throttle event firing to prevent flooding (Phase 8.3 perf fix)
+ * Collects events and fires the latest after a delay
+ */
+export function throttleEvent<T>(event: Event<T>, delay: number): Event<T> {
+  return (listener: any, thisArgs = null, disposables?: any) => {
+    let timer: NodeJS.Timeout | undefined;
+    let latestEvent: T | undefined;
+
+    const result = event(
+      (e: T) => {
+        latestEvent = e;
+        if (timer) {
+          return; // Already scheduled
+        }
+        timer = setTimeout(() => {
+          if (latestEvent !== undefined) {
+            listener.call(thisArgs, latestEvent);
+          }
+          timer = undefined;
+          latestEvent = undefined;
+        }, delay);
+      },
+      null,
+      disposables
+    );
+
+    // Cleanup timer on dispose
+    const originalDispose = result.dispose.bind(result);
+    result.dispose = () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      originalDispose();
+    };
+
+    return result;
+  };
+}
+
 export function onceEvent<T>(event: Event<T>): Event<T> {
   return (listener: any, thisArgs = null, disposables?: any) => {
     const result = event(

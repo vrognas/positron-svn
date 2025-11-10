@@ -6,6 +6,7 @@ import { debounce } from "../decorators";
 import {
   anyEvent,
   filterEvent,
+  throttleEvent,
   IDisposable,
   isDescendant,
   fixPathSeparator,
@@ -71,9 +72,10 @@ export class RepositoryFilesWatcher implements IDisposable {
 
     const isRelevant = (uri: Uri) => !isTmp(uri);
 
-    this.onDidChange = filterEvent(fsWatcher.onDidChange, isRelevant);
-    this.onDidCreate = filterEvent(fsWatcher.onDidCreate, isRelevant);
-    this.onDidDelete = filterEvent(fsWatcher.onDidDelete, isRelevant);
+    // Phase 8.3 perf fix - throttle events to prevent flooding on bulk file changes
+    this.onDidChange = throttleEvent(filterEvent(fsWatcher.onDidChange, isRelevant), 100);
+    this.onDidCreate = throttleEvent(filterEvent(fsWatcher.onDidCreate, isRelevant), 100);
+    this.onDidDelete = throttleEvent(filterEvent(fsWatcher.onDidDelete, isRelevant), 100);
 
     this.onDidAny = anyEvent(
       this.onDidChange,
