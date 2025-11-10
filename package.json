@@ -9,7 +9,7 @@
         "positron": "^2025.6.x"
     },
     "private": true,
-    "enableProposedApi": false,
+    "enabledApiProposals": [],
     "icon": "images/subversion.png",
     "homepage": "https://github.com/viktor-rognas/svn-scm/blob/master/README.md",
     "repository": {
