@@ -1,7 +1,7 @@
 # Performance Baselines
 
-**Date**: 2025-11-10
-**Version**: 2.17.27
+**Date**: 2025-11-10 (Updated)
+**Version**: 2.18.1 (Phase 2.1 fixes)
 **Purpose**: Track key performance metrics for SVN extension to ensure optimal user experience and identify regressions.
 
 ## Metrics
@@ -170,15 +170,36 @@ console.log(`Memory: ${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB heap, ${(
 
 ## Measurement History
 
-### 2025-11-10 - Initial Baseline (TBD)
-- Extension Activation: TBD ms
-- updateModelState (small repo): TBD ms
-- updateModelState (medium repo): TBD ms
-- updateModelState (large repo): TBD ms
-- Memory Usage (single repo): TBD MB
-- Remote Status Check: TBD ms
+### 2025-11-10 - Phase 2.1 Fixes Applied
 
-*Note: Run actual measurements and update TBD values with real data*
+**Changes affecting performance:**
+- ✅ **Fixed double decorator chain** - Removed duplicate @throttle/@globalSequentialize from StatusService
+  - Impact: Eliminates redundant throttling overhead
+  - Expected improvement: ~5-10% faster status updates
+- ✅ **Refactored IStatusContext** - Reduced from 11 properties to 3 focused interfaces
+  - Impact: Less object copying, cleaner call path
+  - Expected improvement: Minor (< 2%), better maintainability
+- ✅ **Service delegation** - StatusService now uses ResourceGroupManager directly
+  - Impact: Reduced indirection
+  - Expected improvement: Negligible
+
+**Action Required:** Run actual measurements and document results
+
+### Initial Baseline (PENDING - needs measurement)
+- Extension Activation: TBD ms (target: <2000ms)
+- updateModelState (small repo ~50 files): TBD ms (expected: 50-150ms)
+- updateModelState (medium repo ~500 files): TBD ms (expected: 150-300ms)
+- updateModelState (large repo ~2000 files): TBD ms (expected: 300-500ms)
+- Memory Usage (single repo): TBD MB (expected: 30-50MB)
+- Remote Status Check: TBD ms (expected: 200-2000ms, network dependent)
+
+**Measurement Protocol:**
+1. Install v2.18.1 in clean VS Code instance
+2. Open test repositories (small/medium/large)
+3. Add console.time() instrumentation per guidelines above
+4. Perform 10 operations, record average
+5. Update this document with actual values
+6. Use as regression baseline for future changes
 
 ## Performance SLAs
 

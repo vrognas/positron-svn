@@ -53,7 +53,7 @@ import {
 import { match } from "./util/globMatch";
 import { RemoteChangeService } from "./services/RemoteChangeService";
 import { ResourceGroupManager } from "./services/ResourceGroupManager";
-import { StatusService, IStatusContext } from "./services/StatusService";
+import { StatusService, IStatusEvents, IStatusRepository } from "./services/StatusService";
 import { RepositoryFilesWatcher } from "./watchers/repositoryFilesWatcher";
 
 function shouldShowProgress(operation: Operation): boolean {
@@ -245,26 +245,26 @@ export class Repository implements IRemoteRepository {
       this.disposables
     );
 
-    // Initialize StatusService with context
-    const statusContext: IStatusContext = {
+    // Initialize StatusService with focused interfaces
+    const statusRepository: IStatusRepository = {
       root: this.repository.root,
       workspaceRoot: this.repository.workspaceRoot,
-      changes: this.changes,
-      unversioned: this.unversioned,
-      conflicts: this.conflicts,
-      changelists: this.changelists,
-      remoteChanges: this.remoteChanges,
-      sourceControl: {
-        createResourceGroup: (id: string, label: string) => this.sourceControl.createResourceGroup(id, label) as any,
-        count: this.sourceControl.count
-      },
+      getStatus: (options: any) => this.repository.getStatus(options),
+      getRepositoryUuid: () => this.repository.getRepositoryUuid(),
+      retryRun: <T,>(operation: () => Promise<T>) => this.retryRun(operation)
+    };
+
+    const statusEvents: IStatusEvents = {
       onDidChangeStatus: () => this._onDidChangeStatus.fire(),
       onDidChangeRemoteChangedFiles: () => this._onDidChangeRemoteChangedFiles.fire(),
-      getCurrentBranch: async () => this.currentBranch,
-      retryRun: <T,>(operation: () => Promise<T>) => this.retryRun(operation),
-      disposables: { push: (d: any) => this.disposables.push(d) }
+      getCurrentBranch: async () => this.currentBranch
     };
-    this.statusService = new StatusService(this.repository, statusContext);
+
+    this.statusService = new StatusService(
+      statusRepository,
+      this.resourceGroupManager,
+      statusEvents
+    );
 
     // Initialize RemoteChangeService for polling
     this.remoteChangeService = new RemoteChangeService(

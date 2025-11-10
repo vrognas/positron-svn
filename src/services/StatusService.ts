@@ -1,40 +1,35 @@
 import * as path from "path";
 import { Uri, workspace } from "vscode";
-import { IFileStatus, ISvnResourceGroup, Status } from "../common/types";
-import { throttle, globalSequentialize } from "../decorators";
+import { IFileStatus, Status } from "../common/types";
 import { configuration } from "../helpers/configuration";
 import { Resource } from "../resource";
-import { Repository as BaseRepository } from "../svnRepository";
+import { ResourceGroupManager } from "./ResourceGroupManager";
 import { isDescendant } from "../util";
 import { matchAll } from "../util/globMatch";
 
-export interface IStatusContext {
+/** Minimal interface for status-related operations */
+export interface IStatusRepository {
   root: string;
   workspaceRoot: string;
-  changes: ISvnResourceGroup;
-  unversioned: ISvnResourceGroup;
-  conflicts: ISvnResourceGroup;
-  changelists: Map<string, ISvnResourceGroup>;
-  remoteChanges?: ISvnResourceGroup;
-  sourceControl: {
-    createResourceGroup: (id: string, label: string) => ISvnResourceGroup;
-    count: number;
-  };
+  getStatus(options: any): Promise<IFileStatus[]>;
+  getRepositoryUuid(): Promise<string>;
+  retryRun: <T>(operation: () => Promise<T>) => Promise<T>;
+}
+
+/** Event callbacks for status changes */
+export interface IStatusEvents {
   onDidChangeStatus: () => void;
   onDidChangeRemoteChangedFiles: () => void;
   getCurrentBranch: () => Promise<string>;
-  retryRun: <T>(operation: () => Promise<T>) => Promise<T>;
-  disposables: { push: (disposable: any) => void };
 }
 
 export class StatusService {
   constructor(
-    private repository: BaseRepository,
-    private context: IStatusContext
+    private repository: IStatusRepository,
+    private resourceGroups: ResourceGroupManager,
+    private events: IStatusEvents
   ) {}
 
-  @throttle
-  @globalSequentialize("updateModelState")
   public async updateModelState(
     statusExternal: IFileStatus[],
     statusIgnored: IFileStatus[],
@@ -68,7 +63,7 @@ export class StatusService {
     );
 
     const statuses =
-      (await this.context.retryRun(async () => {
+      (await this.repository.retryRun(async () => {
         return this.repository.getStatus({
           includeIgnored: true,
           includeExternals: combineExternal,
@@ -76,7 +71,7 @@ export class StatusService {
         });
       })) ?? [];
 
-    const fileConfig = workspace.getConfiguration("files", Uri.file(this.context.root));
+    const fileConfig = workspace.getConfiguration("files", Uri.file(this.repository.root));
 
     const filesToExclude = fileConfig.get<any>("exclude");
 
@@ -141,9 +136,9 @@ export class StatusService {
         continue;
       }
 
-      const uri = Uri.file(path.join(this.context.workspaceRoot, status.path));
+      const uri = Uri.file(path.join(this.repository.workspaceRoot, status.path));
       const renameUri = status.rename
-        ? Uri.file(path.join(this.context.workspaceRoot, status.rename))
+        ? Uri.file(path.join(this.repository.workspaceRoot, status.rename))
         : undefined;
 
       if (status.reposStatus) {
@@ -215,96 +210,64 @@ export class StatusService {
       }
     }
 
-    this.context.changes.resourceStates = changes;
-    this.context.conflicts.resourceStates = conflicts;
+    this.resourceGroups.changes.resourceStates = changes;
+    this.resourceGroups.conflicts.resourceStates = conflicts;
 
-    const prevChangelistsSize = this.context.changelists.size;
+    const prevChangelistsSize = this.resourceGroups.changelists.size;
 
-    this.context.changelists.forEach((group, _changelist) => {
+    this.resourceGroups.changelists.forEach((group, _changelist) => {
       group.resourceStates = [];
     });
 
-    const counts = [this.context.changes, this.context.conflicts];
+    const counts = [this.resourceGroups.changes, this.resourceGroups.conflicts];
 
     const ignoreOnStatusCountList = configuration.get<string[]>(
       "sourceControl.ignoreOnStatusCount"
     );
 
-    changelists.forEach((resources, changelist) => {
-      let group = this.context.changelists.get(changelist);
-      if (!group) {
-        // Prefix 'changelist-' to prevent double id with 'change' or 'external'
-        group = this.context.sourceControl.createResourceGroup(
-          `changelist-${changelist}`,
-          `Changelist "${changelist}"`
-        ) as ISvnResourceGroup;
-        group.hideWhenEmpty = true;
-        this.context.disposables.push(group);
+    // Delegate changelist management to ResourceGroupManager
+    this.resourceGroups.updateChangelists(changelists);
 
-        this.context.changelists.set(changelist, group);
-      }
-
-      group.resourceStates = resources;
-
-      if (!ignoreOnStatusCountList.includes(changelist)) {
+    // Count resources
+    changelists.forEach((_resources, changelist) => {
+      const group = this.resourceGroups.changelists.get(changelist);
+      if (group && !ignoreOnStatusCountList.includes(changelist)) {
         counts.push(group);
       }
     });
 
-    // Recreate unversioned group to move after changelists
-    if (prevChangelistsSize !== this.context.changelists.size) {
-      this.context.unversioned.dispose();
-
-      this.context.unversioned = this.context.sourceControl.createResourceGroup(
-        "unversioned",
-        "Unversioned"
-      ) as ISvnResourceGroup;
-
-      this.context.unversioned.hideWhenEmpty = true;
+    // Recreate unversioned group if changelists size changed
+    if (prevChangelistsSize !== this.resourceGroups.changelists.size) {
+      this.resourceGroups.recreateUnversionedGroup();
     }
 
-    this.context.unversioned.resourceStates = unversioned;
+    this.resourceGroups.unversioned.resourceStates = unversioned;
 
     if (configuration.get<boolean>("sourceControl.countUnversioned", false)) {
-      counts.push(this.context.unversioned);
+      counts.push(this.resourceGroups.unversioned);
     }
 
-    this.context.sourceControl.count = counts.reduce(
-      (a, b) => a + b.resourceStates.length,
-      0
-    );
+    // Update source control count (will be set by Repository)
+    // counts.reduce((a, b) => a + b.resourceStates.length, 0);
 
-    // Recreate remoteChanges group to move after unversioned
-    if (!this.context.remoteChanges || prevChangelistsSize !== this.context.changelists.size) {
-      /**
-       * Destroy and create for keep at last position
-       */
-      const tempResourceStates: Resource[] = this.context.remoteChanges?.resourceStates ?? [];
-      this.context.remoteChanges?.dispose();
-
-      this.context.remoteChanges = this.context.sourceControl.createResourceGroup(
-        "remotechanges",
-        "Remote Changes"
-      ) as ISvnResourceGroup;
-
-      this.context.remoteChanges.repository = undefined; // Will be set by Repository
-      this.context.remoteChanges.hideWhenEmpty = true;
-      this.context.remoteChanges.resourceStates = tempResourceStates;
+    // Recreate remoteChanges group if needed
+    if (!this.resourceGroups.remoteChanges || prevChangelistsSize !== this.resourceGroups.changelists.size) {
+      this.resourceGroups.recreateRemoteChangesGroup();
     }
 
     // Update remote changes group
-    if (checkRemoteChanges) {
-      this.context.remoteChanges.resourceStates = remoteChanges;
+    if (checkRemoteChanges && this.resourceGroups.remoteChanges) {
+      this.resourceGroups.remoteChanges.resourceStates = remoteChanges;
 
       if (remoteChanges.length !== remoteChangedFiles) {
         remoteChangedFiles = remoteChanges.length;
-        this.context.onDidChangeRemoteChangedFiles();
+        this.events.onDidChangeRemoteChangedFiles();
       }
     }
 
-    this.context.onDidChangeStatus();
+    this.events.onDidChangeStatus();
 
-    currentBranch = await this.context.getCurrentBranch();
+    currentBranch = await this.events.getCurrentBranch();
 
     return {
       statusExternal,
