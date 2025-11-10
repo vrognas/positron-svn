@@ -87,10 +87,43 @@ export function validateFilePath(path: string): boolean {
   return !path.includes('..') && !path.startsWith('/') && !path.startsWith('\\');
 }
 
+/**
+ * Validates a repository URL to prevent SSRF and command injection
+ * Only allows safe protocols: http, https, svn, svn+ssh
+ * Rejects file:// protocol to prevent local file access
+ */
+export function validateRepositoryUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+
+  const allowedProtocols = ['http:', 'https:', 'svn:', 'svn+ssh:'];
+
+  try {
+    const parsed = new URL(url);
+
+    // Check protocol is allowed
+    if (!allowedProtocols.includes(parsed.protocol)) {
+      return false;
+    }
+
+    // Reject URLs with shell metacharacters in hostname/path
+    if (/[;&|`$()]/.test(parsed.hostname) || /[;&|`$()]/.test(parsed.pathname)) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    // Invalid URL format
+    return false;
+  }
+}
+
 export const validators = {
   changelist: validateChangelist,
   acceptAction: validateAcceptAction,
   searchPattern: validateSearchPattern,
   revision: validateRevision,
-  filePath: validateFilePath
+  filePath: validateFilePath,
+  repositoryUrl: validateRepositoryUrl
 };

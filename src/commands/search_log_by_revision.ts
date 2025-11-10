@@ -4,6 +4,7 @@ import { window, Uri, commands } from "vscode";
 import { Repository } from "../repository";
 import { toSvnUri } from "../uri";
 import { SvnUriAction } from "../common/types";
+import { validateRevision } from "../validation";
 
 export class SearchLogByRevision extends Command {
   constructor() {
@@ -16,11 +17,13 @@ export class SearchLogByRevision extends Command {
       return;
     }
 
-    const revision = parseInt(input, 10);
-    if (!revision || !/^\+?(0|[1-9]\d*)$/.test(input)) {
-      window.showErrorMessage("Invalid revision");
+    // Use centralized validation to prevent injection attacks
+    if (!validateRevision(input)) {
+      window.showErrorMessage("Invalid revision. Please enter a number or keyword (HEAD, BASE, PREV, COMMITTED)");
       return;
     }
+
+    const revision = parseInt(input, 10);
 
     try {
       const resource = toSvnUri(

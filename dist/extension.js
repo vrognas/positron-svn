@@ -17742,6 +17742,34 @@ function validateSearchPattern(pattern) {
   }
   return !/[|;$()[\]{}`\\]/.test(pattern);
 }
+var VALID_REVISION_KEYWORDS = ["HEAD", "PREV", "BASE", "COMMITTED"];
+function validateRevision(revision) {
+  if (!revision || typeof revision !== "string") {
+    return false;
+  }
+  if (VALID_REVISION_KEYWORDS.includes(revision)) {
+    return true;
+  }
+  return /^\+?(0|[1-9]\d*)$/.test(revision);
+}
+function validateRepositoryUrl(url) {
+  if (!url || typeof url !== "string") {
+    return false;
+  }
+  const allowedProtocols = ["http:", "https:", "svn:", "svn+ssh:"];
+  try {
+    const parsed = new URL(url);
+    if (!allowedProtocols.includes(parsed.protocol)) {
+      return false;
+    }
+    if (/[;&|`$()]/.test(parsed.hostname) || /[;&|`$()]/.test(parsed.pathname)) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // src/svnRepository.ts
 var Repository = class {
@@ -18696,6 +18724,12 @@ var Checkout = class extends Command2 {
       });
     }
     if (!url) {
+      return;
+    }
+    if (!validateRepositoryUrl(url)) {
+      import_vscode15.window.showErrorMessage(
+        `Invalid repository URL. Only http://, https://, svn://, and svn+ssh:// protocols are allowed.`
+      );
       return;
     }
     let defaultCheckoutDirectory = configuration.get("defaultCheckoutDirectory") || os.homedir();
@@ -20152,11 +20186,11 @@ var SearchLogByRevision = class extends Command2 {
     if (!input) {
       return;
     }
-    const revision = parseInt(input, 10);
-    if (!revision || !/^\+?(0|[1-9]\d*)$/.test(input)) {
-      import_vscode43.window.showErrorMessage("Invalid revision");
+    if (!validateRevision(input)) {
+      import_vscode43.window.showErrorMessage("Invalid revision. Please enter a number or keyword (HEAD, BASE, PREV, COMMITTED)");
       return;
     }
+    const revision = parseInt(input, 10);
     try {
       const resource = toSvnUri(
         import_vscode43.Uri.file(repository.workspaceRoot),
