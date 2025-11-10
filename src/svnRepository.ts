@@ -19,7 +19,7 @@ import * as encodeUtil from "./encoding";
 import { exists, writeFile, stat, readdir } from "./fs";
 import { getBranchName } from "./helpers/branch";
 import { configuration } from "./helpers/configuration";
-import { parseInfoXml } from "./parser/infoParser";
+import { parseInfoXml, parseBatchInfoXml } from "./parser/infoParser";
 import { parseSvnList } from "./parser/listParser";
 import { parseSvnLog } from "./parser/logParser";
 import { parseStatusXml } from "./parser/statusParser";
@@ -44,6 +44,7 @@ export class Repository {
     [index: string]: ISvnInfo;
   } = {};
   private _info?: ISvnInfo;
+  private _cacheTimers: NodeJS.Timeout[] = [];
 
   public username?: string;
   public password?: string;
@@ -138,13 +139,34 @@ export class Repository {
 
     const status: IFileStatus[] = await parseStatusXml(result.stdout);
 
-    for (const s of status) {
-      if (s.status === Status.EXTERNAL) {
-        try {
-          const info = await this.getInfo(s.path);
-          s.repositoryUuid = info.repository?.uuid;
-        } catch (error) {
-          console.error(error);
+    // Batch fetch info for all externals (avoids N+1 query problem)
+    const externalPaths = status
+      .filter(s => s.status === Status.EXTERNAL)
+      .map(s => s.path);
+
+    if (externalPaths.length > 0) {
+      try {
+        const infoMap = await this.getBatchInfo(externalPaths);
+        for (const s of status) {
+          if (s.status === Status.EXTERNAL) {
+            const info = infoMap.get(s.path);
+            if (info) {
+              s.repositoryUuid = info.repository?.uuid;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to batch fetch external info:', error);
+        // Fall back to individual queries on error
+        for (const s of status) {
+          if (s.status === Status.EXTERNAL) {
+            try {
+              const info = await this.getInfo(s.path);
+              s.repositoryUuid = info.repository?.uuid;
+            } catch (err) {
+              console.error(err);
+            }
+          }
         }
       }
     }
@@ -188,12 +210,37 @@ export class Repository {
 
     this._infoCache[file] = await parseInfoXml(result.stdout);
 
-    // Cache for 2 minutes
-    setTimeout(() => {
+    // Cache for 2 minutes (track timer to prevent memory leaks)
+    const timer = setTimeout(() => {
       this.resetInfoCache(file);
+      // Remove timer from tracking array
+      const index = this._cacheTimers.indexOf(timer);
+      if (index > -1) {
+        this._cacheTimers.splice(index, 1);
+      }
     }, 2 * 60 * 1000);
+    this._cacheTimers.push(timer);
 
     return this._infoCache[file];
+  }
+
+  public async getBatchInfo(paths: string[]): Promise<Map<string, ISvnInfo>> {
+    if (paths.length === 0) {
+      return new Map();
+    }
+
+    // Create temp file with paths
+    const tempFile = tmp.fileSync();
+    const pathList = paths.map(p => fixPathSeparator(p)).join('\n');
+    await writeFile(tempFile.name, pathList, 'utf8');
+
+    try {
+      const args = ["info", "--xml", "--targets", tempFile.name];
+      const result = await this.exec(args);
+      return await parseBatchInfoXml(result.stdout);
+    } finally {
+      tempFile.removeCallback();
+    }
   }
 
   public async getChanges(): Promise<ISvnPathChange[]> {
@@ -983,5 +1030,14 @@ export class Repository {
     const result = await this.exec(args);
 
     return result.stdout;
+  }
+
+  public dispose(): void {
+    // Clear all cache timers to prevent memory leaks
+    for (const timer of this._cacheTimers) {
+      clearTimeout(timer);
+    }
+    this._cacheTimers = [];
+    this._infoCache = {};
   }
 }

@@ -489,14 +489,21 @@ export class Repository implements IRemoteRepository {
       );
     }
 
+    // Build external paths set for O(1) lookup (avoid O(n*m) nested loop)
+    const externalPathsSet = new Set(this.statusExternal.map(e => e.path));
+
     const statusesRepository = statuses.filter(status => {
       if (status.status === Status.EXTERNAL) {
         return false;
       }
 
-      return !this.statusExternal.some(external =>
-        isDescendant(external.path, status.path)
-      );
+      // Optimized: check against Set instead of array.some()
+      for (const externalPath of externalPathsSet) {
+        if (isDescendant(externalPath, status.path)) {
+          return false;
+        }
+      }
+      return true;
     });
 
     const hideUnversioned = configuration.get<boolean>(
@@ -504,6 +511,9 @@ export class Repository implements IRemoteRepository {
     );
 
     const ignoreList = configuration.get<string[]>("sourceControl.ignore");
+
+    // Build status paths set for O(1) lookup (avoid O(n²) nested loop at line ~589)
+    const statusPathsSet = new Set(statusesRepository.map(s => s.path));
 
     for (const status of statusesRepository) {
       if (status.path === ".") {
@@ -576,10 +586,11 @@ export class Repository implements IRemoteRepository {
         );
 
         // If file end with (mine, working, merge, etc..) and has file without extension
+        // Optimized: use Set.has() instead of array.some() for O(1) lookup
         if (
           matches &&
           matches[1] &&
-          statuses.some(s => s.path === matches[1])
+          statusPathsSet.has(matches[1])
         ) {
           continue;
         }

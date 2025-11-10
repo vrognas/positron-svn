@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.24",
+    "version": "2.17.25",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -1219,8 +1219,8 @@
                 },
                 "svn.remoteChanges.checkFrequency": {
                     "type": "number",
-                    "description": "Set the interval in seconds to check changed files on remote repository and show in statusbar. 0 to disable",
-                    "default": 300
+                    "description": "Set the interval in seconds to check changed files on remote repository and show in statusbar. 0 to disable (default increased from 300s to 900s to reduce UI freezes)",
+                    "default": 900
                 },
                 "svn.showOutput": {
                     "type": "boolean",
