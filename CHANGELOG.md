@@ -1,3 +1,17 @@
+## [2.17.28] (2025-11-10)
+
+### Architecture
+
+* Fix async constructor anti-pattern in Repository class (static factory pattern)
+* Enforce CommandArgs type safety in command infrastructure
+* Add performance baseline documentation (4 metrics tracked)
+
+### Phase 2 Prerequisites
+
+* Blocker 1 RESOLVED: Async constructor → static factory (race conditions eliminated)
+* Blocker 2 RESOLVED: Performance baselines documented (PERFORMANCE_BASELINE.md)
+* Blocker 3 RESOLVED: CommandArgs types enforced in createRepositoryCommand
+
 ## [2.17.27] (2025-11-10)
 
 ### Security - Phase 4.5 Complete

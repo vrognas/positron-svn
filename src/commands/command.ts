@@ -76,14 +76,23 @@ export abstract class Command implements Disposable {
     }
   }
 
+  /**
+   * Execute command with type-safe arguments.
+   * Implementations must use a specific pattern from CommandArgs type.
+   * @param args - Command arguments matching one of the CommandArgs patterns
+   */
   public abstract execute(...args: unknown[]): CommandResult;
 
   public dispose() {
     this._disposable?.dispose();
   }
 
+  /**
+   * Creates a command wrapper that resolves repository and passes it as first argument.
+   * @param method - Command method that accepts Repository as first parameter
+   */
   private createRepositoryCommand(
-    method: (...args: unknown[]) => CommandResult
+    method: (repository: Repository, ...args: unknown[]) => CommandResult
   ): (...args: unknown[]) => Promise<unknown> {
     const result = async (...args: unknown[]) => {
       const sourceControlManager = (await commands.executeCommand(
