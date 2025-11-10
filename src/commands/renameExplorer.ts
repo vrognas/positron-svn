@@ -2,6 +2,7 @@ import * as path from "path";
 import { Uri, window } from "vscode";
 import { Repository } from "../repository";
 import { fixPathSeparator } from "../util";
+import { validateFilePath } from "../validation";
 import { Command } from "./command";
 
 export class RenameExplorer extends Command {
@@ -39,6 +40,12 @@ export class RenameExplorer extends Command {
       });
     }
     if (!newName) {
+      return;
+    }
+
+    // Validate user input to prevent path traversal
+    if (!validateFilePath(newName)) {
+      window.showErrorMessage("Invalid file name: path traversal attempts are not allowed");
       return;
     }
 
