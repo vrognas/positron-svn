@@ -77,6 +77,7 @@ export class ResourceGroupManager implements IResourceGroupManager {
   private _remoteChanges?: ISvnResourceGroup;
   private _disposables: Disposable[] = [];
   private _prevChangelistsSize = 0;
+  private _resourceIndex = new Map<string, Resource>(); // Phase 8.1 perf fix - O(1) lookup
 
   get changes(): ISvnResourceGroup {
     return this._changes;
@@ -204,39 +205,56 @@ export class ResourceGroupManager implements IResourceGroupManager {
     // Update tracked size
     this._prevChangelistsSize = this._changelists.size;
 
+    // Rebuild resource index for O(1) lookups (Phase 8.1 perf fix)
+    this.rebuildResourceIndex();
+
     // Calculate count
     return this.calculateCount(config);
   }
 
   /**
+   * Rebuild resource index from all groups (Phase 8.1 perf fix)
+   * Called after updating resource groups
+   */
+  private rebuildResourceIndex(): void {
+    this._resourceIndex.clear();
+
+    const allResources = [
+      ...this._changes.resourceStates,
+      ...this._conflicts.resourceStates,
+      ...this._unversioned.resourceStates
+    ];
+
+    // Add changelist resources
+    this._changelists.forEach(group => {
+      allResources.push(...group.resourceStates);
+    });
+
+    // Add remote changes if exists
+    if (this._remoteChanges) {
+      allResources.push(...this._remoteChanges.resourceStates);
+    }
+
+    // Build index
+    for (const resource of allResources) {
+      if (resource instanceof Resource) {
+        const uriString = resource.resourceUri.toString();
+        this._resourceIndex.set(uriString, resource);
+      }
+    }
+  }
+
+  /**
    * Find resource by URI across all groups
+   * Phase 8.1 perf fix - O(1) Map lookup instead of O(n*m) nested loops
    */
   getResourceFromFile(uri: string | Uri): Resource | undefined {
     if (typeof uri === "string") {
       uri = Uri.file(uri);
     }
 
-    const groups = [
-      this._changes,
-      this._conflicts,
-      this._unversioned,
-      ...this._changelists.values()
-    ];
-
     const uriString = uri.toString();
-
-    for (const group of groups) {
-      for (const resource of group.resourceStates) {
-        if (
-          uriString === resource.resourceUri.toString() &&
-          resource instanceof Resource
-        ) {
-          return resource;
-        }
-      }
-    }
-
-    return undefined;
+    return this._resourceIndex.get(uriString);
   }
 
   /**

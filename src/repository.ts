@@ -68,6 +68,16 @@ function shouldShowProgress(operation: Operation): boolean {
   }
 }
 
+/**
+ * Cached configuration values (Phase 8.1 perf fix)
+ */
+type RepositoryConfig = {
+  actionForDeletedFiles: string;
+  ignoredRulesForDeletedFiles: string[];
+  updateFrequency: number;
+  autorefresh: boolean;
+};
+
 export class Repository implements IRemoteRepository {
   public sourceControl: SourceControl;
   public statusBar: StatusBarCommands;
@@ -78,11 +88,12 @@ export class Repository implements IRemoteRepository {
   public remoteChangedFiles: number = 0;
   public isIncomplete: boolean = false;
   public needCleanUp: boolean = false;
-  private deletedUris: Uri[] = [];
+  private deletedUris = new Set<Uri>(); // Phase 8.1 perf fix - Set for auto-deduplication
   private canSaveAuth: boolean = false;
   private statusService: StatusService;
   private groupManager: ResourceGroupManager;
   private remoteChangeService: RemoteChangeService;
+  private _configCache: RepositoryConfig | undefined;
 
   // Property accessors for backward compatibility
   get changes(): ISvnResourceGroup {
@@ -259,9 +270,9 @@ export class Repository implements IRemoteRepository {
       })
     );
 
-    // For each deleted file, append to list
+    // For each deleted file, add to set (auto-deduplicates)
     this._fsWatcher.onDidWorkspaceDelete(
-      uri => this.deletedUris.push(uri),
+      uri => this.deletedUris.add(uri),
       this,
       this.disposables
     );
@@ -275,6 +286,9 @@ export class Repository implements IRemoteRepository {
 
     // On change config, restart remote change service
     configuration.onDidChange(e => {
+      // Invalidate config cache (Phase 8.1 perf fix)
+      this._configCache = undefined;
+
       if (e.affectsConfiguration("svn.remoteChanges.checkFrequency")) {
         this.remoteChangeService.restart();
         this.updateRemoteChangedFiles();
@@ -290,6 +304,34 @@ export class Repository implements IRemoteRepository {
     );
   }
 
+  /**
+   * Get cached configuration values (Phase 8.1 perf fix)
+   * Prevents repeated configuration.get() calls in hot paths
+   */
+  private getConfig(): RepositoryConfig {
+    if (this._configCache) {
+      return this._configCache;
+    }
+
+    this._configCache = {
+      actionForDeletedFiles: configuration.get<string>(
+        "delete.actionForDeletedFiles",
+        "prompt"
+      ),
+      ignoredRulesForDeletedFiles: configuration.get<string[]>(
+        "delete.ignoredRulesForDeletedFiles",
+        []
+      ),
+      updateFrequency: configuration.get<number>(
+        "sourceControl.countBadge",
+        10
+      ),
+      autorefresh: configuration.get<boolean>("autorefresh")
+    };
+
+    return this._configCache;
+  }
+
   @debounce(500)
   private async onDidAnyFileChanged(e: Uri) {
     await this.repository.updateInfo();
@@ -301,17 +343,15 @@ export class Repository implements IRemoteRepository {
    */
   @debounce(300)
   private async actionForDeletedFiles() {
-    if (!this.deletedUris.length) {
+    if (this.deletedUris.size === 0) {
       return;
     }
 
-    const allUris = this.deletedUris;
-    this.deletedUris = [];
+    const allUris = Array.from(this.deletedUris);
+    this.deletedUris.clear();
 
-    const actionForDeletedFiles = configuration.get<string>(
-      "delete.actionForDeletedFiles",
-      "prompt"
-    );
+    const config = this.getConfig();
+    const actionForDeletedFiles = config.actionForDeletedFiles;
 
     if (actionForDeletedFiles === "none") {
       return;
@@ -329,11 +369,7 @@ export class Repository implements IRemoteRepository {
       return;
     }
 
-    const ignoredRulesForDeletedFiles = configuration.get<string[]>(
-      "delete.ignoredRulesForDeletedFiles",
-      []
-    );
-    const rules = ignoredRulesForDeletedFiles.map(ignored => match(ignored));
+    const rules = config.ignoredRulesForDeletedFiles.map(ignored => match(ignored));
 
     if (rules.length) {
       uris = uris.filter(uri => {
@@ -381,9 +417,9 @@ export class Repository implements IRemoteRepository {
   }
 
   private onFSChange(_uri: Uri): void {
-    const autorefresh = configuration.get<boolean>("autorefresh");
+    const config = this.getConfig();
 
-    if (!autorefresh) {
+    if (!config.autorefresh) {
       return;
     }
 
@@ -917,6 +953,7 @@ export class Repository implements IRemoteRepository {
   }
 
   public dispose(): void {
+    this.statusService.dispose();
     this.disposables = dispose(this.disposables);
   }
 }

@@ -1,4 +1,4 @@
-import { Uri, workspace } from "vscode";
+import { Disposable, Uri, workspace } from "vscode";
 import { IFileStatus, Status } from "../common/types";
 import { configuration } from "../helpers/configuration";
 import { Resource } from "../resource";
@@ -71,11 +71,19 @@ export interface IStatusService {
  * Implementation of status service
  */
 export class StatusService implements IStatusService {
+  private _configCache: StatusConfig | undefined;
+  private readonly _configChangeDisposable: Disposable;
+
   constructor(
     private readonly repository: BaseRepository,
     private readonly workspaceRoot: string,
     private readonly root: string
-  ) {}
+  ) {
+    // Subscribe to config changes to invalidate cache (Phase 8.1 perf fix)
+    this._configChangeDisposable = configuration.onDidChange(() => {
+      this._configCache = undefined;
+    });
+  }
 
   async updateStatus(options: StatusUpdateOptions): Promise<StatusResult> {
     const config = this.getConfiguration();
@@ -117,12 +125,17 @@ export class StatusService implements IStatusService {
 
   /**
    * Get configuration values needed for status processing
+   * Cached for performance (Phase 8.1 fix - prevents 1-10x/sec workspace.getConfiguration calls)
    */
   private getConfiguration(): StatusConfig {
+    if (this._configCache) {
+      return this._configCache;
+    }
+
     const fileConfig = workspace.getConfiguration("files", Uri.file(this.root));
     const filesExclude = fileConfig.get<Record<string, boolean>>("exclude") ?? {};
 
-    return {
+    this._configCache = {
       combineExternal: configuration.get<boolean>(
         "sourceControl.combineExternalIfSameServer",
         false
@@ -142,6 +155,8 @@ export class StatusService implements IStatusService {
       ),
       filesExclude
     };
+
+    return this._configCache;
   }
 
   /**
@@ -350,5 +365,12 @@ export class StatusService implements IStatusService {
       isIncomplete,
       needCleanUp
     };
+  }
+
+  /**
+   * Dispose resources (config change listener)
+   */
+  dispose(): void {
+    this._configChangeDisposable.dispose();
   }
 }
