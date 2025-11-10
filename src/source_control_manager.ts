@@ -292,7 +292,7 @@ export class SourceControlManager implements IDisposable {
       try {
         const repositoryRoot = await this.svn.getRepositoryRoot(path);
 
-        const repository = new Repository(
+        const repository = await Repository.create(
           await this.svn.open(repositoryRoot, path),
           this.extensionContact.secrets
         );

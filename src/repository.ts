@@ -183,7 +183,24 @@ export class Repository implements IRemoteRepository {
     this.repository.password = password;
   }
 
-  constructor(
+  /**
+   * Static factory method to create Repository instances asynchronously.
+   * This replaces direct constructor calls to avoid async constructor anti-pattern.
+   */
+  public static async create(
+    repository: BaseRepository,
+    secrets: SecretStorage
+  ): Promise<Repository> {
+    const instance = new Repository(repository, secrets);
+
+    // Execute async initialization
+    await instance.updateRemoteChangedFiles();
+    await instance.status();
+
+    return instance;
+  }
+
+  private constructor(
     public repository: BaseRepository,
     private secrets: SecretStorage
   ) {
@@ -266,8 +283,6 @@ export class Repository implements IRemoteRepository {
 
     this.createRemoteChangedInterval();
 
-    this.updateRemoteChangedFiles();
-
     // On change config, dispose current interval and create a new.
     configuration.onDidChange(e => {
       if (e.affectsConfiguration("svn.remoteChanges.checkFrequency")) {
@@ -278,8 +293,6 @@ export class Repository implements IRemoteRepository {
         this.updateRemoteChangedFiles();
       }
     });
-
-    this.status();
 
     this.disposables.push(
       workspace.onDidSaveTextDocument(document => {
