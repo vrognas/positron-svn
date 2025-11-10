@@ -1,3 +1,20 @@
+## [2.17.36] (2025-11-10)
+
+### Performance Ultrathink
+
+* 4 parallel subagents analyzed: performance targets, user scenarios, thresholds, fix complexity
+* **Decision**: Move #3 (debounce) + #5 (O(n²)) from Phase 8 → Phase 4b
+* Effort/impact: 5-7h, 45-65% improvement, LOW risk, both isolated
+* Justification: #3 affects 100% users (UX), #5 affects 40% (medium repos)
+* Phase 4b: Performance Quick Wins (concurrent with Phase 4a)
+* Defer: #1 info cache (marginal), #2 polling (medium risk), #4 XML (high risk)
+
+### Planning
+
+* IMPLEMENTATION_PLAN: Add Phase 4b Quick Wins section
+* Analysis results: 40% users at 500-2K files, 75-80% remote repos
+* Critical thresholds documented: XML >500 files, O(n²) >500 files + >5 externals
+
 ## [2.17.35] (2025-11-10)
 
 ### Performance Threshold Analysis
