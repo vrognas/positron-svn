@@ -211,15 +211,23 @@ export class StatusService implements IStatusService {
       );
     }
 
+    // Phase 11 perf fix - O(n²) → O(n) with Set-based descendant lookup
+    // Build Set of descendant paths for O(1) lookup
+    const descendantPaths = new Set<string>();
+    for (const external of statusExternal) {
+      for (const status of statuses) {
+        if (status.status !== Status.EXTERNAL && isDescendant(external.path, status.path)) {
+          descendantPaths.add(status.path);
+        }
+      }
+    }
+
     // Filter out external paths and their descendants
     const statusesRepository = statuses.filter(status => {
       if (status.status === Status.EXTERNAL) {
         return false;
       }
-
-      return !statusExternal.some(external =>
-        isDescendant(external.path, status.path)
-      );
+      return !descendantPaths.has(status.path);
     });
 
     return { statusExternal, statusesRepository };
@@ -250,6 +258,14 @@ export class StatusService implements IStatusService {
     const statusIgnored: IFileStatus[] = [];
     let isIncomplete = false;
     let needCleanUp = false;
+
+    // Phase 13 perf fix - O(n) → O(1) conflict path lookup
+    const conflictPaths = new Set<string>();
+    for (const status of statuses) {
+      if (status.status === Status.CONFLICTED) {
+        conflictPaths.add(status.path);
+      }
+    }
 
     for (const status of statuses) {
       // Check for incomplete/locked status on root
@@ -318,14 +334,14 @@ export class StatusService implements IStatusService {
           continue;
         }
 
-        // Skip conflict-related files (*.mine, *.r123, etc)
+        // Skip conflict-related files (*.mine, *.r123, etc) - Phase 13 perf fix
         const matches = status.path.match(
           /(.+?)\.(mine|working|merge-\w+\.r\d+|r\d+)$/
         );
         if (
           matches &&
           matches[1] &&
-          statuses.some(s => s.path === matches[1])
+          conflictPaths.has(matches[1])
         ) {
           continue;
         }

@@ -164,25 +164,43 @@ export class Svn {
       disposables.push(toDisposable(() => ee.removeListener(name, fn)));
     };
 
-    const [exitCode, stdout, stderr] = await Promise.all<any>([
-      new Promise<number>((resolve, reject) => {
-        once(process, "error", reject);
-        once(process, "exit", resolve);
-      }),
-      new Promise<Buffer>(resolve => {
-        const buffers: Buffer[] = [];
-        on(process.stdout as Readable, "data", (b: Buffer) => buffers.push(b));
-        once(process.stdout as Readable, "close", () =>
-          resolve(Buffer.concat(buffers))
+    // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
+    const timeoutMs = options.timeout || 30000; // 30s default
+    const timeoutPromise = new Promise<[number, Buffer, string]>((_, reject) => {
+      setTimeout(() => {
+        process.kill();
+        reject(
+          new SvnError({
+            message: `SVN command timeout after ${timeoutMs}ms`,
+            svnCommand: args[0],
+            exitCode: 124
+          })
         );
-      }),
-      new Promise<string>(resolve => {
-        const buffers: Buffer[] = [];
-        on(process.stderr as Readable, "data", (b: Buffer) => buffers.push(b));
-        once(process.stderr as Readable, "close", () =>
-          resolve(Buffer.concat(buffers).toString())
-        );
-      })
+      }, timeoutMs);
+    });
+
+    const [exitCode, stdout, stderr] = await Promise.race([
+      Promise.all<any>([
+        new Promise<number>((resolve, reject) => {
+          once(process, "error", reject);
+          once(process, "exit", resolve);
+        }),
+        new Promise<Buffer>(resolve => {
+          const buffers: Buffer[] = [];
+          on(process.stdout as Readable, "data", (b: Buffer) => buffers.push(b));
+          once(process.stdout as Readable, "close", () =>
+            resolve(Buffer.concat(buffers))
+          );
+        }),
+        new Promise<string>(resolve => {
+          const buffers: Buffer[] = [];
+          on(process.stderr as Readable, "data", (b: Buffer) => buffers.push(b));
+          once(process.stderr as Readable, "close", () =>
+            resolve(Buffer.concat(buffers).toString())
+          );
+        })
+      ]),
+      timeoutPromise
     ]);
 
     dispose(disposables);
@@ -304,25 +322,43 @@ export class Svn {
       disposables.push(toDisposable(() => ee.removeListener(name, fn)));
     };
 
-    const [exitCode, stdout, stderr] = await Promise.all<any>([
-      new Promise<number>((resolve, reject) => {
-        once(process, "error", reject);
-        once(process, "exit", resolve);
-      }),
-      new Promise<Buffer>(resolve => {
-        const buffers: Buffer[] = [];
-        on(process.stdout as Readable, "data", (b: Buffer) => buffers.push(b));
-        once(process.stdout as Readable, "close", () =>
-          resolve(Buffer.concat(buffers))
+    // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
+    const timeoutMs = options.timeout || 30000; // 30s default
+    const timeoutPromise = new Promise<[number, Buffer, string]>((_, reject) => {
+      setTimeout(() => {
+        process.kill();
+        reject(
+          new SvnError({
+            message: `SVN command timeout after ${timeoutMs}ms`,
+            svnCommand: args[0],
+            exitCode: 124
+          })
         );
-      }),
-      new Promise<string>(resolve => {
-        const buffers: Buffer[] = [];
-        on(process.stderr as Readable, "data", (b: Buffer) => buffers.push(b));
-        once(process.stderr as Readable, "close", () =>
-          resolve(Buffer.concat(buffers).toString())
-        );
-      })
+      }, timeoutMs);
+    });
+
+    const [exitCode, stdout, stderr] = await Promise.race([
+      Promise.all<any>([
+        new Promise<number>((resolve, reject) => {
+          once(process, "error", reject);
+          once(process, "exit", resolve);
+        }),
+        new Promise<Buffer>(resolve => {
+          const buffers: Buffer[] = [];
+          on(process.stdout as Readable, "data", (b: Buffer) => buffers.push(b));
+          once(process.stdout as Readable, "close", () =>
+            resolve(Buffer.concat(buffers))
+          );
+        }),
+        new Promise<string>(resolve => {
+          const buffers: Buffer[] = [];
+          on(process.stderr as Readable, "data", (b: Buffer) => buffers.push(b));
+          once(process.stderr as Readable, "close", () =>
+            resolve(Buffer.concat(buffers).toString())
+          );
+        })
+      ]),
+      timeoutPromise
     ]);
 
     dispose(disposables);

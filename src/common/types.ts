@@ -210,6 +210,7 @@ export interface ICpOptions extends SpawnOptions {
   log?: boolean;
   username?: string;
   password?: string;
+  timeout?: number; // Phase 12 perf fix - SVN command timeout in ms
 }
 
 export interface ISvnErrorData {
