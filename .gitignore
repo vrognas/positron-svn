@@ -1,6 +1,7 @@
 /.vscode-test
 /coverage
 /css
+/dist
 /node_modules
 /out
 /test-reports
