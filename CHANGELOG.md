@@ -1,3 +1,15 @@
+## [2.17.73] (2025-11-11)
+
+### Feat: Migrate listParser to fast-xml-parser (Phase 2.1/4) 🚀
+
+* **Migrate listParser.ts**: Replace xml2js with XmlParserAdapter
+  - Remove xml2js import, use XmlParserAdapter
+  - Use mergeAttrs, explicitArray:false, camelcase options
+  - Improve error handling: descriptive error messages
+  - Keep array normalization logic (single→array)
+* **Tests**: All 3 listParser tests pass
+* **Progress**: 1/5 parsers migrated
+
 ## [2.17.72] (2025-11-11)
 
 ### Feat: Add XmlParserAdapter (Phase 1/4 xml2js→fast-xml-parser) 🔧
