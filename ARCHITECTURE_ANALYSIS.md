@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.61
+**Version**: 2.17.64
 **Updated**: 2025-11-11
 
 ---
@@ -12,9 +12,9 @@ Mature VS Code extension for SVN integration. Event-driven architecture, decorat
 **Stats**:
 - **Source lines**: ~12,200
 - **Repository**: 1,179 → 923 lines (22% reduction, 3 services extracted)
-- **Commands**: 50+ (5 refactored, 82 lines removed)
+- **Commands**: 50+ (22 refactored, 127 lines removed)
 - **Coverage**: ~21-23% (118 tests)
-- **Performance**: ✅ Phase 8+9+10 COMPLETE (22 bottlenecks fixed, 100% users)
+- **Performance**: ✅ Phases 8-10+12 COMPLETE (23 bottlenecks fixed, 100% users)
 
 ---
 
@@ -55,16 +55,18 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ---
 
-## Recent Improvements (Phase 10 & 11) ✅
+## Recent Improvements (Phases 10-13) ✅
 
-### Performance Fixes (Phase 10, v2.17.58-61)
+### Performance (Phases 10+12, v2.17.58-64)
 - **processConcurrently import** ✅ Fixed regression (45% users)
 - **Command cache** ✅ Cached SourceControlManager (100% users, -10ms per command)
-- **updateInfo() cache** ✅ Timestamp-based 5s cache (30% users, 90% reduction)
+- **updateInfo() cache** ✅ Timestamp 5s cache (30% users, 90% reduction)
+- **updateModelState cache** ✅ Timestamp 2s cache (50% users, 60-80% burst reduction)
 
-### Code Quality (Phase 11, v2.17.58)
-- **82 lines removed** from 5 commands (50% size reduction)
-- **3 helpers added**: executeOnResources, handleRepositoryOperation, executeRevert
+### Code Quality (Phases 11+13, v2.17.58+64)
+- **127 lines removed** from 22 commands (Phase 11: 82, Phase 13: 45)
+- **5 helpers added**: executeOnResources, handleRepositoryOperation, executeRevert, getResourceStatesOrExit
+- **17 commands** using error helpers (up from 3)
 - **Single source of truth** for command patterns
 
 ### Technical Debt
@@ -117,5 +119,5 @@ See IMPLEMENTATION_PLAN.md (Deferred):
 
 ---
 
-**Version**: 1.9
-**Updated**: 2025-11-11 (v2.17.61)
+**Version**: 1.10
+**Updated**: 2025-11-11 (v2.17.64)

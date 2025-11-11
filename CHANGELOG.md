@@ -1,3 +1,16 @@
+## [2.17.65] (2025-11-11)
+
+### Docs: Phases 12-13 Complete 📋
+
+* **IMPLEMENTATION_PLAN.md**: Updated status, all Phase 13 marked complete
+  - Phase 13.1 completed: 5 commands, 20 lines removed
+  - Phase 13 total: 45 lines bloat removed
+  - Next priority: SVN timeout config or test coverage
+* **ARCHITECTURE_ANALYSIS.md**: Updated stats
+  - Commands: 22 refactored (up from 5), 127 lines removed
+  - Performance: 23 bottlenecks fixed (Phases 8-10+12)
+  - Code quality: 5 helpers, 17 commands using error patterns
+
 ## [2.17.64] (2025-11-11)
 
 ### Refactor: Phase 13.2 + 13.3 - Command Boilerplate 🏗️

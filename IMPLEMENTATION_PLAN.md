@@ -2,7 +2,7 @@
 
 **Version**: v2.17.64
 **Updated**: 2025-11-11
-**Status**: Phases 10-13.2/13.3 COMPLETE ✅
+**Status**: Phases 12-13 COMPLETE ✅
 
 ---
 
@@ -16,7 +16,7 @@
 - Phase 10: Regression + hot path fixes (v2.17.59-60, 100% users)
 - Phase 11: Command boilerplate (v2.17.58, 82 lines removed)
 - Phase 12: Status update cache (v2.17.63, 60-80% burst reduction)
-- Phase 13.2/13.3: Empty guards + error helpers (v2.17.64, 17 commands)
+- Phase 13: Code bloat cleanup (v2.17.64, 45 lines removed, 17 commands)
 
 ---
 
@@ -69,12 +69,11 @@ async updateModelState(): Promise<void> {
 **Impact**: HIGH - Maintainability, leverage Phase 11 work
 **Priority**: HIGH
 
-### 13.1: Remove Defensive Null Checks (30min)
-**Pattern**: 17 commands check `if (!repository) return;`
-**Files**: patch.ts:18-21, resolve.ts, commit.ts, etc. (34 lines)
-**Issue**: Command base already handles resolution
-**Fix**: Remove all unnecessary repository null guards
-**Tests**: Existing command tests verify no regressions
+### 13.1: Remove Defensive Null Checks ✅ (v2.17.64)
+**Pattern**: 5 commands had `if (!repository) return;`
+**Files**: commit.ts, patch.ts, pullIncomingChange.ts, resolved.ts, revertAll.ts (20 lines)
+**Fix**: Removed all unnecessary repository null guards
+**Result**: Command base already handles resolution ✓
 
 ### 13.2: Extract Empty Selection Guards ✅ (v2.17.64)
 **Pattern**: 6 commands duplicate selection check (18 lines)
@@ -89,7 +88,7 @@ async updateModelState(): Promise<void> {
 **Result**: 17 commands total using Phase 11 helpers (up from 3)
 
 **Success Criteria**:
-- [x] 25 net lines bloat removed (109-84 with tests/helpers)
+- [x] 45 total lines bloat removed (13.1: 20, 13.2+13.3: 25)
 - [x] Command base has getResourceStatesOrExit helper
 - [x] 17 commands using error helpers (up from 3)
 - [x] Build passes, no regressions
@@ -128,10 +127,11 @@ async updateModelState(): Promise<void> {
 
 ## Execution Order
 
-**NEXT**: Phase 12 → Phase 13
+**COMPLETE**: Phases 12-13 delivered (v2.17.63-64)
 
-**Rationale**:
-1. Phase 12: CRITICAL perf fix (50% users, active editors)
-2. Phase 13: Leverage Phase 11 helpers, maintainability
+**Next Priority** (if needed):
+1. SVN Timeout Config (2-3h, 10-15% users, network issues)
+2. Test Coverage (20-30h, command layer untested)
+3. AuthService Extraction (4-6h, HIGH risk, defer)
 
 **Total Effort**: 3.5-4.5h
