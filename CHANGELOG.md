@@ -1,3 +1,10 @@
+## [2.17.88] (2025-11-11)
+
+### Cleanup: Remove duplicate keys in XML parser
+
+* **Duplicate keys**: Remove duplicate parseTagValue, parseAttributeValue, trimValue
+* **Impact**: Eliminates build warnings, cleaner code
+
 ## [2.17.87] (2025-11-11)
 
 ### Fix: camelcase() regex for XML parser compatibility

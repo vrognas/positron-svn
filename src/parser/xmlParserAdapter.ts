@@ -68,11 +68,7 @@ export class XmlParserAdapter {
       // Disable strict XML validation to match xml2js permissiveness
       ignorePI: true, // Ignore processing instructions
       ignorePiTags: true, // Ignore PI tags
-      preserveOrder: false, // Don't preserve order
-      // Allow malformed XML that xml2js would accept
-      trimValue: true,
-      parseTagValue: true,
-      parseAttributeValue: false
+      preserveOrder: false // Don't preserve order
     });
   }
 
