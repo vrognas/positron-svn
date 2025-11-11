@@ -139,16 +139,20 @@ export class Repository {
 
     const status: IFileStatus[] = await parseStatusXml(result.stdout);
 
-    for (const s of status) {
-      if (s.status === Status.EXTERNAL) {
-        try {
-          const info = await this.getInfo(s.path);
-          s.repositoryUuid = info.repository?.uuid;
-        } catch (error) {
-          console.error(error);
-        }
-      }
-    }
+    // Phase 10 perf fix - parallel external info fetching (was N+1 sequential)
+    await Promise.all(
+      status
+        .filter(s => s.status === Status.EXTERNAL)
+        .map(s =>
+          this.getInfo(s.path)
+            .then(info => {
+              s.repositoryUuid = info.repository?.uuid;
+            })
+            .catch(error => {
+              console.error(error);
+            })
+        )
+    );
 
     return status;
   }

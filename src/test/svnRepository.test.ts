@@ -171,4 +171,54 @@ suite("Svn Repository Tests", () => {
 
     await repository.plainLogByText("bugfix");
   });
+
+  test("Test getStatus with externals (parallel fetch)", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tpm",
+      ConstructorPolicy.LateInit
+    );
+
+    let getInfoCallCount = 0;
+    const callTimes: number[] = [];
+
+    repository.exec = async (args: string[], _options?: ICpOptions) => {
+      if (args[0] === "info") {
+        getInfoCallCount++;
+        const callTime = Date.now();
+        callTimes.push(callTime);
+        await new Promise(r => setTimeout(r, 50));
+        return {
+          exitCode: 0,
+          stderr: "",
+          stdout: `<?xml version="1.0"?><info><repository><uuid>uuid-${getInfoCallCount}</uuid></repository></info>`
+        };
+      }
+      return {
+        exitCode: 0,
+        stderr: "",
+        stdout: `<?xml version="1.0"?><status><target path="."><entry path="ext1"><wc-status item="external"/></entry><entry path="ext2"><wc-status item="external"/></entry><entry path="ext3"><wc-status item="external"/></entry></target></status>`
+      };
+    };
+
+    const startTime = Date.now();
+    const status = await repository.getStatus({});
+    const elapsed = Date.now() - startTime;
+
+    // Verify all 3 externals processed
+    const externals = status.filter((s: any) => s.status === 8);
+    assert.equal(externals.length, 3);
+
+    // Verify getInfo called 3 times
+    assert.equal(getInfoCallCount, 3);
+
+    // Verify UUIDs assigned
+    const withUuid = status.filter((s: any) => s.repositoryUuid);
+    assert.equal(withUuid.length, 3);
+
+    // Verify parallel execution (< 150ms for 3x50ms ops)
+    assert.ok(elapsed < 150, `Should run in parallel: got ${elapsed}ms`);
+  });
 });
