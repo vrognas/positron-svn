@@ -1,3 +1,17 @@
+## [2.17.82] (2025-11-11)
+
+### Security: Path validation + ReDoS fix
+
+* **Path validation**: Add validateSvnPath() to prevent path traversal
+  - Rejects absolute paths (/, C:\)
+  - Rejects path traversal (..)
+  - Rejects null bytes
+  - Returns normalized path
+* **ReDoS fix**: camelcase() input validation
+  - Reject names >1000 chars
+  - Validate character set (alphanumeric + hyphen + underscore)
+* **Tests**: Add util.test.ts with security tests
+
 ## [2.17.81] (2025-11-11)
 
 ### Security: Add DoS protections to XML parser
