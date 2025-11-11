@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.55
+**Version**: 2.17.61
 **Updated**: 2025-11-11
 
 ---
@@ -12,9 +12,9 @@ Mature VS Code extension for SVN integration. Event-driven architecture, decorat
 **Stats**:
 - **Source lines**: ~12,200
 - **Repository**: 1,179 → 923 lines (22% reduction, 3 services extracted)
-- **Commands**: 50+
-- **Coverage**: ~21-23% (111 tests)
-- **Performance**: ✅ 70% faster (Phase 8+9: 18 bottlenecks fixed)
+- **Commands**: 50+ (5 refactored, 82 lines removed)
+- **Coverage**: ~21-23% (118 tests)
+- **Performance**: ✅ Phase 8+9+10 COMPLETE (22 bottlenecks fixed, 100% users)
 
 ---
 
@@ -55,37 +55,29 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ---
 
-## Critical Issues
+## Recent Improvements (Phase 10 & 11) ✅
 
-### Performance Bottlenecks 🔥
+### Performance Fixes (Phase 10, v2.17.58-61)
+- **processConcurrently import** ✅ Fixed regression (45% users)
+- **Command cache** ✅ Cached SourceControlManager (100% users, -10ms per command)
+- **updateInfo() cache** ✅ Timestamp-based 5s cache (30% users, 90% reduction)
 
-| Issue | File:Line | Impact |
-|-------|-----------|--------|
-| **processConcurrently not imported** | source_control_manager.ts:328 | REGRESSION: Phase 9.1 broken, 45% users freeze |
-| **executeCommand on hot path** | commands/command.ts:89-92 | 100% users, +5-15ms every command (28 sites) |
-| **updateInfo() over-called** | repository.ts:342 | 30% users, 100-300ms network calls |
-| **@sequentialize blocks concurrent** | svnRepository.ts:168 | 20% users, 50-200ms queue delays |
-| **O(n×m) ignore matching** | repository.ts:377-389 | 15% users, 500ms-2s freeze (20 rules × 100 files) |
+### Code Quality (Phase 11, v2.17.58)
+- **82 lines removed** from 5 commands (50% size reduction)
+- **3 helpers added**: executeOnResources, handleRepositoryOperation, executeRevert
+- **Single source of truth** for command patterns
 
-### Code Bloat 🗑️
+### Remaining Technical Debt
 
-| Pattern | Lines | Files |
-|---------|-------|-------|
-| **Command execution boilerplate** | 105 | 7 commands (add, remove, revert, resolve, deleteUnversioned, patch, addToIgnoreSCM) |
-| **Error handling duplication** | 80 | 20+ commands |
-| **show()/showBuffer() logic** | 35 | svnRepository.ts:302-336 |
-| **Redundant null checks** | 30 | 15 commands (runByRepository callbacks) |
-| **Revert duplication** | 22 | revert.ts vs revertExplorer.ts |
+**Architecture Debt** (Deferred):
+- **God classes**: repository.ts (923) + svnRepository.ts (970) = 1,893 lines
+- **Missing AuthService**: Auth logic scattered (70 lines)
+- **Command base ISP**: 50+ commands inherit unused methods (492 lines)
 
-**Total**: 272 lines removable
-
-### Architecture Debt 🏗️
-
-| Issue | Location | Impact |
-|-------|----------|--------|
-| **God classes** | repository.ts (923) + svnRepository.ts (970) = 1,893 lines | Violate SRP, manage everything (UI, auth, caching, ops, events) |
-| **Missing AuthService** | repository.ts:772-843 + svnRepository.ts:49-50 | Auth logic scattered/duplicated (70 lines) |
-| **Command base ISP violation** | command.ts:57-528 (492 lines) | 50+ commands inherit unused methods, tight UI coupling |
+**Low Priority**:
+- show()/showBuffer() duplication (35 lines)
+- Redundant null checks (30 lines)
+- @sequentialize blocks concurrent requests (20% users)
 
 ---
 
@@ -124,11 +116,11 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ## Next Actions
 
-See IMPLEMENTATION_PLAN.md:
-- **Phase 10**: Fix regression + hot path perf (2-3h, CRITICAL, 100% users)
-- **Phase 11**: Command boilerplate extraction (3-4h, HIGH, 207 lines removed)
+See IMPLEMENTATION_PLAN.md (Deferred):
+- **Phase 2b**: AuthService extraction (70 lines, 4-6h, HIGH risk)
+- **Phase 12**: God classes refactoring (LOW ROI)
 
 ---
 
-**Version**: 1.8
-**Updated**: 2025-11-11 (v2.17.55)
+**Version**: 1.9
+**Updated**: 2025-11-11 (v2.17.61)
