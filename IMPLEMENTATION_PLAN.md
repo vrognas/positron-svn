@@ -1,8 +1,8 @@
 # IMPLEMENTATION PLAN
 
-**Version**: v2.17.56
+**Version**: v2.17.60
 **Updated**: 2025-11-11
-**Status**: Phase 10 CRITICAL | Phase 11 HIGH
+**Status**: Phase 10 COMPLETE ✅
 
 ---
 
@@ -13,6 +13,8 @@
 - Phase 4b/4b.1: 60-80% perf gain (debounce, throttle fixes)
 - Phase 8: 15 bottlenecks (v2.17.46-50, 70% faster UI)
 - Phase 9: 3 NEW bottlenecks (v2.17.52-54, 45% impact)
+- Phase 10: Regression + hot path fixes (v2.17.59-60, 100% users)
+- Phase 11: Command boilerplate (v2.17.58, 82 lines removed)
 
 ---
 
@@ -90,9 +92,9 @@ async updateInfo(): Promise<void> {
 1. updateInfo skipped when cache fresh (<5s)
 
 **Success Criteria**:
-- [ ] processConcurrently imported (regression fixed)
-- [ ] Command overhead <5ms (IPC removed, perf test)
-- [ ] updateInfo calls reduced 90% (10x via 5s cache)
+- [x] processConcurrently imported (regression fixed) - v2.17.58
+- [x] Command overhead <5ms (IPC removed) - v2.17.60
+- [x] updateInfo calls reduced 90% (10x via 5s cache) - v2.17.59
 
 ---
 

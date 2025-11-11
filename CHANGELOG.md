@@ -1,3 +1,14 @@
+## [2.17.61] (2025-11-11)
+
+### Documentation (Phase 10 Complete) 📋
+
+* **Phase 10 Complete**: All regression + hot path fixes delivered
+  - Phase 10.1: processConcurrently import (v2.17.58)
+  - Phase 10.2: Command cache, -10ms IPC overhead (v2.17.60)
+  - Phase 10.3: updateInfo cache, 90% reduction (v2.17.59)
+  - IMPLEMENTATION_PLAN.md: Updated success criteria, all checked
+  - Impact: 100% users, every SVN operation faster
+
 ## [2.17.60] (2025-11-11)
 
 ### Performance (Phase 10.2: Command Hot Path) ⚡
