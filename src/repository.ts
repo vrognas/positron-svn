@@ -76,6 +76,7 @@ type RepositoryConfig = {
   ignoredRulesForDeletedFiles: string[];
   updateFrequency: number;
   autorefresh: boolean;
+  remoteChangesCheckFrequency: number;
 };
 
 export class Repository implements IRemoteRepository {
@@ -326,7 +327,11 @@ export class Repository implements IRemoteRepository {
         "sourceControl.countBadge",
         10
       ),
-      autorefresh: configuration.get<boolean>("autorefresh")
+      autorefresh: configuration.get<boolean>("autorefresh"),
+      remoteChangesCheckFrequency: configuration.get<number>(
+        "remoteChanges.checkFrequency",
+        300
+      )
     };
 
     return this._configCache;
@@ -401,12 +406,9 @@ export class Repository implements IRemoteRepository {
 
   @debounce(500)
   public async updateRemoteChangedFiles() {
-    const updateFreq = configuration.get<number>(
-      "remoteChanges.checkFrequency",
-      300
-    );
+    const config = this.getConfig();
 
-    if (updateFreq) {
+    if (config.remoteChangesCheckFrequency) {
       this.run(Operation.StatusRemote);
     } else {
       // Clear remote changes when disabled

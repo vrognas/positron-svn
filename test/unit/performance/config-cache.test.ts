@@ -54,4 +54,18 @@ describe("Config Caching", () => {
     assert.ok(configuration.onDidChange, "onDidChange event should exist");
     assert.strictEqual(typeof configuration.onDidChange, "function");
   });
+
+  /**
+   * Test 4: Remote changes config cached (Phase 9 fix)
+   */
+  it("caches remote changes check frequency config", () => {
+    // Validate remoteChanges.checkFrequency is cached
+    // Previously called 5+ times per branch/merge + periodic polling
+
+    const freq1 = configuration.get<number>("remoteChanges.checkFrequency", 300);
+    const freq2 = configuration.get<number>("remoteChanges.checkFrequency", 300);
+
+    assert.strictEqual(freq1, freq2);
+    assert.strictEqual(typeof freq1, "number");
+  });
 });

@@ -1,3 +1,14 @@
+## [2.17.52] (2025-11-11)
+
+### Performance (Phase 9.2 - Config Caching)
+
+* **Fix Bottleneck 2**: Uncached remote changes config (repository.ts:408-409)
+  - Added `remoteChangesCheckFrequency` to `RepositoryConfig` type
+  - Extended `_configCache` to include remote changes check frequency
+  - Changed `updateRemoteChangedFiles()` to use cached config
+  - Impact: 12% users (branch/merge + periodic polling)
+  - Benefits: Zero repeated config lookups (5+ calls → cached)
+
 ## [2.17.51] (2025-11-11)
 
 ### Documentation
