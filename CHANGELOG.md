@@ -1,3 +1,15 @@
+## [2.17.78] (2025-11-11)
+
+### Chore: Remove xml2js dependency (Phase 3/4) 🧹
+
+* **Uninstall xml2js**: Remove from package.json
+  - Removed: xml2js, @types/xml2js
+  - Bundle size reduction: ~45KB→9.55KB (79% smaller)
+* **Remove xml2jsParseSettings**: Clean up constants.ts
+  - All parsers now use XmlParserAdapter
+  - XXE protection maintained via fast-xml-parser
+* **Migration complete**: All 5 parsers using fast-xml-parser
+
 ## [2.17.77] (2025-11-11)
 
 ### Feat: Migrate statusParser to fast-xml-parser (Phase 2.5/4) 🎉
