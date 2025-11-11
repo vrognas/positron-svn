@@ -55,6 +55,13 @@ export type CommandArgs =
 export type CommandResult = void | Promise<void> | Promise<unknown>;
 
 export abstract class Command implements Disposable {
+  // Phase 10.2 perf fix - cache SourceControlManager to avoid IPC overhead
+  private static _sourceControlManager?: SourceControlManager;
+  
+  static setSourceControlManager(scm: SourceControlManager) {
+    Command._sourceControlManager = scm;
+  }
+
   private _disposable?: Disposable;
 
   constructor(commandName: string, options: ICommandOptions = {}) {
@@ -86,7 +93,7 @@ export abstract class Command implements Disposable {
     method: (...args: unknown[]) => CommandResult
   ): (...args: unknown[]) => Promise<unknown> {
     const result = async (...args: unknown[]) => {
-      const sourceControlManager = (await commands.executeCommand(
+      const sourceControlManager = Command._sourceControlManager || (await commands.executeCommand(
         "svn.getSourceControlManager",
         ""
       )) as SourceControlManager;
@@ -155,7 +162,7 @@ export abstract class Command implements Disposable {
     const resources = arg instanceof Uri ? [arg] : arg;
     const isSingleResource = arg instanceof Uri;
 
-    const sourceControlManager = (await commands.executeCommand(
+    const sourceControlManager = Command._sourceControlManager || (await commands.executeCommand(
       "svn.getSourceControlManager",
       ""
     )) as SourceControlManager;
@@ -210,7 +217,7 @@ export abstract class Command implements Disposable {
     }
 
     if (uri.scheme === "file") {
-      const sourceControlManager = (await commands.executeCommand(
+      const sourceControlManager = Command._sourceControlManager || (await commands.executeCommand(
         "svn.getSourceControlManager",
         ""
       )) as SourceControlManager;

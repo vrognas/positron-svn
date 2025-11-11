@@ -1,3 +1,13 @@
+## [2.17.60] (2025-11-11)
+
+### Performance (Phase 10.2: Command Hot Path) ⚡
+
+* **Cache SourceControlManager**: Eliminate IPC overhead in Command base
+  - Add: static _sourceControlManager cache, setSourceControlManager()
+  - Replace 3 executeCommand() calls with cached instance
+  - createRepositoryCommand, runByRepository, getSCMResource optimized
+  - Impact: 100% users, -10ms per command (5-15ms → <5ms)
+
 ## [2.17.59] (2025-11-11)
 
 ### Performance (Phase 10.3: updateInfo Hot Path) ⚡
