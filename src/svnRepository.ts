@@ -70,6 +70,13 @@ export class Repository {
   }
 
   public async updateInfo() {
+    // Check cache first
+    const now = Date.now();
+    if (now - this.lastInfoUpdate < this.INFO_CACHE_MS) {
+      return;
+    }
+    this.lastInfoUpdate = now;
+
     const result = await this.exec([
       "info",
       "--xml",
