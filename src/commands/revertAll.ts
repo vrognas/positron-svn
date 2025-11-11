@@ -22,10 +22,6 @@ export class RevertAll extends Command {
     }
 
     await this.runByRepository(uris, async (repository, resources) => {
-      if (!repository) {
-        return;
-      }
-
       const paths = resources.map(resource => resource.fsPath).reverse();
 
       try {

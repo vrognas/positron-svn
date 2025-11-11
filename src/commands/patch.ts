@@ -16,10 +16,6 @@ export class Patch extends Command {
     const uris = selection.map(resource => resource.resourceUri);
 
     await this.runByRepository(uris, async (repository, resources) => {
-      if (!repository) {
-        return;
-      }
-
       const files = resources.map(resource => resource.fsPath);
       const content = await repository.patch(files);
       await this.showDiffPath(repository, content);

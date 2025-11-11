@@ -37,10 +37,6 @@ export class PullIncommingChange extends Command {
     const uris = changes.map(change => change.resourceUri);
 
     await this.runByRepository(uris, async (repository, resources) => {
-      if (!repository) {
-        return;
-      }
-
       const files = resources.map(resource => resource.fsPath);
 
       files.forEach(async path => {
