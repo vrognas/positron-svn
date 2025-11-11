@@ -1,3 +1,17 @@
+## [2.17.84] (2025-11-11)
+
+### Fix: XML parser invalid character handling
+
+* **Sanitize XML**: Strip invalid control characters before parsing
+  - Remove chars: 0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F
+  - Keep valid: tab (0x09), LF (0x0A), CR (0x0D)
+  - Fixes: "Invalid characters in tag name" error
+* **Parser options**: Add CDATA, HTML entities, namespace support
+  - cdataPropName: Handle CDATA sections
+  - htmlEntities: Decode HTML entities
+  - removeNSPrefix: Strip namespace prefixes
+* **Impact**: Fixes parsing SVN log with invalid characters in commit messages
+
 ## [2.17.83] (2025-11-11)
 
 ### Fix: Add try-catch at parse call sites

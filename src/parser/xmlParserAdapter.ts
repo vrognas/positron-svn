@@ -28,6 +28,15 @@ export class XmlParserAdapter {
   private static readonly MAX_TAG_COUNT = 100000;
   private static readonly MAX_DEPTH = 100;
   /**
+   * Sanitize XML string by removing invalid characters
+   * Valid XML chars: #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD]
+   */
+  private static sanitizeXml(xml: string): string {
+    // Remove control characters except tab, CR, LF
+    return xml.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  }
+
+  /**
    * Create fast-xml-parser instance with configuration
    */
   private static createFxpParser(): XMLParser {
@@ -40,7 +49,10 @@ export class XmlParserAdapter {
       parseAttributeValue: false,
       parseTagValue: true,
       processEntities: false, // XXE protection
-      allowBooleanAttributes: true
+      allowBooleanAttributes: true,
+      cdataPropName: "__cdata", // Handle CDATA sections
+      htmlEntities: true, // Decode HTML entities
+      removeNSPrefix: true // Remove namespace prefixes
     });
   }
 
@@ -194,8 +206,11 @@ export class XmlParserAdapter {
       throw new Error('XML input is empty');
     }
 
+    // Sanitize XML to remove invalid characters
+    const sanitizedXml = this.sanitizeXml(xml);
+
     const parser = this.createFxpParser();
-    let result = parser.parse(xml);
+    let result = parser.parse(sanitizedXml);
 
     // Apply transformations in order
     if (options.mergeAttrs) {
