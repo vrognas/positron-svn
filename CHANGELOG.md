@@ -1,3 +1,16 @@
+## [2.17.83] (2025-11-11)
+
+### Fix: Add try-catch at parse call sites
+
+* **Error handling**: Wrap 3 critical parseXml calls in try-catch
+  - updateInfo(): Repository info parsing
+  - getStatus(): Status XML parsing
+  - getInfo(): File info caching
+* **Improved errors**: Context-aware error messages
+  - Include file path/workspace root in errors
+  - Chain original error message
+* **Impact**: Prevents uncaught promise rejections, clearer error messages
+
 ## [2.17.82] (2025-11-11)
 
 ### Security: Path validation + ReDoS fix

@@ -83,7 +83,12 @@ export class Repository {
       fixPegRevision(this.workspaceRoot ? this.workspaceRoot : this.root)
     ]);
 
-    this._info = await parseInfoXml(result.stdout);
+    try {
+      this._info = await parseInfoXml(result.stdout);
+    } catch (err) {
+      console.error(`Failed to parse repository info for ${this.workspaceRoot}:`, err);
+      throw new Error(`Repository info unavailable: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
   }
 
   public async exec(
@@ -147,7 +152,13 @@ export class Repository {
 
     const result = await this.exec(args);
 
-    const status: IFileStatus[] = await parseStatusXml(result.stdout);
+    let status: IFileStatus[];
+    try {
+      status = await parseStatusXml(result.stdout);
+    } catch (err) {
+      console.error(`Failed to parse status XML for ${this.workspaceRoot}:`, err);
+      throw new Error(`Status update failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
 
     // Phase 10 perf fix - parallel external info fetching (was N+1 sequential)
     await Promise.all(
@@ -201,7 +212,12 @@ export class Repository {
 
     const result = await this.exec(args);
 
-    this._infoCache[file] = await parseInfoXml(result.stdout);
+    try {
+      this._infoCache[file] = await parseInfoXml(result.stdout);
+    } catch (err) {
+      console.error(`Failed to parse info XML for ${file}:`, err);
+      throw new Error(`File info unavailable for ${file}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
 
     // Phase 8.2 perf fix - track and cancel previous timer to prevent memory leak
     const existingTimer = this._infoCacheTimers.get(file);
