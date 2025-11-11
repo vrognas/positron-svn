@@ -101,7 +101,7 @@ export class ChangeList extends Command {
         window.showInformationMessage(
           `Added files "${paths.join(",")}" to changelist "${changelistName}"`
         );
-      }, `Unable to add file "${paths.join(",")} to changelist "${changelistName}"`);
+      }, `Unable to add file "${paths.join(",")}" to changelist "${changelistName}"`);
     }
   }
 }
