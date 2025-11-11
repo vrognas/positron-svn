@@ -1,3 +1,15 @@
+## [2.17.77] (2025-11-11)
+
+### Feat: Migrate statusParser to fast-xml-parser (Phase 2.5/4) 🎉
+
+* **Migrate statusParser.ts**: Replace xml2js with XmlParserAdapter
+  - Remove xml2js import, use XmlParserAdapter
+  - Improve error handling: descriptive error messages
+  - Keep all business logic (processEntry, xmlToStatus)
+  - Handles hyphenated attrs (wcStatus, wcLocked via camelCase)
+* **Tests**: All 3 statusParser tests pass (complex scenarios)
+* **Progress**: 5/5 parsers migrated - Phase 2 COMPLETE! ✅
+
 ## [2.17.76] (2025-11-11)
 
 ### Feat: Migrate logParser to fast-xml-parser (Phase 2.4/4) 🚀
