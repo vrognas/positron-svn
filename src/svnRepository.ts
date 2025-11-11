@@ -45,6 +45,9 @@ export class Repository {
   } = {};
   private _info?: ISvnInfo;
   private _infoCacheTimers = new Map<string, NodeJS.Timeout>(); // Phase 8.2 perf fix - track timers
+  // Phase 10.3 perf fix - timestamp-based caching (5s)
+  private lastInfoUpdate: number = 0;
+  private readonly INFO_CACHE_MS = 5000;
 
   public username?: string;
   public password?: string;
@@ -67,6 +70,13 @@ export class Repository {
   }
 
   public async updateInfo() {
+    // Check cache first
+    const now = Date.now();
+    if (now - this.lastInfoUpdate < this.INFO_CACHE_MS) {
+      return;
+    }
+    this.lastInfoUpdate = now;
+
     const result = await this.exec([
       "info",
       "--xml",

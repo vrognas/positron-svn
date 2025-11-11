@@ -4,7 +4,7 @@ Your SVN extension fork is now set up for local development and testing in Posit
 
 ## Installation in Positron
 
-The packaged extension is at: `positron-svn-2.17.50.vsix`
+The packaged extension is at: `positron-svn-2.17.61.vsix`
 
 **To install:**
 1. Open Positron
@@ -30,7 +30,7 @@ When you want to test changes:
 
 3. **Reinstall in Positron:**
    - Extensions panel → `...` menu → "Install from VSIX..."
-   - Select the newly generated VSIX file (e.g., `positron-svn-2.17.50.vsix`)
+   - Select the newly generated VSIX file (e.g., `positron-svn-2.17.61.vsix`)
    - Reload Positron
 
 ## Quick Reference Commands
@@ -89,7 +89,7 @@ When ready to publish:
 
 ```bash
 # Install ovsx CLI (already in devDependencies)
-npx ovsx publish positron-svn-2.17.50.vsix -p YOUR_ACCESS_TOKEN
+npx ovsx publish positron-svn-2.17.61.vsix -p YOUR_ACCESS_TOKEN
 ```
 
 Get your access token at: https://open-vsx.org/user-settings/tokens

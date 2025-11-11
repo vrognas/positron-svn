@@ -55,6 +55,13 @@ export type CommandArgs =
 export type CommandResult = void | Promise<void> | Promise<unknown>;
 
 export abstract class Command implements Disposable {
+  // Phase 10.2 perf fix - cache SourceControlManager to avoid IPC overhead
+  private static _sourceControlManager?: SourceControlManager;
+  
+  static setSourceControlManager(scm: SourceControlManager) {
+    Command._sourceControlManager = scm;
+  }
+
   private _disposable?: Disposable;
 
   constructor(commandName: string, options: ICommandOptions = {}) {
@@ -86,7 +93,7 @@ export abstract class Command implements Disposable {
     method: (...args: unknown[]) => CommandResult
   ): (...args: unknown[]) => Promise<unknown> {
     const result = async (...args: unknown[]) => {
-      const sourceControlManager = (await commands.executeCommand(
+      const sourceControlManager = Command._sourceControlManager || (await commands.executeCommand(
         "svn.getSourceControlManager",
         ""
       )) as SourceControlManager;
@@ -155,7 +162,7 @@ export abstract class Command implements Disposable {
     const resources = arg instanceof Uri ? [arg] : arg;
     const isSingleResource = arg instanceof Uri;
 
-    const sourceControlManager = (await commands.executeCommand(
+    const sourceControlManager = Command._sourceControlManager || (await commands.executeCommand(
       "svn.getSourceControlManager",
       ""
     )) as SourceControlManager;
@@ -210,7 +217,7 @@ export abstract class Command implements Disposable {
     }
 
     if (uri.scheme === "file") {
-      const sourceControlManager = (await commands.executeCommand(
+      const sourceControlManager = Command._sourceControlManager || (await commands.executeCommand(
         "svn.getSourceControlManager",
         ""
       )) as SourceControlManager;
@@ -522,6 +529,80 @@ export abstract class Command implements Disposable {
       } catch (error) {
         console.log(error);
         window.showErrorMessage("Unable to set property ignore");
+      }
+    });
+  }
+
+  /**
+   * Execute operation on resource states grouped by repository.
+   * Pattern: getResourceStates → map → runByRepository → error handling
+   */
+  protected async executeOnResources(
+    resourceStates: SourceControlResourceState[],
+    operation: (repository: Repository, paths: string[]) => Promise<void>,
+    errorMsg: string
+  ): Promise<void> {
+    const selection = await this.getResourceStates(resourceStates);
+
+    if (selection.length === 0) {
+      return;
+    }
+
+    const uris = selection.map(resource => resource.resourceUri);
+
+    await this.runByRepository(uris, async (repository, resources) => {
+      if (!repository) {
+        return;
+      }
+
+      const paths = resources.map(resource => resource.fsPath);
+
+      try {
+        await operation(repository, paths);
+      } catch (error) {
+        console.log(error);
+        window.showErrorMessage(errorMsg);
+      }
+    });
+  }
+
+  /**
+   * Handle repository operation with consistent error handling.
+   * Pattern: try/catch with console.log + showErrorMessage
+   */
+  protected async handleRepositoryOperation<T>(
+    operation: () => Promise<T>,
+    errorMsg: string
+  ): Promise<T | undefined> {
+    try {
+      return await operation();
+    } catch (error) {
+      console.log(error);
+      window.showErrorMessage(errorMsg);
+      return undefined;
+    }
+  }
+
+  /**
+   * Execute revert operation with depth check and confirmation.
+   * Shared by revert and revertExplorer commands.
+   */
+  protected async executeRevert(
+    uris: Uri[],
+    depth: keyof typeof import("../common/types").SvnDepth
+  ): Promise<void> {
+    await this.runByRepository(uris, async (repository, resources) => {
+      if (!repository) {
+        return;
+      }
+
+      const paths = resources.map(resource => resource.fsPath).reverse();
+
+      try {
+        await repository.revert(paths, depth);
+      } catch (error) {
+        console.log(error);
+        window.showErrorMessage("Unable to revert");
       }
     });
   }

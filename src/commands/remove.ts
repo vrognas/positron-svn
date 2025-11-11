@@ -13,7 +13,6 @@ export class Remove extends Command {
       return;
     }
 
-    let keepLocal: boolean;
     const answer = await window.showWarningMessage(
       "Would you like to keep a local copy of the files?",
       { modal: true },
@@ -25,27 +24,14 @@ export class Remove extends Command {
       return;
     }
 
-    if (answer === "Yes") {
-      keepLocal = true;
-    } else {
-      keepLocal = false;
-    }
+    const keepLocal = answer === "Yes";
 
-    const uris = selection.map(resource => resource.resourceUri);
-
-    await this.runByRepository(uris, async (repository, resources) => {
-      if (!repository) {
-        return;
-      }
-
-      const paths = resources.map(resource => resource.fsPath);
-
-      try {
+    await this.executeOnResources(
+      selection,
+      async (repository, paths) => {
         await repository.removeFiles(paths, keepLocal);
-      } catch (error) {
-        console.log(error);
-        window.showErrorMessage("Unable to remove files");
-      }
-    });
+      },
+      "Unable to remove files"
+    );
   }
 }

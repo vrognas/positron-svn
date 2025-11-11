@@ -1,4 +1,4 @@
-import { Uri, window } from "vscode";
+import { Uri } from "vscode";
 import { checkAndPromptDepth, confirmRevert } from "../input/revert";
 import { Command } from "./command";
 
@@ -8,34 +8,16 @@ export class RevertExplorer extends Command {
   }
 
   public async execute(_mainUri?: Uri, allUris?: Uri[]) {
-    if (!allUris) {
+    if (!allUris || allUris.length === 0 || !(await confirmRevert())) {
       return;
     }
 
-    const uris = allUris;
-    if (uris.length === 0 || !(await confirmRevert())) {
-      return;
-    }
-
-    const depth = await checkAndPromptDepth(uris);
+    const depth = await checkAndPromptDepth(allUris);
 
     if (!depth) {
       return;
     }
 
-    await this.runByRepository(uris, async (repository, resources) => {
-      if (!repository) {
-        return;
-      }
-
-      const paths = resources.map(resource => resource.fsPath);
-
-      try {
-        await repository.revert(paths, depth);
-      } catch (error) {
-        console.log(error);
-        window.showErrorMessage("Unable to revert");
-      }
-    });
+    await this.executeRevert(allUris, depth);
   }
 }

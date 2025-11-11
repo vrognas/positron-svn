@@ -43,6 +43,7 @@ import { SwitchBranch } from "./commands/switchBranch";
 import { Update } from "./commands/update";
 import { Upgrade } from "./commands/upgrade";
 import { SourceControlManager } from "./source_control_manager";
+import { Command } from "./commands/command";
 import { SearchLogByRevision } from "./commands/search_log_by_revision";
 import { SearchLogByText } from "./commands/search_log_by_text";
 import { Merge } from "./commands/merge";
@@ -51,6 +52,9 @@ export function registerCommands(
   sourceControlManager: SourceControlManager,
   disposables: Disposable[]
 ) {
+  // Phase 10.2 perf fix - cache SourceControlManager
+  Command.setSourceControlManager(sourceControlManager);
+
   disposables.push(new GetSourceControlManager(sourceControlManager));
   disposables.push(new FileOpen());
   disposables.push(new OpenFile());

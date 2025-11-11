@@ -1,4 +1,3 @@
-import { Stats } from "original-fs";
 import * as path from "path";
 import {
   commands,
@@ -32,7 +31,8 @@ import {
   isDescendant,
   isSvnFolder,
   normalizePath,
-  eventToPromise
+  eventToPromise,
+  processConcurrently
 } from "./util";
 import { matchAll } from "./util/globMatch";
 
@@ -325,7 +325,7 @@ export class SourceControlManager implements IDisposable {
       // Phase 9.1 perf fix - bounded parallel operations (max 16 concurrent)
       // Previously: Unlimited Promise.all() → file descriptor exhaustion on 1000+ files
       // Now: processConcurrently() with 16 concurrent limit (45% users, no freeze)
-      await util.processConcurrently(
+      await processConcurrently(
         files,
         async file => {
           const dir = path + "/" + file;
