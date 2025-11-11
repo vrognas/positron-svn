@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.64
+**Version**: 2.17.68
 **Updated**: 2025-11-11
 
 ---
@@ -13,8 +13,8 @@ Mature VS Code extension for SVN integration. Event-driven architecture, decorat
 - **Source lines**: ~12,200
 - **Repository**: 1,179 → 923 lines (22% reduction, 3 services extracted)
 - **Commands**: 50+ (22 refactored, 127 lines removed)
-- **Coverage**: ~21-23% (118 tests)
-- **Performance**: ✅ Phases 8-10+12 COMPLETE (23 bottlenecks fixed, 100% users)
+- **Coverage**: ~21-23% (121 tests)
+- **Performance**: ✅ Phases 8-10+12+14-15 COMPLETE (24 bottlenecks fixed, 1 bug)
 
 ---
 
@@ -55,19 +55,23 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ---
 
-## Recent Improvements (Phases 10-13) ✅
+## Recent Improvements (Phases 10-15) ✅
 
-### Performance (Phases 10+12, v2.17.58-64)
+### Performance (Phases 10+12+15, v2.17.58-68)
 - **processConcurrently import** ✅ Fixed regression (45% users)
 - **Command cache** ✅ Cached SourceControlManager (100% users, -10ms per command)
 - **updateInfo() cache** ✅ Timestamp 5s cache (30% users, 90% reduction)
 - **updateModelState cache** ✅ Timestamp 2s cache (50% users, 60-80% burst reduction)
+- **Decorator overhead** ✅ Removed @throttle (50-100% users, 1-2ms → <0.5ms)
 
 ### Code Quality (Phases 11+13, v2.17.58+64)
 - **127 lines removed** from 22 commands (Phase 11: 82, Phase 13: 45)
 - **5 helpers added**: executeOnResources, handleRepositoryOperation, executeRevert, getResourceStatesOrExit
 - **17 commands** using error helpers (up from 3)
 - **Single source of truth** for command patterns
+
+### Bug Fixes (Phase 14, v2.17.67)
+- **Async deletion bug** ✅ Added await to deleteDirectory() (40-50% users, DATA LOSS fix)
 
 ### Technical Debt
 
@@ -119,5 +123,5 @@ See IMPLEMENTATION_PLAN.md (Deferred):
 
 ---
 
-**Version**: 1.10
-**Updated**: 2025-11-11 (v2.17.64)
+**Version**: 1.11
+**Updated**: 2025-11-11 (v2.17.68)

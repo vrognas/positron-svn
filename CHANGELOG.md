@@ -1,3 +1,16 @@
+## [2.17.69] (2025-11-11)
+
+### Docs: PR prep - Phases 12-15 summary 📋
+
+* **PR_SUMMARY.md**: Complete summary for phases 12-15
+  - Phase 12: Status update cache (50% users, 60-80% reduction)
+  - Phase 13: Code bloat cleanup (45 lines, 17 commands)
+  - Phase 14: Async deletion bug (DATA LOSS fix)
+  - Phase 15: Decorator overhead (1-2ms → <0.5ms)
+* **IMPLEMENTATION_PLAN.md**: Consolidated, removed completed phase details
+* **ARCHITECTURE_ANALYSIS.md**: Updated to v2.17.68 (24 bottlenecks, 121 tests)
+* **Total impact**: 4.5h effort, 24 bottlenecks fixed, 1 critical bug, 6 tests
+
 ## [2.17.68] (2025-11-11)
 
 ### Perf: Phase 15 - Decorator Overhead ⚡
