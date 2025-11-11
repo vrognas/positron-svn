@@ -1,3 +1,14 @@
+## [2.17.74] (2025-11-11)
+
+### Feat: Migrate diffParser to fast-xml-parser (Phase 2.2/4) 🚀
+
+* **Migrate diffParser.ts**: Replace xml2js with XmlParserAdapter
+  - Remove xml2js import, use XmlParserAdapter
+  - Improve error handling: specific error for missing paths
+  - Keep array normalization logic
+* **Tests**: All 3 diffParser tests pass
+* **Progress**: 2/5 parsers migrated
+
 ## [2.17.73] (2025-11-11)
 
 ### Feat: Migrate listParser to fast-xml-parser (Phase 2.1/4) 🚀
