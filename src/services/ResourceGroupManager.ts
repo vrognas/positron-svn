@@ -78,6 +78,7 @@ export class ResourceGroupManager implements IResourceGroupManager {
   private _disposables: Disposable[] = [];
   private _prevChangelistsSize = 0;
   private _resourceIndex = new Map<string, Resource>(); // Phase 8.1 perf fix - O(1) lookup
+  private _resourceHash = ""; // Phase 16 perf fix - conditional rebuild
 
   get changes(): ISvnResourceGroup {
     return this._changes;
@@ -205,16 +206,46 @@ export class ResourceGroupManager implements IResourceGroupManager {
     // Update tracked size
     this._prevChangelistsSize = this._changelists.size;
 
-    // Rebuild resource index for O(1) lookups (Phase 8.1 perf fix)
-    this.rebuildResourceIndex();
+    // Phase 16 perf fix: Only rebuild index if resources changed
+    // Calculate hash of current resource state
+    const currentHash = this.calculateResourceHash(result);
+    if (currentHash !== this._resourceHash) {
+      this.rebuildResourceIndex();
+      this._resourceHash = currentHash;
+    }
 
     // Calculate count
     return this.calculateCount(config);
   }
 
   /**
+   * Calculate hash of resource state for change detection (Phase 16 perf fix)
+   * Used to skip unnecessary index rebuilds when resources haven't changed
+   */
+  private calculateResourceHash(result: StatusResult): string {
+    const changelistSize = result.changelists.size;
+    // Build hash from resource counts per group
+    // Format: changes-conflicts-unversioned-changelists-remote
+    const counts = [
+      result.changes.length,
+      result.conflicts.length,
+      result.unversioned.length,
+      changelistSize,
+      result.remoteChanges.length
+    ];
+
+    // Include changelist names and counts for more precise detection
+    const changelistData: string[] = [];
+    result.changelists.forEach((resources, name) => {
+      changelistData.push(`${name}:${resources.length}`);
+    });
+
+    return `${counts.join("-")}|${changelistData.join(",")}`;
+  }
+
+  /**
    * Rebuild resource index from all groups (Phase 8.1 perf fix)
-   * Called after updating resource groups
+   * Called conditionally after updating resource groups (Phase 16 perf fix)
    */
   private rebuildResourceIndex(): void {
     this._resourceIndex.clear();

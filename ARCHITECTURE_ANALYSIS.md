@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.90
+**Version**: 2.17.91
 **Updated**: 2025-11-11
 
 ---
@@ -14,7 +14,7 @@ Mature VS Code extension for SVN integration. Event-driven architecture, decorat
 - **Repository**: 1,179 → 923 lines (22% reduction, 3 services extracted)
 - **Commands**: 50+ (22 refactored, 127 lines removed)
 - **Coverage**: ~21-23% (138 tests)
-- **Performance**: ✅ Phases 8-10+12+14-15 COMPLETE (24 bottlenecks fixed, 1 bug)
+- **Performance**: ✅ Phases 8-10+12+14-16 COMPLETE (25 bottlenecks fixed, 1 bug)
 
 ---
 
@@ -55,14 +55,15 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ---
 
-## Recent Improvements (Phases 10-15) ✅
+## Recent Improvements (Phases 10-16) ✅
 
-### Performance (Phases 10+12+15, v2.17.58-68)
+### Performance (Phases 10+12+15+16, v2.17.58-91)
 - **processConcurrently import** ✅ Fixed regression (45% users)
 - **Command cache** ✅ Cached SourceControlManager (100% users, -10ms per command)
 - **updateInfo() cache** ✅ Timestamp 5s cache (30% users, 90% reduction)
 - **updateModelState cache** ✅ Timestamp 2s cache (50% users, 60-80% burst reduction)
 - **Decorator overhead** ✅ Removed @throttle (50-100% users, 1-2ms → <0.5ms)
+- **Conditional index rebuild** ✅ Hash-based detection (50-80% users, 5-15ms eliminated)
 
 ### Code Quality (Phases 11+13, v2.17.58+64)
 - **127 lines removed** from 22 commands (Phase 11: 82, Phase 13: 45)
@@ -123,5 +124,5 @@ See IMPLEMENTATION_PLAN.md (Deferred):
 
 ---
 
-**Version**: 1.13
-**Updated**: 2025-11-11 (v2.17.90)
+**Version**: 1.14
+**Updated**: 2025-11-11 (v2.17.91)

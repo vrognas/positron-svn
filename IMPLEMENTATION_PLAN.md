@@ -1,8 +1,8 @@
 # IMPLEMENTATION PLAN
 
-**Version**: v2.17.90
+**Version**: v2.17.91
 **Updated**: 2025-11-11
-**Status**: Phases 1-15 COMPLETE ✅
+**Status**: Phases 1-16 COMPLETE ✅
 
 ---
 
@@ -20,54 +20,11 @@
 - Phase 14: Async deletion bug (DATA LOSS fix)
 - Phase 15: Decorator overhead (1-2ms → <0.5ms)
 - XML Parser Migration: xml2js → fast-xml-parser (79% bundle reduction)
+- Phase 16: Conditional index rebuild (5-15ms eliminated, 50-80% users)
 
 ---
 
-## Phase 16: Conditional Resource Index Rebuild ⚡ CRITICAL
-
-**Impact**: 50-80% users, 5-15ms waste per status update
-**Effort**: 2-3h
-**Risk**: LOW
-
-### Problem
-`rebuildResourceIndex()` called unconditionally in `updateGroups()`:
-- O(n*m) iteration across ALL resources in ALL groups
-- 500-file repo + 3 groups = 1500+ iterations per status
-- Triggers on: status updates, file deletes, remote polling
-
-### Root Cause
-`src/services/ResourceGroupManager.ts:209` - no change detection
-
-### Solution
-Add dirty flag pattern:
-```ts
-private indexDirty = false;
-
-updateGroups() {
-  // ... update logic ...
-  if (this.indexDirty) {
-    this.rebuildResourceIndex();
-    this.indexDirty = false;
-  }
-}
-
-// Mark dirty when groups actually change
-addResource() { this.indexDirty = true; }
-removeResource() { this.indexDirty = true; }
-```
-
-### Files
-- `src/services/ResourceGroupManager.ts` (lines 145-213)
-- `src/repository.ts` (lines 872-915)
-
-### Success Metrics
-- 5-15ms eliminated per status (50-80% users)
-- Zero performance regression on actual changes
-- File delete storms no longer cascade rebuilds
-
----
-
-## Phase 17: AuthService Extraction 🔐 HIGH PRIORITY
+## Phase 17: AuthService Extraction 🔐 NEXT
 
 **Impact**: Security vulnerability, 20-30% repos fail auth
 **Effort**: 4-6h
@@ -143,13 +100,13 @@ export class AuthService {
 
 ## Execution Order
 
-**NEXT**: Phase 16 → Phase 17
+**NEXT**: Phase 17
 
 **Rationale**:
-1. Phase 16: Performance (2-3h, LOW risk, immediate impact)
+1. ✅ Phase 16: Performance - COMPLETE (conditional index rebuild)
 2. Phase 17: Security (4-6h, HIGH risk, critical for enterprise)
 
-**Total Effort**: 6-9h
+**Total Effort**: 4-6h
 
 ---
 

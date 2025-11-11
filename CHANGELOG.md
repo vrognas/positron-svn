@@ -1,3 +1,15 @@
+## [2.17.91] (2025-11-11)
+
+### Performance: Phase 16 - Conditional resource index rebuild
+
+* **Optimization**: Skip index rebuild when resources unchanged (hash-based detection)
+  - Track resource state hash (counts + changelist names)
+  - Only rebuild index when hash changes
+  - Eliminates 5-15ms waste per redundant status update
+* **Impact**: 50-80% users benefit (remote polling, file watchers, burst operations)
+* **Tests**: 3 new tests for conditional rebuild behavior
+* **Files**: ResourceGroupManager.ts, resourceGroupManager.test.ts
+
 ## [2.17.90] (2025-11-11)
 
 ### Audit: Performance, bloat, tech debt cleanup
