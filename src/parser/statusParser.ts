@@ -1,5 +1,4 @@
-import * as xml2js from "xml2js";
-import { xml2jsParseSettings } from "../common/constants";
+import { XmlParserAdapter } from "./xmlParserAdapter";
 import { IEntry, IFileStatus, IWcStatus } from "../common/types";
 
 function processEntry(
@@ -71,14 +70,20 @@ function xmlToStatus(xml: any) {
 
 export async function parseStatusXml(content: string): Promise<IFileStatus[]> {
   return new Promise<IFileStatus[]>((resolve, reject) => {
-    xml2js.parseString(content, xml2jsParseSettings, (err, result) => {
-      if (err) {
-        reject();
-      }
+    try {
+      const result = XmlParserAdapter.parse(content, {
+        mergeAttrs: true,
+        explicitRoot: false,
+        explicitArray: false,
+        camelcase: true
+      });
 
       const statusList: IFileStatus[] = xmlToStatus(result);
 
       resolve(statusList);
-    });
+    } catch (err) {
+      console.error("parseStatusXml error:", err);
+      reject(new Error(`Failed to parse status XML: ${err instanceof Error ? err.message : "Unknown error"}`));
+    }
   });
 }

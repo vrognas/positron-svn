@@ -48,7 +48,7 @@ describe("DeleteUnversioned - Phase 14", () => {
         };
         await asyncOp(); // Properly awaited
       })();
-    } catch (err) {
+    } catch {
       errorCaught = true;
     }
 

@@ -1,23 +1,29 @@
 import { ISvnPath } from "../common/types";
-import * as xml2js from "xml2js";
-import { xml2jsParseSettings } from "../common/constants";
+import { XmlParserAdapter } from "./xmlParserAdapter";
 
 export async function parseDiffXml(content: string): Promise<ISvnPath[]> {
   return new Promise<ISvnPath[]>((resolve, reject) => {
-    xml2js.parseString(
-      content,
-      xml2jsParseSettings,
-      (err, result) => {
-        if (err || !result.paths || !result.paths.path) {
-          reject();
-        }
+    try {
+      const result = XmlParserAdapter.parse(content, {
+        mergeAttrs: true,
+        explicitArray: false,
+        camelcase: true
+      });
 
-        if (!Array.isArray(result.paths.path)) {
-          result.paths.path = [result.paths.path];
-        }
-
-        resolve(result.paths.path);
+      if (!result.paths || !result.paths.path) {
+        reject(new Error("Invalid diff XML: missing paths or path elements"));
+        return;
       }
-    );
+
+      // Normalize: ensure array even for single path
+      if (!Array.isArray(result.paths.path)) {
+        result.paths.path = [result.paths.path];
+      }
+
+      resolve(result.paths.path);
+    } catch (err) {
+      console.error("parseDiffXml error:", err);
+      reject(new Error(`Failed to parse diff XML: ${err instanceof Error ? err.message : "Unknown error"}`));
+    }
   });
 }

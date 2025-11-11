@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { parseSvnLog } from "../../../src/parser/logParser";
+import { parseSvnLog } from "../../../parser/logParser";
 
 suite("LogParser", () => {
   test("parses single log entry", async () => {

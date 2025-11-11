@@ -1,19 +1,25 @@
-import * as xml2js from "xml2js";
 import { ISvnInfo } from "../common/types";
-import { xml2jsParseSettings } from "../common/constants";
+import { XmlParserAdapter } from "./xmlParserAdapter";
 
 export async function parseInfoXml(content: string): Promise<ISvnInfo> {
   return new Promise<ISvnInfo>((resolve, reject) => {
-    xml2js.parseString(
-      content,
-      xml2jsParseSettings,
-      (err, result) => {
-        if (err || typeof result.entry === "undefined") {
-          reject();
-        }
+    try {
+      const result = XmlParserAdapter.parse(content, {
+        mergeAttrs: true,
+        explicitRoot: false,
+        explicitArray: false,
+        camelcase: true
+      });
 
-        resolve(result.entry);
+      if (typeof result.entry === "undefined") {
+        reject(new Error("Invalid info XML: missing entry element"));
+        return;
       }
-    );
+
+      resolve(result.entry);
+    } catch (err) {
+      console.error("parseInfoXml error:", err);
+      reject(new Error(`Failed to parse info XML: ${err instanceof Error ? err.message : "Unknown error"}`));
+    }
   });
 }

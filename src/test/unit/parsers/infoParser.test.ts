@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { parseInfoXml } from "../../../src/parser/infoParser";
+import { parseInfoXml } from "../../../parser/infoParser";
 
 suite("InfoParser", () => {
   test("parses repository info", async () => {
@@ -85,8 +85,9 @@ suite("InfoParser", () => {
     const result = await parseInfoXml(xml);
 
     assert.strictEqual(result.url, "https://svn.example.com/repo/branches/feature");
-    assert.strictEqual(result["relative-url"], "^/branches/feature");
-    assert.strictEqual(result["wc-info"].schedule, "normal");
-    assert.strictEqual(result["wc-info"].depth, "infinity");
+    assert.strictEqual(result.relativeUrl, "^/branches/feature");
+    // CRITICAL: Verify wcInfo.wcrootAbspath exists (needed for repo detection)
+    assert.ok(result.wcInfo);
+    assert.strictEqual(result.wcInfo.wcrootAbspath, "/home/user/repo");
   });
 });

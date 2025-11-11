@@ -1,3 +1,177 @@
+## [2.17.83] (2025-11-11)
+
+### Fix: Add try-catch at parse call sites
+
+* **Error handling**: Wrap 3 critical parseXml calls in try-catch
+  - updateInfo(): Repository info parsing
+  - getStatus(): Status XML parsing
+  - getInfo(): File info caching
+* **Improved errors**: Context-aware error messages
+  - Include file path/workspace root in errors
+  - Chain original error message
+* **Impact**: Prevents uncaught promise rejections, clearer error messages
+
+## [2.17.82] (2025-11-11)
+
+### Security: Path validation + ReDoS fix
+
+* **Path validation**: Add validateSvnPath() to prevent path traversal
+  - Rejects absolute paths (/, C:\)
+  - Rejects path traversal (..)
+  - Rejects null bytes
+  - Returns normalized path
+* **ReDoS fix**: camelcase() input validation
+  - Reject names >1000 chars
+  - Validate character set (alphanumeric + hyphen + underscore)
+* **Tests**: Add util.test.ts with security tests
+
+## [2.17.81] (2025-11-11)
+
+### Security: Add DoS protections to XML parser
+
+* **Size limits**: Reject XML >10MB, >100K tags
+* **Depth limits**: Recursive functions capped at 100 levels (stack overflow protection)
+* **Input validation**: Reject empty XML
+* **Tests**: Add 10 security tests in xmlParserAdapter-security.test.ts
+* **Impact**: Prevents billion laughs, entity expansion, stack overflow attacks
+
+## [2.17.80] (2025-11-11)
+
+### Fix: Add missing explicitRoot:false to XML parsers (CRITICAL) 🔥
+
+* **Root cause**: xml2js used explicitRoot:false to strip root element
+  - `<info><entry>` → `{ entry: {...} }` instead of `{ info: { entry: {...} } }`
+  - Adapter was missing this transformation
+  - Caused infoParser to fail → extension not loading in SVN repos
+* **Solution**: Implement explicitRoot handling in xmlParserAdapter
+  - Add stripRootElement() method to adapter
+  - Apply explicitRoot:false to infoParser, logParser, statusParser
+  - listParser, diffParser keep root element (access result.list/paths)
+  - Add test assertion for wcInfo.wcrootAbspath
+* **Impact**: Extension now properly activates in SVN repositories
+
+## [2.17.79] (2025-11-11)
+
+### Docs: Complete xml2js→fast-xml-parser migration (Phase 4/4) ✅
+
+* **Add comprehensive tests**: 18 new tests (adapter + SVN-specific)
+  - xmlParserAdapter.test.ts: 11 compatibility tests
+  - xmlParserAdapter-svn.test.ts: 7 SVN-specific tests
+  - Test hyphenated attributes, attribute merging, array handling
+* **Update LESSONS_LEARNED.md**: Complete migration case study
+  - Critical success factors (TDD, adapter pattern, incremental)
+  - Failure modes identified (activation risk, silent errors)
+  - Metrics: 79% bundle reduction, +17 tests, improved error handling
+  - Recommendations for future migrations
+* **Validation results**:
+  - Extension builds successfully (250KB bundle, down from ~322KB)
+  - VSIX packages: 648.39 KB (41% reduction from v2.17.0)
+  - xml2js removed, fast-xml-parser 627KB in node_modules
+  - All parsers functional, error handling improved
+
+## [2.17.78] (2025-11-11)
+
+### Chore: Remove xml2js dependency (Phase 3/4) 🧹
+
+* **Uninstall xml2js**: Remove from package.json
+  - Removed: xml2js, @types/xml2js
+  - Bundle size reduction: ~45KB→9.55KB (79% smaller)
+* **Remove xml2jsParseSettings**: Clean up constants.ts
+  - All parsers now use XmlParserAdapter
+  - XXE protection maintained via fast-xml-parser
+* **Migration complete**: All 5 parsers using fast-xml-parser
+
+## [2.17.77] (2025-11-11)
+
+### Feat: Migrate statusParser to fast-xml-parser (Phase 2.5/4) 🎉
+
+* **Migrate statusParser.ts**: Replace xml2js with XmlParserAdapter
+  - Remove xml2js import, use XmlParserAdapter
+  - Improve error handling: descriptive error messages
+  - Keep all business logic (processEntry, xmlToStatus)
+  - Handles hyphenated attrs (wcStatus, wcLocked via camelCase)
+* **Tests**: All 3 statusParser tests pass (complex scenarios)
+* **Progress**: 5/5 parsers migrated - Phase 2 COMPLETE! ✅
+
+## [2.17.76] (2025-11-11)
+
+### Feat: Migrate logParser to fast-xml-parser (Phase 2.4/4) 🚀
+
+* **Migrate logParser.ts**: Replace xml2js with XmlParserAdapter
+  - Remove xml2js import, use XmlParserAdapter
+  - Improve error handling: specific error for missing logentry
+  - Keep logentry array normalization
+  - Keep paths structure normalization (flatten paths.path→paths)
+* **Tests**: All 3 logParser tests pass
+* **Progress**: 4/5 parsers migrated
+
+## [2.17.75] (2025-11-11)
+
+### Feat: Migrate infoParser to fast-xml-parser (Phase 2.3/4) 🚀
+
+* **Migrate infoParser.ts**: Replace xml2js with XmlParserAdapter
+  - Remove xml2js import, use XmlParserAdapter
+  - Improve error handling: specific error for missing entry
+  - Critical for extension activation (source_control_manager.ts:295)
+* **Tests**: All 3 infoParser tests pass (including hyphenated attrs)
+* **Progress**: 3/5 parsers migrated
+
+## [2.17.74] (2025-11-11)
+
+### Feat: Migrate diffParser to fast-xml-parser (Phase 2.2/4) 🚀
+
+* **Migrate diffParser.ts**: Replace xml2js with XmlParserAdapter
+  - Remove xml2js import, use XmlParserAdapter
+  - Improve error handling: specific error for missing paths
+  - Keep array normalization logic
+* **Tests**: All 3 diffParser tests pass
+* **Progress**: 2/5 parsers migrated
+
+## [2.17.73] (2025-11-11)
+
+### Feat: Migrate listParser to fast-xml-parser (Phase 2.1/4) 🚀
+
+* **Migrate listParser.ts**: Replace xml2js with XmlParserAdapter
+  - Remove xml2js import, use XmlParserAdapter
+  - Use mergeAttrs, explicitArray:false, camelcase options
+  - Improve error handling: descriptive error messages
+  - Keep array normalization logic (single→array)
+* **Tests**: All 3 listParser tests pass
+* **Progress**: 1/5 parsers migrated
+
+## [2.17.72] (2025-11-11)
+
+### Feat: Add XmlParserAdapter (Phase 1/4 xml2js→fast-xml-parser) 🔧
+
+* **Install fast-xml-parser**: Add dependency (9.55KB vs xml2js 45KB)
+* **Create xmlParserAdapter.ts**: xml2js-compatible wrapper
+  - mergeAttrs: Merge attributes into parent object
+  - explicitArray: Control array wrapping behavior
+  - camelcase: Transform tag/attribute names to camelCase
+  - XXE protection: processEntities: false
+* **Add xmlParserAdapter.test.ts**: 11 compatibility tests
+  - Attribute merging, camelCase transforms, array handling
+  - Hyphenated names (wc-status → wcStatus)
+  - Nested objects, text content, empty elements
+* **Purpose**: De-risk migration with compatibility layer
+
+## [2.17.71] (2025-11-11)
+
+### Test: Add missing parser tests (TDD prep for xml2js→fast-xml-parser) 🧪
+
+* **Add diffParser.test.ts**: 3 tests for SVN diff XML parsing
+  - Single path element
+  - Multiple path elements
+  - Empty paths rejection
+* **Add listParser.test.ts**: 3 tests for SVN list XML parsing
+  - Single entry
+  - Multiple entries
+  - Empty list handling
+* **Fix lint error**: deleteUnversioned.test.ts unused catch variable
+* **Add @types/picomatch**: Fix TypeScript compilation
+* **Purpose**: TDD foundation before xml2js migration (Phase 0/4)
+* **Coverage**: 2/5 parsers now have tests (was 3/5, now 5/5)
+
 ## [2.17.70] (2025-11-11)
 
 ### Perf: Dependency optimization - minimatch → picomatch ⚡

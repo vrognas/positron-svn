@@ -160,11 +160,54 @@ export function isDescendant(parent: string, descendant: string): boolean {
 }
 
 export function camelcase(name: string) {
+  // Security: Reject overly long tag names (ReDoS protection)
+  if (name.length > 1000) {
+    throw new Error('Tag name too long');
+  }
+
+  // Security: Validate character set
+  if (!/^[a-zA-Z0-9_\-\s]+$/.test(name)) {
+    throw new Error('Invalid characters in tag name');
+  }
+
   return name
     .replace(/(?:^\w|[A-Z]|\b\w)/g, (letter, index) => {
       return index === 0 ? letter.toLowerCase() : letter.toUpperCase();
     })
     .replace(/[\s\-]+/g, "");
+}
+
+/**
+ * Validate SVN file path for security
+ * Prevents path traversal and other path-based attacks
+ *
+ * @param path Path from SVN XML output
+ * @returns Normalized safe path
+ * @throws Error if path is unsafe
+ */
+export function validateSvnPath(path: string): string {
+  // Reject empty/null paths
+  if (!path || path.trim().length === 0) {
+    throw new Error('Path is empty');
+  }
+
+  // Reject null bytes
+  if (path.includes('\0')) {
+    throw new Error('Path contains null bytes');
+  }
+
+  // Reject absolute paths (Windows drive letters or Unix root)
+  if (/^([a-zA-Z]:|\/)/.test(path)) {
+    throw new Error('Absolute paths not allowed');
+  }
+
+  // Reject path traversal
+  const normalized = path.normalize(path);
+  if (normalized.includes('..')) {
+    throw new Error('Path traversal not allowed');
+  }
+
+  return normalized;
 }
 
 export function timeout(ms: number) {

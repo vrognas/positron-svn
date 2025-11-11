@@ -1,19 +1,30 @@
-import * as xml2js from "xml2js";
-import { xml2jsParseSettings } from "../common/constants";
 import { ISvnLogEntry } from "../common/types";
+import { XmlParserAdapter } from "./xmlParserAdapter";
 
 export async function parseSvnLog(content: string): Promise<ISvnLogEntry[]> {
   return new Promise<ISvnLogEntry[]>((resolve, reject) => {
-    xml2js.parseString(content, xml2jsParseSettings, (err, result) => {
-      if (err) {
-        reject();
+    try {
+      const result = XmlParserAdapter.parse(content, {
+        mergeAttrs: true,
+        explicitRoot: false,
+        explicitArray: false,
+        camelcase: true
+      });
+
+      if (!result.logentry) {
+        reject(new Error("Invalid log XML: missing logentry elements"));
+        return;
       }
+
+      // Normalize logentry to array
       let transformed = [];
       if (Array.isArray(result.logentry)) {
         transformed = result.logentry;
       } else if (typeof result.logentry === "object") {
         transformed = [result.logentry];
       }
+
+      // Normalize paths structure
       for (const logentry of transformed) {
         if (logentry.paths === undefined) {
           logentry.paths = [];
@@ -23,7 +34,11 @@ export async function parseSvnLog(content: string): Promise<ISvnLogEntry[]> {
           logentry.paths = [logentry.paths.path];
         }
       }
+
       resolve(transformed);
-    });
+    } catch (err) {
+      console.error("parseSvnLog error:", err);
+      reject(new Error(`Failed to parse log XML: ${err instanceof Error ? err.message : "Unknown error"}`));
+    }
   });
 }

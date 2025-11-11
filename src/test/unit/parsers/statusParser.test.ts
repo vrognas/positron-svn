@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { parseStatusXml } from "../../../src/parser/statusParser";
+import { parseStatusXml } from "../../../parser/statusParser";
 
 suite("StatusParser", () => {
   test("parses basic modified file", async () => {
