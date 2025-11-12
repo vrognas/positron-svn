@@ -1,3 +1,27 @@
+## [2.17.126] (2025-11-12)
+
+### Docs: Ultrathink on unresolved questions
+
+* **Positron API stability: EXPERIMENTAL ⚠️**
+  - @posit-dev/positron v0.1.x NOT production-ready
+  - Risk: 35% methods missing, 50% breaking changes
+  - Version mismatch: ^2025.6.x vs 2025.07.0+ required
+  - Recommendation: DEFER Phase 23 or PROTOTYPE-FIRST (2-3h spike)
+* **Security CI validator: AST-based recommended**
+  - 2-3h implementation, TypeScript Compiler API
+  - Detects unsanitized console.error/log patterns
+  - ~2s overhead, zero false positives
+  - Implement BEFORE Phase 22 conversions (prevents regression)
+* **E2E testing: Hybrid strategy**
+  - Mock-first for TDD, manual validation in real Positron
+  - 1-2h setup during Phase 23 (not before)
+  - 20-40% rework risk if mocks diverge
+* **Phase 22 revised**: +CI validator (2-3h), 6-10h total
+* **Phase 23 revised**: Positron-only simplifies to 8-12h core
+  - Removed: tryAcquirePositronApi, dual environment, VS Code fallback
+  - Added: Console integration, data viewer hooks (bonuses)
+  - Priority: Runtime → Connections → File icons → Languages
+
 ## [2.17.125] (2025-11-12)
 
 ### Docs: Positron alignment review + plan consolidation
