@@ -1,115 +1,135 @@
 # IMPLEMENTATION PLAN
 
-**Version**: v2.17.123
+**Version**: v2.17.125
 **Updated**: 2025-11-12
-**Status**: Phase 21 complete ✅ (4/4 bottlenecks fixed). All P0/P1 issues resolved.
+**Status**: Phase 20-21 complete ✅. Phase 22-23 planned.
 
 ---
 
-## Phase 20: P0 Stability & Security 🔴 CRITICAL
+## Phase 22: Security Hardening (Complete Phase 20) 🔴
 
-**Target**: v2.17.115-119
-**Effort**: 8-12h (4-7h remaining)
-**Impact**: Crashes eliminated, data races fixed, credential leaks prevented
+**Target**: v2.17.125-127
+**Effort**: 4-7h
+**Impact**: 100% users protected from credential disclosure
 
-### Critical Bugs
+### Current State
+- Phase 20 foundation: `util/errorLogger.ts` created ✅
+- Coverage: 9/47 catch blocks sanitized (19%)
+- Remaining: 22 identifiable blocks need migration
 
-**A. Watcher crash** ✅ FIXED (v2.17.114)
-- `repositoryFilesWatcher.ts:59-67`: Uncaught error → extension crash
-- Fix: Graceful logging
-- Impact: 1-5% users
+### Tasks
 
-**B. Global state data race** ✅ FIXED (v2.17.117)
-- `decorators.ts:128`: Per-repo keys prevent shared queues
-- Fix: Append `this.root` to key (`_seqList["op:${root}"]`)
-- Impact: 30-40% users (multi-repo corruption eliminated)
+**A. Migrate remaining catch blocks** (2-3h)
+- Files: svnRepository.ts (2), svn.ts (1), extension.ts (2), source_control_manager.ts (4), commands/command.ts (3), parsers (5), others (5)
+- Pattern: `console.error(...)` → `logError("context", err)`
+- Coverage: 22/47 → 100% sanitized
+- Tests: +3 per file (verify credential patterns sanitized)
 
-**C. Unsafe JSON.parse** ✅ FIXED (v2.17.118)
-- `repository.ts:809,826`, `uri.ts:12`: Safe try-catch wrappers
-- Fix: Returns safe defaults (empty array/default params)
-- Impact: 5-10% users (malformed storage no longer crashes)
+**B. Audit stderr output paths** (1-2h)
+- Review all `svn.exec()` calls for stderr handling
+- Ensure ErrorSanitizer applied to all error paths
+- Files: svnRepository.ts, commands/*.ts
+- Tests: +3 (stderr credential exposure scenarios)
 
-**D. Sanitization gaps** ✅ FOUNDATION COMPLETE (v2.17.119)
-- `util/errorLogger.ts`: Safe logging utility created
-- Applied to 9 critical catch blocks (repository, svnRepository, uri)
-- Impact: 100% users protected on critical paths
-- Remaining: 22 of 47 catch blocks need migration (future work)
+**C. Security regression suite** (1-2h)
+- Centralized test covering all 47 catch blocks
+- Automated credential pattern detection
+- CI/CD integration (fail on unsanitized errors)
 
-| Issue | Users | Severity | Status |
-|-------|-------|----------|--------|
-| Watcher crash | 1-5% | Extension kill | ✅ DONE |
-| Global state race | 30-40% | Data corruption | ✅ DONE |
-| Unsafe JSON.parse | 5-10% | Crash | ✅ DONE |
-| Sanitization gaps | 100% | Credential leak | ✅ FOUNDATION (19%) |
+**D. Documentation** (0.5-1h)
+- Update SECURITY.md with sanitization patterns
+- Developer guide for error handling
+
+| Task | Effort | Impact | Priority |
+|------|--------|--------|----------|
+| Migrate catch blocks | 2-3h | 100% users | P0 |
+| Audit stderr paths | 1-2h | 100% users | P0 |
+| Regression suite | 1-2h | CI/CD protection | P1 |
+| Documentation | 0.5-1h | Developer velocity | P2 |
 
 ---
 
-## Phase 21: P1 Performance Optimization ⚡
+## Phase 23: Positron Integration ⚡
 
-**Target**: v2.17.120-123
-**Effort**: 7-11h (4-6h remaining)
-**Impact**: 50-100% users, 2-10x faster operations
+**Target**: v2.17.128-132
+**Effort**: 12-18h
+**Impact**: Data science users get differentiated value from fork
 
-### Bottlenecks
+### Current State (Positron Alignment: 25%)
+- Engine declaration: ✅ package.json
+- API usage: ❌ None (no runtime/connections/languages)
+- Detection pattern: ❌ No tryAcquirePositronApi()
+- Dual environment: ❌ VS Code only
 
-**A. Commit parent traversal** ✅ FIXED (v2.17.120)
-- `commit.ts:47-64`: Flat resource map for O(1) parent lookups
-- Fix: Exposed getResourceMap(), eliminated URI conversion overhead
-- Impact: 80-100% users (20-100ms → 5-20ms, 4-5x faster)
+### Tasks
 
-**B. Quadratic descendant resolution** ✅ FIXED (v2.17.121)
-- `StatusService.ts:214-235`: Single-pass O(n) algorithm with early break
-- Fix: Build external Set once, iterate statuses once
-- Impact: 50-70% users (100-500ms → 20-100ms, 3-5x faster)
+**A. Runtime service integration** (4-6h)
+- Expose SVN repo info to Positron runtime pane
+- Show active branch, revision, remote status
+- API: `positron.runtime.registerRuntimeMetadataProvider()`
+- Files: New `src/positron/runtimeIntegration.ts`
+- Tests: +3 (metadata updates on branch switch/commit)
 
-**C. Glob pattern matching** ✅ FIXED (v2.17.122)
-- `globMatch.ts:35-67`: Two-tier matching (simple patterns → complex)
-- Fix: Fast path for *.ext, literal, prefix/ patterns
-- Impact: 30-40% users (10-50ms → 3-15ms, 3x faster)
+**B. Connections pane integration** (3-5h)
+- Register SVN remotes in Connections pane
+- Quick actions: Update, Switch Branch, Show Remote Changes
+- API: `positron.connections.registerConnectionProvider()`
+- Files: New `src/positron/connectionsIntegration.ts`
+- Tests: +3 (connection lifecycle, actions)
 
-**D. Batch operations** ✅ FIXED (v2.17.123)
-- `batchOperations.ts`: Adaptive chunking utility
-- `svnRepository.ts:621-636,808-819`: Applied to addFiles(), revert()
-- Fix: <50 (single), 50-500 (50/chunk), 500+ (100/chunk)
-- Impact: 20-30% users (50-200ms → 20-80ms, 2-3x faster)
+**C. Languages API integration** (3-5h)
+- Provide SVN context to language-specific workflows
+- R packages: Track pkg version from SVN metadata
+- Python: Integrate with venv/conda environments
+- API: `positron.languages.registerContextProvider()`
+- Files: New `src/positron/languagesIntegration.ts`
+- Tests: +3 (R/Python context scenarios)
 
-| Bottleneck | Users | Current | Target | Status |
-|------------|-------|---------|--------|--------|
-| Commit traversal | 80-100% | 20-100ms | 5-20ms | ✅ DONE |
-| Descendant resolution | 50-70% | 100-500ms | 20-100ms | ✅ DONE |
-| Glob matching | 30-40% | 10-50ms | 3-15ms | ✅ DONE |
-| Batch ops | 20-30% | 50-200ms | 20-80ms | ✅ DONE |
+**D. Positron UI enhancements** (2-3h)
+- Data science-specific file icons (R, Python, Jupyter)
+- Enhanced diff view for notebooks (.ipynb)
+- Quick pick improvements for data workflows
+- Files: Extend existing UI components
+- Tests: +3 (UI rendering, notebook diff)
+
+| Task | Effort | Impact | Priority |
+|------|--------|--------|----------|
+| Runtime integration | 4-6h | Core differentiation | P0 |
+| Connections pane | 3-5h | UX improvement | P1 |
+| Languages API | 3-5h | R/Python workflows | P1 |
+| UI enhancements | 2-3h | Polish | P2 |
 
 ---
 
 ## Summary
 
-**Phase 20**: 8-12h, CRITICAL (stability/security)
-**Phase 21**: 7-11h, HIGH (performance, 80-100% users affected)
-**Total**: 15-23h for complete P0/P1 resolution
-
-**Status**: All P0/P1 issues resolved ✅
-- Phase 20: 4/4 critical bugs fixed
-- Phase 21: 4/4 performance bottlenecks fixed
+**Phase 22**: 4-7h, CRITICAL (security hardening)
+**Phase 23**: 12-18h, HIGH (strategic differentiation)
+**Total**: 16-25h for complete security + Positron integration
 
 ---
 
-## Implementation Decisions
+## Strategic Rationale
 
-**Global state race fix (20-B)**:
-- Strategy: Per-repo keys vs instance-level
-- Decision: Per-repo keys (append repo path: `_seqList["op:/path"]`)
-- Rationale: Less invasive, preserves decorator pattern, matches 2-3h estimate
-- Alternative rejected: Instance-level requires full decorator removal (6-8h)
+### Why Phase 22 (Security) First
+1. **User impact**: 100% users vulnerable to credential leaks
+2. **Compliance**: Production blocker for enterprise environments
+3. **Foundation complete**: logError() utility exists, pattern proven
+4. **Low effort**: 4-7h to close 22 identifiable gaps
+5. **Debt paydown**: Finishing Phase 20 enables clean slate
 
-**Batch operations (21-D)**:
-- Strategy: Fixed vs adaptive chunk size
-- Decision: Adaptive (50→100 files based on total count)
-- Rationale: Optimizes for common case (<50: no split), scales for bulk ops
-- Thresholds: <50 (single), 50-500 (50/chunk), 500+ (100/chunk)
+### Why Phase 23 (Positron Integration) Second
+1. **Strategic differentiation**: Fork currently indistinguishable from upstream
+2. **Mission alignment**: "Positron-optimized fork with enhanced features" unrealized
+3. **User value**: Data science workflows (R/Python/Jupyter) are primary use case
+4. **Concrete APIs**: Positron provides runtime/connections/languages APIs ready to use
+5. **Market positioning**: Justifies fork maintenance vs contributing upstream
 
-**Commit traversal fix (21-A)**:
-- Strategy: Cache lookups vs flat map
-- Decision: Build flat resource map once at command start
-- Rationale: O(n) prebuild + O(1) lookups vs O(n×d) repeated calls
-- Impact: 20-100ms → 5-20ms (4-5x improvement)
+---
+
+## Unresolved Questions
+
+- Positron APIs stability? (beta vs stable for runtime/connections/languages)
+- Security audit tooling? (automated credential pattern detection in CI)
+- Backward compat? (VS Code users if Positron APIs added)
+- E2E test infra needed before Phase 23?

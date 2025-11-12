@@ -1,3 +1,18 @@
+## [2.17.125] (2025-11-12)
+
+### Docs: Positron alignment review + plan consolidation
+
+* **Positron alignment analysis**: 25% integrated (engine declared, no API usage)
+  - Missing: tryAcquirePositronApi(), runtime/connections/languages APIs
+  - Missing: Dual environment handling, context keys
+  - Recommendation: Phase 23 Positron Integration (12-18h)
+* **IMPLEMENTATION_PLAN.md**: Condensed to 2 critical phases (Phase 22-23)
+  - Phase 22: Security Hardening (4-7h, complete Phase 20 sanitization)
+  - Phase 23: Positron Integration (12-18h, runtime/connections/languages APIs)
+  - Removed: Completed Phase 20-21 details (moved to history)
+* **CLAUDE.md**: Updated architecture ref (v2.17.50 → v2.17.123)
+* **LESSONS_LEARNED.md**: Updated version (v2.17.107 → v2.17.123)
+
 ## [2.17.124] (2025-11-12)
 
 ### UX: Revert progress to Source Control view
