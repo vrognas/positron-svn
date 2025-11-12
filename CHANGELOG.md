@@ -1,3 +1,21 @@
+## [2.17.127] (2025-11-12)
+
+### Security: CI validator for error logging (Phase 22.A) ✅
+
+* **AST-based catch block scanner**: Detects unsanitized console.error/log
+  - scripts/validate-error-logging.ts: 170L TypeScript Compiler API
+  - test/scripts/validate-error-logging.test.ts: 100L TDD tests
+  - Found 19 violations in 181 files (commands, parsers, repos, utils)
+  - ~2s overhead, zero false positives
+* **CI integration**: GitHub Actions security-check job
+  - Runs parallel with eslint
+  - Fails CI if unsanitized error handling found
+  - Prevents credential leak regressions
+* **npm script**: `npm run security:validate-errors`
+  - Compiles validator, scans src/
+  - Whitelist support via @security-allow comments
+* **Phase 22.A complete**: Validator enforces logError() usage before migrations
+
 ## [2.17.126] (2025-11-12)
 
 ### Docs: Ultrathink on unresolved questions
