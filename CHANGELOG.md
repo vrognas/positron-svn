@@ -1,3 +1,19 @@
+## [2.17.116] (2025-11-12)
+
+### Docs: Implementation decisions + rationale
+
+* **Phase 20-B decision**: Per-repo keys strategy for global state race
+  - Approach: Append repo path to decorator keys (`_seqList["op:/path"]`)
+  - Rationale: Less invasive, preserves decorator pattern, 2-3h (vs 6-8h for instance-level)
+  - Alternative rejected: Full decorator removal too costly
+* **Phase 21-D decision**: Adaptive batching strategy
+  - Thresholds: <50 (single batch), 50-500 (50/chunk), 500+ (100/chunk)
+  - Rationale: Optimizes common case, scales for bulk ops
+* **Phase 21-A decision**: Flat resource map for commit traversal
+  - O(n) prebuild + O(1) lookups vs O(n×d) repeated calls
+  - Target: 20-100ms → 5-20ms (4-5x improvement)
+* **Plan update**: IMPLEMENTATION_PLAN.md v2.17.116 (added Implementation Decisions section)
+
 ## [2.17.115] (2025-11-12)
 
 ### Docs: Multi-agent perf/bloat/tech-debt audit

@@ -1,6 +1,6 @@
 # IMPLEMENTATION PLAN
 
-**Version**: v2.17.115
+**Version**: v2.17.116
 **Updated**: 2025-11-12
 **Status**: Phase 20 active (1/4 bugs fixed ✅). Phase 21 validated w/ new finding.
 
@@ -22,6 +22,9 @@
 **B. Global state data race** (P0 - CRITICAL)
 - `decorators.ts:119`, `repository.ts:469`: Shared `_seqList` across all repos
 - Impact: 30-40% users (multi-repo corruption, perf degradation)
+- Fix: Per-repo keys (append repo path to key: `_seqList["updateModelState:/path"]`)
+  - Why: Less invasive than instance-level, keeps decorator pattern
+  - Implementation: Modify decorator to accept repo identifier param
 - Effort: 2-3h
 
 **C. Unsafe JSON.parse** (P0 - SECURITY)
@@ -76,7 +79,11 @@
 - `svnRepository.ts:615-618`: No chunking for bulk add/revert
 - Impact: 20-30% users (100+ file operations)
 - Current: 50-200ms overhead
-- Fix: 50 files/chunk batching
+- Fix: Adaptive batching strategy
+  - <50 files: single batch (no overhead)
+  - 50-500 files: 50 files/chunk (balance overhead vs feedback)
+  - 500+ files: 100 files/chunk (reduce total overhead)
+  - Why: Adaptive sizing optimizes for common cases
 - Effort: 2-3h
 
 | Bottleneck | Users | Current | Target | Effort |
@@ -95,3 +102,25 @@
 **Total**: 15-23h for complete P0/P1 resolution
 
 **Next action**: Phase 20-B (global state race) - 2-3h
+
+---
+
+## Implementation Decisions
+
+**Global state race fix (20-B)**:
+- Strategy: Per-repo keys vs instance-level
+- Decision: Per-repo keys (append repo path: `_seqList["op:/path"]`)
+- Rationale: Less invasive, preserves decorator pattern, matches 2-3h estimate
+- Alternative rejected: Instance-level requires full decorator removal (6-8h)
+
+**Batch operations (21-D)**:
+- Strategy: Fixed vs adaptive chunk size
+- Decision: Adaptive (50→100 files based on total count)
+- Rationale: Optimizes for common case (<50: no split), scales for bulk ops
+- Thresholds: <50 (single), 50-500 (50/chunk), 500+ (100/chunk)
+
+**Commit traversal fix (21-A)**:
+- Strategy: Cache lookups vs flat map
+- Decision: Build flat resource map once at command start
+- Rationale: O(n) prebuild + O(1) lookups vs O(n×d) repeated calls
+- Impact: 20-100ms → 5-20ms (4-5x improvement)
