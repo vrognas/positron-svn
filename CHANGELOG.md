@@ -1,3 +1,19 @@
+## [2.17.133] (2025-11-12)
+
+### Feature: Reveal in File Explorer (QoL) ✅
+
+* **New command**: "Reveal in File Explorer" in SCM context menu
+  - src/commands/revealInExplorer.ts (30L)
+  - Right-click file in SCM "Changes" → "Reveal in File Explorer"
+  - Same behavior as Explorer pane context menu
+  - Uses VS Code's built-in `revealFileInOS` command
+* **Integration**: Added to scm/resourceState/context menu
+  - Appears in navigation group after "Open File"
+  - Available for all resource groups except external
+  - Icon: $(folder-opened)
+* **Tests**: +3 minimalist tests (revealInExplorer.test.ts)
+* **Impact**: Quality-of-life improvement for all users
+
 ## [2.17.132] (2025-11-12)
 
 ### Positron: Connections provider (Phase 23.P1) ✅

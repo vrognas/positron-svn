@@ -48,6 +48,7 @@ import { SourceControlManager } from "./source_control_manager";
 import { Command } from "./commands/command";
 import { SearchLogByRevision } from "./commands/search_log_by_revision";
 import { SearchLogByText } from "./commands/search_log_by_text";
+import { RevealInExplorer } from "./commands/revealInExplorer";
 import { Merge } from "./commands/merge";
 
 export function registerCommands(
@@ -60,6 +61,7 @@ export function registerCommands(
   disposables.push(new GetSourceControlManager(sourceControlManager));
   disposables.push(new FileOpen());
   disposables.push(new OpenFile());
+  disposables.push(new RevealInExplorer());
   disposables.push(new PromptAuth());
   disposables.push(new CommitWithMessage());
   disposables.push(new Add());
