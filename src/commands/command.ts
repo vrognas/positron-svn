@@ -20,6 +20,7 @@ import {
   LineChange
 } from "../common/types";
 import { exists, readFile, stat, unlink } from "../fs";
+import { configuration } from "../helpers/configuration";
 import { inputIgnoreList } from "../ignoreitems";
 import { applyLineChanges } from "../lineChanges";
 import { SourceControlManager } from "../source_control_manager";
@@ -581,10 +582,16 @@ export abstract class Command implements Disposable {
   /**
    * Sanitize stderr to prevent information disclosure.
    * Strips file paths, credentials, and internal URLs.
+   * WARNING: When debug.disableSanitization enabled, returns raw stderr
    */
   private sanitizeStderr(stderr: string): string {
     if (!stderr) {
       return "";
+    }
+
+    // ⚠️ DEBUG MODE: Return raw stderr when sanitization disabled
+    if (configuration.get<boolean>("debug.disableSanitization", false)) {
+      return stderr;
     }
 
     return stderr

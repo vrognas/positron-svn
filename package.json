@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.135",
+    "version": "2.17.136",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -1072,6 +1072,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Controls whether to automatically detect svn externals."
+                },
+                "svn.debug.disableSanitization": {
+                    "type": "boolean",
+                    "default": false,
+                    "markdownDescription": "**⚠️ WARNING**: Disable error message sanitization for debugging. When enabled, raw file paths and credentials will be visible in logs. **Only enable temporarily for troubleshooting, then disable immediately.**"
                 },
                 "svn.detectIgnored": {
                     "type": "boolean",

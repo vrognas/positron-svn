@@ -3,6 +3,16 @@
  * Strips sensitive information from error messages before logging/display
  */
 
+import { configuration } from "../helpers/configuration";
+
+/**
+ * Check if sanitization is disabled for debugging
+ * WARNING: When disabled, credentials and paths will be exposed in logs
+ */
+function isSanitizationDisabled(): boolean {
+  return configuration.get<boolean>("debug.disableSanitization", false);
+}
+
 /**
  * Sanitize error messages by removing sensitive information
  * @param error Error object or string to sanitize
@@ -16,10 +26,15 @@ export function sanitizeError(error: Error | string): string {
 /**
  * Sanitize a string by removing sensitive patterns
  * @param input String to sanitize
- * @returns Sanitized string with sensitive data redacted
+ * @returns Sanitized string with sensitive data redacted (or original if debug mode enabled)
  */
 export function sanitizeString(input: string): string {
   if (!input) return input;
+
+  // ⚠️ DEBUG MODE: Return raw string when sanitization disabled
+  if (isSanitizationDisabled()) {
+    return input;
+  }
 
   let sanitized = input;
 

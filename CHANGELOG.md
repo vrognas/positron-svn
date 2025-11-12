@@ -1,3 +1,15 @@
+## [2.17.136] (2025-11-12)
+
+### Feature: Debug sanitization toggle 🔧
+
+* **New setting**: `svn.debug.disableSanitization` (default: false)
+  - Temporarily disable error message sanitization for debugging
+  - ⚠️ WARNING: Raw file paths and credentials exposed when enabled
+  - Updated: errorSanitizer.ts - check setting before sanitizing
+  - Updated: command.ts sanitizeStderr - check setting before sanitizing
+  - Use case: Debugging SVN errors when [PATH] redaction hides critical info
+  - Remember: Disable immediately after troubleshooting
+
 ## [2.17.135] (2025-11-12)
 
 ### Fix: Extension activation - dynamic Positron import 🔧
