@@ -1,3 +1,14 @@
+## [2.17.137] (2025-11-12)
+
+### Fix: Suppress noisy error logs for untracked files 🔇
+
+* **File system provider**: Suppress W155010 errors when clicking untracked files
+  - Root cause: `svn list` called on ALL files in Explorer (tracked or not)
+  - Error W155010 "node not found" expected for untracked files
+  - Fix: Check stderr for W155010 before logging error
+  - Impact: Cleaner console logs, no user-facing changes
+  - Location: svnFileSystemProvider.ts:126-132
+
 ## [2.17.136] (2025-11-12)
 
 ### Feature: Debug sanitization toggle 🔧

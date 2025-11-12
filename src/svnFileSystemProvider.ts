@@ -124,7 +124,11 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
         mtime = Date.parse(listResults[0].commit.date);
       }
     } catch (error) {
-      logError("Failed to list SVN file", error);
+      // Suppress "node not found" errors for untracked files (expected)
+      const isUntrackedFile = (error as any)?.stderr?.includes("W155010");
+      if (!isUntrackedFile) {
+        logError("Failed to list SVN file", error);
+      }
     }
 
     return { type: FileType.File, size, mtime, ctime: 0 };
