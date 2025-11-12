@@ -48,6 +48,12 @@ export interface IResourceGroupManager {
   getResourceFromFile(uri: string | Uri): Resource | undefined;
 
   /**
+   * Get flat resource map for batch operations (Phase 21.A perf)
+   * Returns map of file paths (as strings) to resources
+   */
+  getResourceMap(): Map<string, Resource>;
+
+  /**
    * Access to static groups
    */
   readonly changes: ISvnResourceGroup;
@@ -286,6 +292,15 @@ export class ResourceGroupManager implements IResourceGroupManager {
 
     const uriString = uri.toString();
     return this._resourceIndex.get(uriString);
+  }
+
+  /**
+   * Get flat resource map for batch operations (Phase 21.A perf)
+   * Exposes internal map to avoid repeated URI conversion overhead
+   * @returns Map keyed by URI string (use Uri.file(path).toString())
+   */
+  getResourceMap(): Map<string, Resource> {
+    return this._resourceIndex;
   }
 
   /**

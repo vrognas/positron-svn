@@ -527,6 +527,15 @@ export class Repository implements IRemoteRepository {
     return this.groupManager.getResourceFromFile(uri);
   }
 
+  /**
+   * Get flat resource map for batch operations (Phase 21.A perf)
+   * Avoids repeated URI conversion overhead in hot loops
+   * @returns Map of file paths to resources
+   */
+  public getResourceMap(): Map<string, Resource> {
+    return this.groupManager.getResourceMap();
+  }
+
   public provideOriginalResource(uri: Uri): Uri | undefined {
     if (uri.scheme !== "file") {
       return;
