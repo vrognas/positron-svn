@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.124",
+    "version": "2.17.134",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -38,6 +38,7 @@
         "*.scss"
     ],
     "scripts": {
+        "security:validate-errors": "tsc -p scripts/tsconfig.json && node out/scripts/validate-error-logging.js",
         "build": "node build.js && npm run build:css",
         "build:css": "sass scss/:css/ --style=compressed --no-source-map",
         "build:ts": "tsc -p ./",
@@ -73,6 +74,7 @@
         "tmp": "^0.2.5"
     },
     "devDependencies": {
+        "@posit-dev/positron": "^0.1.8",
         "@semantic-release/changelog": "^6.0.3",
         "@semantic-release/git": "^10.0.1",
         "@size-limit/file": "^11.2.0",
@@ -81,6 +83,7 @@
         "@types/node": "^24.10.0",
         "@types/picomatch": "^4.0.2",
         "@types/semver": "^7.5.8",
+        "@types/sinon": "^20.0.0",
         "@types/tmp": "^0.2.6",
         "@types/vscode": "^1.74.0",
         "@typescript-eslint/eslint-plugin": "^8.46.3",
@@ -102,6 +105,7 @@
         "sass": "^1.83.0",
         "semantic-release": "^25.0.2",
         "semantic-release-vsce": "^6.0.13",
+        "sinon": "^21.0.0",
         "size-limit": "^11.2.0",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.46.3",
@@ -285,6 +289,12 @@
                 "title": "Open File",
                 "category": "SVN",
                 "icon": "$(go-to-file)"
+            },
+            {
+                "command": "svn.revealInExplorer",
+                "title": "Reveal in File Explorer",
+                "category": "SVN",
+                "icon": "$(folder-opened)"
             },
             {
                 "command": "svn.openHEADFile",
@@ -869,6 +879,11 @@
                 },
                 {
                     "command": "svn.openFile",
+                    "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != external",
+                    "group": "navigation"
+                },
+                {
+                    "command": "svn.revealInExplorer",
                     "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != external",
                     "group": "navigation"
                 },

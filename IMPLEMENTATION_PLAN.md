@@ -1,115 +1,181 @@
 # IMPLEMENTATION PLAN
 
-**Version**: v2.17.123
+**Version**: v2.17.127
 **Updated**: 2025-11-12
-**Status**: Phase 21 complete ✅ (4/4 bottlenecks fixed). All P0/P1 issues resolved.
+**Status**: Phase 20-21 complete ✅. Phase 22 immediate priority. Phase 23 HIGH RISK (API experimental).
 
 ---
 
-## Phase 20: P0 Stability & Security 🔴 CRITICAL
+## Phase 22: Security Hardening + CI Validator 🔴 IMMEDIATE
 
-**Target**: v2.17.115-119
-**Effort**: 8-12h (4-7h remaining)
-**Impact**: Crashes eliminated, data races fixed, credential leaks prevented
+**Target**: v2.17.126-128
+**Effort**: 6-10h (CI validator added)
+**Impact**: 100% users protected, automated enforcement
 
-### Critical Bugs
+### Tasks
 
-**A. Watcher crash** ✅ FIXED (v2.17.114)
-- `repositoryFilesWatcher.ts:59-67`: Uncaught error → extension crash
-- Fix: Graceful logging
-- Impact: 1-5% users
+**A. CI Security Validator** (2-3h) [FIRST - Prevents regression]
+- AST-based catch block scanner
+- Detects console.error/log(error) violations
+- CI fails if unsanitized error handling found
+- Files: `scripts/validate-error-logging.ts` (150L)
+- Tests: `test/scripts/validate-error-logging.test.ts` (80L)
+- Integration: `.github/workflows/main.yml` security-check job
+- Performance: ~2s overhead
 
-**B. Global state data race** ✅ FIXED (v2.17.117)
-- `decorators.ts:128`: Per-repo keys prevent shared queues
-- Fix: Append `this.root` to key (`_seqList["op:${root}"]`)
-- Impact: 30-40% users (multi-repo corruption eliminated)
+**B. Migrate remaining catch blocks** (3-4h)
+- Files: svnRepository.ts (2), svn.ts (1), extension.ts (2), source_control_manager.ts (4), commands/command.ts (3), parsers (5), others (5)
+- Pattern: `console.error(...)` → `logError("context", err)`
+- Coverage: 22/47 → 100% sanitized
+- Tests: +3 per file (verify credential patterns)
 
-**C. Unsafe JSON.parse** ✅ FIXED (v2.17.118)
-- `repository.ts:809,826`, `uri.ts:12`: Safe try-catch wrappers
-- Fix: Returns safe defaults (empty array/default params)
-- Impact: 5-10% users (malformed storage no longer crashes)
+**C. Audit stderr paths** (1-2h)
+- Review all `svn.exec()` stderr handling
+- Apply ErrorSanitizer to error paths
+- Files: svnRepository.ts, commands/*.ts
+- Tests: +3 (stderr credential scenarios)
 
-**D. Sanitization gaps** ✅ FOUNDATION COMPLETE (v2.17.119)
-- `util/errorLogger.ts`: Safe logging utility created
-- Applied to 9 critical catch blocks (repository, svnRepository, uri)
-- Impact: 100% users protected on critical paths
-- Remaining: 22 of 47 catch blocks need migration (future work)
+**D. Documentation** (0.5-1h)
+- SECURITY.md with sanitization patterns
+- Developer guide for error handling
 
-| Issue | Users | Severity | Status |
-|-------|-------|----------|--------|
-| Watcher crash | 1-5% | Extension kill | ✅ DONE |
-| Global state race | 30-40% | Data corruption | ✅ DONE |
-| Unsafe JSON.parse | 5-10% | Crash | ✅ DONE |
-| Sanitization gaps | 100% | Credential leak | ✅ FOUNDATION (19%) |
+**Order**: A → B → C → D (CI enforces B/C immediately)
+
+| Task | Effort | Priority |
+|------|--------|----------|
+| CI validator (NEW) | 2-3h | P0 |
+| Migrate catch blocks | 3-4h | P0 |
+| Audit stderr | 1-2h | P0 |
+| Documentation | 0.5-1h | P2 |
 
 ---
 
-## Phase 21: P1 Performance Optimization ⚡
+## Phase 23: Positron Integration ⚡ HIGH RISK
 
-**Target**: v2.17.120-123
-**Effort**: 7-11h (4-6h remaining)
-**Impact**: 50-100% users, 2-10x faster operations
+**Target**: v2.17.129-134
+**Effort**: 8-12h core (9.5-15h with bonuses)
+**Impact**: Strategic differentiation for data science users
+**Status**: ⚠️ DEFER until API stability confirmed
 
-### Bottlenecks
+### ⚠️ BLOCKERS IDENTIFIED
 
-**A. Commit parent traversal** ✅ FIXED (v2.17.120)
-- `commit.ts:47-64`: Flat resource map for O(1) parent lookups
-- Fix: Exposed getResourceMap(), eliminated URI conversion overhead
-- Impact: 80-100% users (20-100ms → 5-20ms, 4-5x faster)
+**Positron API Status: EXPERIMENTAL**
+- @posit-dev/positron v0.1.x marked NOT production-ready
+- Warning: "API definitions may change without notice, break compatibility, or be removed"
+- **Risk**: 35% chance API methods don't exist, 50% chance breaking changes
+- **Version mismatch**: Extension declares ^2025.6.x, APIs require 2025.07.0+
 
-**B. Quadratic descendant resolution** ✅ FIXED (v2.17.121)
-- `StatusService.ts:214-235`: Single-pass O(n) algorithm with early break
-- Fix: Build external Set once, iterate statuses once
-- Impact: 50-70% users (100-500ms → 20-100ms, 3-5x faster)
+**Recommendation**: **PROTOTYPE-FIRST (2-3h spike)** before 12h commitment
+1. Install @posit-dev/positron
+2. Verify API methods exist
+3. Test against Positron 2025.07.0+
+4. Decision: proceed or defer until v1.0
 
-**C. Glob pattern matching** ✅ FIXED (v2.17.122)
-- `globMatch.ts:35-67`: Two-tier matching (simple patterns → complex)
-- Fix: Fast path for *.ext, literal, prefix/ patterns
-- Impact: 30-40% users (10-50ms → 3-15ms, 3x faster)
+### Core Tasks (if proceeding)
 
-**D. Batch operations** ✅ FIXED (v2.17.123)
-- `batchOperations.ts`: Adaptive chunking utility
-- `svnRepository.ts:621-636,808-819`: Applied to addFiles(), revert()
-- Fix: <50 (single), 50-500 (50/chunk), 500+ (100/chunk)
-- Impact: 20-30% users (50-200ms → 20-80ms, 2-3x faster)
+**A. Runtime Integration** (3-4h) [P0]
+- Direct Positron API import (no tryAcquirePositronApi wrapper)
+- Register metadata provider: branch, revision, remote, status
+- Update on: branch switch, commit, update
+- Files: `src/positron/runtimeMetadata.ts` (150L)
+- Tests: +3 mocked TDD (hybrid strategy)
 
-| Bottleneck | Users | Current | Target | Status |
-|------------|-------|---------|--------|--------|
-| Commit traversal | 80-100% | 20-100ms | 5-20ms | ✅ DONE |
-| Descendant resolution | 50-70% | 100-500ms | 20-100ms | ✅ DONE |
-| Glob matching | 30-40% | 10-50ms | 3-15ms | ✅ DONE |
-| Batch ops | 20-30% | 50-200ms | 20-80ms | ✅ DONE |
+**B. Connections Pane** (2-3h) [P1]
+- Register SVN remotes as connections
+- Quick actions: Update, Switch, Show Changes
+- Files: `src/positron/connectionsProvider.ts` (120L)
+- Tests: +3 TDD
+
+**C. Data Science File Icons** (1-2h) [P2]
+- Custom icons: R, Python, Jupyter, RMarkdown
+- SVN status overlay
+- Files: Extend `src/decorators.ts` (+40L)
+- Tests: +3 TDD
+
+**D. Languages Context** (2-3h) [P3]
+- R packages: Track DESCRIPTION version
+- Python: venv/conda integration
+- Files: `src/positron/languagesContext.ts` (100L)
+- Tests: +3 TDD
+
+### Bonus Features (Positron-Only)
+
+**E. Console Integration** (1-2h)
+- SVN commands from R/Python console
+- Files: `src/positron/consoleIntegration.ts` (80L)
+- Tests: +2 TDD
+
+**F. Data Viewer Hooks** (0.5-1h)
+- Track data file provenance
+- Files: Extend `src/historyView/itemLogProvider.ts` (+30L)
+- Tests: +2 TDD
+
+### E2E Strategy: Hybrid
+
+- **Mock-first**: Unit tests with Positron API mocks (TDD pattern)
+- **Manual validation**: Test in real Positron after implementation
+- **Effort**: 1-2h mock setup during Phase 23
+- **Risk**: 20-40% rework if mocks diverge from real APIs
+
+| Task | Effort | Impact | Priority |
+|------|--------|--------|----------|
+| A. Runtime metadata | 3-4h | Core differentiation | P0 |
+| B. Connections | 2-3h | UX improvement | P1 |
+| C. DS file icons | 1-2h | Visual polish | P2 |
+| D. Languages context | 2-3h | R/Python workflows | P3 |
+| **Core total** | **8-12h** | | |
+| E. Console (bonus) | 1-2h | Power users | BONUS |
+| F. Data viewer (bonus) | 0.5-1h | Provenance | BONUS |
 
 ---
 
 ## Summary
 
-**Phase 20**: 8-12h, CRITICAL (stability/security)
-**Phase 21**: 7-11h, HIGH (performance, 80-100% users affected)
-**Total**: 15-23h for complete P0/P1 resolution
-
-**Status**: All P0/P1 issues resolved ✅
-- Phase 20: 4/4 critical bugs fixed
-- Phase 21: 4/4 performance bottlenecks fixed
+**Phase 22**: 6-10h, CRITICAL (security + CI enforcement)
+**Phase 23**: 8-15h, HIGH RISK (API experimental, defer recommended)
+**Total**: 14-25h if both executed
 
 ---
 
-## Implementation Decisions
+## Strategic Decisions
 
-**Global state race fix (20-B)**:
-- Strategy: Per-repo keys vs instance-level
-- Decision: Per-repo keys (append repo path: `_seqList["op:/path"]`)
-- Rationale: Less invasive, preserves decorator pattern, matches 2-3h estimate
-- Alternative rejected: Instance-level requires full decorator removal (6-8h)
+### Phase 22 Approach
 
-**Batch operations (21-D)**:
-- Strategy: Fixed vs adaptive chunk size
-- Decision: Adaptive (50→100 files based on total count)
-- Rationale: Optimizes for common case (<50: no split), scales for bulk ops
-- Thresholds: <50 (single), 50-500 (50/chunk), 500+ (100/chunk)
+**CI-First Strategy**:
+1. Build validator FIRST (prevents regression during conversions)
+2. Validator runs in parallel with eslint (~2s)
+3. AST-based (zero false positives)
+4. Blocks merge if violations found
 
-**Commit traversal fix (21-A)**:
-- Strategy: Cache lookups vs flat map
-- Decision: Build flat resource map once at command start
-- Rationale: O(n) prebuild + O(1) lookups vs O(n×d) repeated calls
-- Impact: 20-100ms → 5-20ms (4-5x improvement)
+### Phase 23 Approach
+
+**DEFER Until**:
+- @posit-dev/positron reaches v0.5.0+ or removes "experimental" warning
+- Changelog/deprecation policy established
+- Version compatibility confirmed (^2025.6.x vs 2025.07.0+)
+
+**Alternative: Prototype-First**:
+- 2-3h spike to validate API exists
+- Test real Positron 2025.07.0+
+- Abort if incompatible (saves 10-12h)
+
+**If Proceeding**:
+- Feature flag: `positron.integration.enabled` (default: false)
+- Error handling: Try-catch all API calls
+- Start with A (runtime metadata) - smallest surface, highest visibility
+
+---
+
+## Unresolved Questions
+
+### Phase 22
+- Block merge or warning-only for CI validator?
+- Scan test files or skip?
+- Whitelist format: inline comments or config file?
+
+### Phase 23
+- **Does `registerRuntimeMetadataProvider()` exist?** (no docs found)
+- **When will APIs stabilize?** (experimental warning persists)
+- **Positron test runner exists?** (vs @vscode/test-electron)
+- **Should we remove VS Code engine declaration?** (Positron-only)
+- **Add Positron-specific SVN features?** (not in VS Code upstream)

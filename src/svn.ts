@@ -14,6 +14,7 @@ import { parseInfoXml } from "./parser/infoParser";
 import SvnError from "./svnError";
 import { Repository } from "./svnRepository";
 import { dispose, IDisposable, toDisposable } from "./util";
+import { logError } from "./util/errorLogger";
 import { iconv } from "./vscodeModules";
 
 export const svnErrorCodes: { [key: string]: string } = {
@@ -411,7 +412,7 @@ export class Svn {
       if (error instanceof SvnError) {
         throw error;
       }
-      console.error(error);
+      logError("Find repository root failed", error);
       throw new Error("Unable to find repository root path");
     }
   }

@@ -23,6 +23,7 @@ import {
   pathEquals,
   EmptyDisposable
 } from "./util";
+import { logError } from "./util/errorLogger";
 
 const THREE_MINUTES = 1000 * 60 * 3;
 const FIVE_MINUTES = 1000 * 60 * 5;
@@ -123,7 +124,7 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
         mtime = Date.parse(listResults[0].commit.date);
       }
     } catch (error) {
-      console.error("Failed to list SVN file:", error);
+      logError("Failed to list SVN file", error);
     }
 
     return { type: FileType.File, size, mtime, ctime: 0 };
@@ -172,7 +173,7 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
         return await repository.patchBuffer([fsPath]);
       }
     } catch (error) {
-      console.error("Failed to read SVN file:", error);
+      logError("Failed to read SVN file", error);
     }
 
     return new Uint8Array(0);

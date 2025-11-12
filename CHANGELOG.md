@@ -1,3 +1,169 @@
+## [2.17.134] (2025-11-12)
+
+### Fix: Reveal in File Explorer code review fixes ✅
+
+* **Type signature fix**: Changed `Resource[]` → `SourceControlResourceState[]`
+  - Matches codebase conventions (consistent with add, remove, revert commands)
+  - Proper type safety for SCM resource operations
+* **Error handling**: Added try-catch with logError
+  - Prevents crashes if `revealFileInOS` fails
+  - User-friendly error message: "Unable to reveal file in explorer"
+  - Credentials sanitized via logError utility
+* **Null check improvement**: Explicit early return for missing resourceUri
+  - More defensive coding pattern
+  - Prevents undefined errors
+* **Documentation**: Added comment explaining single-file behavior
+  - "Note: Only first file revealed when multiple selected (matches VS Code UX)"
+* **Tests improved**: Now test actual command behavior
+  - Test 1: Empty resources array handling
+  - Test 2: Missing URI handling
+  - Test 3: Multiple resource selection (first file processed)
+* **Impact**: Hardened implementation, better error handling, type safety
+
+## [2.17.133] (2025-11-12)
+
+### Feature: Reveal in File Explorer (QoL) ✅
+
+* **New command**: "Reveal in File Explorer" in SCM context menu
+  - src/commands/revealInExplorer.ts (36L)
+  - Right-click file in SCM "Changes" → "Reveal in File Explorer"
+  - Same behavior as Explorer pane context menu
+  - Uses VS Code's built-in `revealFileInOS` command
+* **Integration**: Added to scm/resourceState/context menu
+  - Appears in navigation group after "Open File"
+  - Available for all resource groups except external
+  - Icon: $(folder-opened)
+* **Tests**: +3 minimalist tests (revealInExplorer.test.ts)
+* **Impact**: Quality-of-life improvement for all users
+
+## [2.17.132] (2025-11-12)
+
+### Positron: Connections provider (Phase 23.P1) ✅
+
+* **Connections pane integration**: src/positron/connectionsProvider.ts (110L)
+  - SvnConnectionsProvider: Implements ConnectionsDriver interface
+  - Register SVN repos in Positron Connections pane
+  - Connection inputs: Repository URL, local directory (optional)
+  - Generate SVN checkout code from user inputs
+  - checkDependencies(): Verify SVN availability
+* **Extension integration**: Auto-register in Positron
+  - Conditional activation when isPositron() returns true
+  - Output channel: "Positron: SVN Connections provider registered"
+  - Most visible Positron-specific value-add
+* **Tests**: +3 minimalist tests (connectionsProvider.test.ts)
+* **Next**: P2 Data science file decorations (R, Python, Jupyter)
+
+## [2.17.131] (2025-11-12)
+
+### Positron: Runtime detection (Phase 23.P0) ✅
+
+* **Runtime detection module**: src/positron/runtime.ts (70L)
+  - isPositron(): Detect Positron vs VS Code
+  - getPositronApi(): Safe API acquisition
+  - whenPositron(): Conditional feature activation helper
+  - getEnvironmentName(): For logging/telemetry
+* **Extension integration**: Detect environment at activation
+  - Logs "SVN Extension: activate() called in Positron" or "VS Code"
+  - Output channel shows: "Running in Positron"
+  - Foundation for conditional Positron features
+* **Tests**: +3 minimalist tests (runtime.test.ts)
+* **Next**: P1 Connections pane provider
+
+## [2.17.130] (2025-11-12)
+
+### Positron: Install API package (Phase 23 prep)
+
+* **@posit-dev/positron v0.1.8**: TypeScript API definitions installed
+  - Package provides: tryAcquirePositronApi(), inPositron() helpers
+  - ConnectionsDriver API for Connections pane integration
+  - Runtime, window, preview namespaces available
+  - Base extension already Positron-compatible (uses VS Code Source Control API)
+* **Next**: P0 runtime detection, P1 connections provider
+
+## [2.17.129] (2025-11-12)
+
+### Security: Complete logError() migration (Phase 22.B.2) ✅
+
+* **14 catch blocks migrated**: All remaining violations fixed
+  - Commands: command.ts (5), switchBranch.ts (1)
+  - Core: source_control_manager.ts (2), svn.ts (1), svnRepository.ts (1)
+  - Providers: svnFileSystemProvider.ts (2)
+  - Test utils: testUtil.ts (2)
+  - Pattern: console.error/log(err) → logError("context", err)
+  - Violations: 14 → 0 (100% coverage) ✅
+* **Tests**: +3 minimalist sanitization tests (errorLogging.test.ts)
+* **Validator**: CI passes ✅ - zero violations across 181 files
+* **Impact**: 100% users protected - all error logs sanitize credentials
+* **Phase 22 complete**: Security hardening done
+
+## [2.17.128] (2025-11-12)
+
+### Security: Migrate parsers to logError() (Phase 22.B.1) ✅
+
+* **5 parser files migrated**: diffParser, infoParser, listParser, logParser, statusParser
+  - Replaced console.error(err) → logError("context", err)
+  - All parser error logging now sanitized
+  - Violations: 19 → 14 (5 fixed)
+* **Pattern**: Import logError, replace catch block logging
+* **Next**: Migrate commands, repos, utils (14 remaining)
+
+## [2.17.127] (2025-11-12)
+
+### Security: CI validator for error logging (Phase 22.A) ✅
+
+* **AST-based catch block scanner**: Detects unsanitized console.error/log
+  - scripts/validate-error-logging.ts: 170L TypeScript Compiler API
+  - test/scripts/validate-error-logging.test.ts: 100L TDD tests
+  - Found 19 violations in 181 files (commands, parsers, repos, utils)
+  - ~2s overhead, zero false positives
+* **CI integration**: GitHub Actions security-check job
+  - Runs parallel with eslint
+  - Fails CI if unsanitized error handling found
+  - Prevents credential leak regressions
+* **npm script**: `npm run security:validate-errors`
+  - Compiles validator, scans src/
+  - Whitelist support via @security-allow comments
+* **Phase 22.A complete**: Validator enforces logError() usage before migrations
+
+## [2.17.126] (2025-11-12)
+
+### Docs: Ultrathink on unresolved questions
+
+* **Positron API stability: EXPERIMENTAL ⚠️**
+  - @posit-dev/positron v0.1.x NOT production-ready
+  - Risk: 35% methods missing, 50% breaking changes
+  - Version mismatch: ^2025.6.x vs 2025.07.0+ required
+  - Recommendation: DEFER Phase 23 or PROTOTYPE-FIRST (2-3h spike)
+* **Security CI validator: AST-based recommended**
+  - 2-3h implementation, TypeScript Compiler API
+  - Detects unsanitized console.error/log patterns
+  - ~2s overhead, zero false positives
+  - Implement BEFORE Phase 22 conversions (prevents regression)
+* **E2E testing: Hybrid strategy**
+  - Mock-first for TDD, manual validation in real Positron
+  - 1-2h setup during Phase 23 (not before)
+  - 20-40% rework risk if mocks diverge
+* **Phase 22 revised**: +CI validator (2-3h), 6-10h total
+* **Phase 23 revised**: Positron-only simplifies to 8-12h core
+  - Removed: tryAcquirePositronApi, dual environment, VS Code fallback
+  - Added: Console integration, data viewer hooks (bonuses)
+  - Priority: Runtime → Connections → File icons → Languages
+
+## [2.17.125] (2025-11-12)
+
+### Docs: Positron alignment review + plan consolidation
+
+* **Positron alignment analysis**: 25% integrated (engine declared, no API usage)
+  - Missing: tryAcquirePositronApi(), runtime/connections/languages APIs
+  - Missing: Dual environment handling, context keys
+  - Recommendation: Phase 23 Positron Integration (12-18h)
+* **IMPLEMENTATION_PLAN.md**: Condensed to 2 critical phases (Phase 22-23)
+  - Phase 22: Security Hardening (4-7h, complete Phase 20 sanitization)
+  - Phase 23: Positron Integration (12-18h, runtime/connections/languages APIs)
+  - Removed: Completed Phase 20-21 details (moved to history)
+* **CLAUDE.md**: Updated architecture ref (v2.17.50 → v2.17.123)
+* **LESSONS_LEARNED.md**: Updated version (v2.17.107 → v2.17.123)
+
 ## [2.17.124] (2025-11-12)
 
 ### UX: Revert progress to Source Control view

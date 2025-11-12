@@ -1,5 +1,6 @@
 import { XmlParserAdapter } from "./xmlParserAdapter";
 import { ISvnListItem } from "../common/types";
+import { logError } from "../util/errorLogger";
 
 export async function parseSvnList(content: string): Promise<ISvnListItem[]> {
   return new Promise<ISvnListItem[]>((resolve, reject) => {
@@ -20,7 +21,7 @@ export async function parseSvnList(content: string): Promise<ISvnListItem[]> {
         resolve([]);
       }
     } catch (err) {
-      console.error("parseSvnList error:", err);
+      logError("parseSvnList error", err);
       reject(new Error(`Failed to parse list XML: ${err instanceof Error ? err.message : "Unknown error"}`));
     }
   });

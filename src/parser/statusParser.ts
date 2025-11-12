@@ -1,5 +1,6 @@
 import { XmlParserAdapter } from "./xmlParserAdapter";
 import { IEntry, IFileStatus, IWcStatus } from "../common/types";
+import { logError } from "../util/errorLogger";
 
 function processEntry(
   entry: IEntry | IEntry[],
@@ -82,7 +83,7 @@ export async function parseStatusXml(content: string): Promise<IFileStatus[]> {
 
       resolve(statusList);
     } catch (err) {
-      console.error("parseStatusXml error:", err);
+      logError("parseStatusXml error", err);
       reject(new Error(`Failed to parse status XML: ${err instanceof Error ? err.message : "Unknown error"}`));
     }
   });

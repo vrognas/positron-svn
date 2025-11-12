@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.123
+**Version**: 2.17.134
 **Updated**: 2025-11-12
 
 ---
@@ -10,13 +10,14 @@
 Mature VS Code extension for SVN integration. Event-driven architecture, decorator-based commands, multi-repository management.
 
 **Stats**:
-- **Source lines**: ~12,400
+- **Source lines**: ~12,650 (+30 reveal command)
 - **Repository**: 923 lines (22% reduction via 3 extracted services)
-- **Commands**: 50+ (27 refactored, 150 lines removed via factory pattern)
-- **Coverage**: ~50-55% (856 tests, +12 from Phases 18-19) ✅ TARGET REACHED
+- **Commands**: 51 (28 refactored, revealInExplorer added)
+- **Coverage**: ~50-55% (865 tests) ✅ TARGET REACHED
 - **Stability**: 🟢 P0 foundation complete ✅ (4 bugs fixed/addressed)
 - **Performance**: 🟢 All P1 bottlenecks fixed ✅ (commit 4-5x, status 3-5x, glob 3x, batch 2-3x faster)
-- **Security**: 🟡 Critical paths sanitized (19%), 22 catch blocks remain
+- **Security**: 🟢 All error logging sanitized ✅ (100% coverage, 0 violations)
+- **Positron**: 🟢 Runtime detection + Connections pane ✅
 - **Bloat**: ~500-1000 lines removable (duplicate methods, god classes)
 
 ---
@@ -77,11 +78,11 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 - Returns safe defaults, logs errors
 
 ### Security Bugs
-**D. Sanitization gaps** ✅ FOUNDATION COMPLETE (v2.17.119)
+**D. Sanitization gaps** ✅ COMPLETE (v2.17.129)
 - Safe logging utility created (`util/errorLogger.ts`)
-- 9 critical catch blocks sanitized (repository, svnRepository, uri)
-- 100% users protected on critical error paths
-- 22 catch blocks remain (future work)
+- All 47 catch blocks migrated to logError()
+- CI validator enforces sanitization (v2.17.127)
+- 100% users protected - all error paths sanitized ✅
 
 ---
 
@@ -196,5 +197,5 @@ See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.12
-**Updated**: 2025-11-12 (v2.17.123)
+**Version**: 3.17
+**Updated**: 2025-11-12 (v2.17.134)

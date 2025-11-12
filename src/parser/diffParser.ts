@@ -1,5 +1,6 @@
 import { ISvnPath } from "../common/types";
 import { XmlParserAdapter } from "./xmlParserAdapter";
+import { logError } from "../util/errorLogger";
 
 export async function parseDiffXml(content: string): Promise<ISvnPath[]> {
   return new Promise<ISvnPath[]>((resolve, reject) => {
@@ -22,7 +23,7 @@ export async function parseDiffXml(content: string): Promise<ISvnPath[]> {
 
       resolve(result.paths.path);
     } catch (err) {
-      console.error("parseDiffXml error:", err);
+      logError("parseDiffXml error", err);
       reject(new Error(`Failed to parse diff XML: ${err instanceof Error ? err.message : "Unknown error"}`));
     }
   });

@@ -88,6 +88,26 @@ jobs:
       - name: Lint check
         run: npm run lint --silent -- -f stylish
 
+  security-check:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install Dependencies
+        run: npm ci
+        shell: bash
+
+      - name: Validate error logging
+        run: npm run security:validate-errors
+
   size-check:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'skip ci')"

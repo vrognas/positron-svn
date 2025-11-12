@@ -3,6 +3,7 @@ import { ISvnErrorData } from "../common/types";
 import { selectBranch } from "../helpers/branch";
 import { Repository } from "../repository";
 import { validateRepositoryUrl } from "../validation";
+import { logError } from "../util/errorLogger";
 import { Command } from "./command";
 
 export class SwitchBranch extends Command {
@@ -62,7 +63,7 @@ export class SwitchBranch extends Command {
         }
       }
     } catch (error) {
-      console.log(error);
+      logError("Branch switch/create failed", error);
       if (branch.isNew) {
         window.showErrorMessage("Unable to create new branch");
       } else {

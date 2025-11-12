@@ -1,5 +1,6 @@
 import { ISvnLogEntry } from "../common/types";
 import { XmlParserAdapter } from "./xmlParserAdapter";
+import { logError } from "../util/errorLogger";
 
 export async function parseSvnLog(content: string): Promise<ISvnLogEntry[]> {
   return new Promise<ISvnLogEntry[]>((resolve, reject) => {
@@ -37,7 +38,7 @@ export async function parseSvnLog(content: string): Promise<ISvnLogEntry[]> {
 
       resolve(transformed);
     } catch (err) {
-      console.error("parseSvnLog error:", err);
+      logError("parseSvnLog error", err);
       reject(new Error(`Failed to parse log XML: ${err instanceof Error ? err.message : "Unknown error"}`));
     }
   });
