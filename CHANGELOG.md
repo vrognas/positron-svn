@@ -1,3 +1,14 @@
+## [2.17.109] (2025-11-12)
+
+### Performance: CancellationToken support for long ops
+
+* **Cancellable operations**: Users can cancel long SVN commands
+  - Added: CancellationToken parameter to ICpOptions interface
+  - Added: Cancellation promise in exec() method
+  - Behavior: Process killed on cancellation (exit code 130)
+  - Impact: Cancel status/update/log operations mid-execution
+  - Tests: +3 cancellation tests in ui-blocking.test.ts
+
 ## [2.17.108] (2025-11-12)
 
 ### Performance: Non-blocking progress (ProgressLocation.Notification)

@@ -1,4 +1,5 @@
 import { SpawnOptions } from "child_process";
+import { CancellationToken } from "vscode";
 import { Disposable, SourceControlResourceGroup, Uri } from "vscode";
 import { Repository } from "../repository";
 import { Resource } from "../resource";
@@ -211,6 +212,7 @@ export interface ICpOptions extends SpawnOptions {
   username?: string;
   password?: string;
   timeout?: number; // Phase 12 perf fix - SVN command timeout in ms
+  token?: CancellationToken; // Phase 18 perf fix - Allow cancelling long SVN operations
 }
 
 export interface ISvnErrorData {

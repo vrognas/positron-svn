@@ -181,6 +181,22 @@ export class Svn {
       }, timeoutMs);
     });
 
+    // Phase 18 perf fix - Add cancellation token support
+    const cancellationPromise = new Promise<[number, Buffer, string]>((_, reject) => {
+      if (options.token) {
+        options.token.onCancellationRequested(() => {
+          process.kill();
+          reject(
+            new SvnError({
+              message: `SVN command cancelled`,
+              svnCommand: args[0],
+              exitCode: 130
+            })
+          );
+        });
+      }
+    });
+
     const [exitCode, stdout, stderr] = await Promise.race([
       Promise.all<any>([
         new Promise<number>((resolve, reject) => {
@@ -202,7 +218,8 @@ export class Svn {
           );
         })
       ]),
-      timeoutPromise
+      timeoutPromise,
+      ...(options.token ? [cancellationPromise] : []),
     ]);
 
     dispose(disposables);
