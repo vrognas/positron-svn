@@ -14,7 +14,7 @@ export class RevealInExplorer extends Command {
   }
 
   public async execute(...resourceStates: SourceControlResourceState[]) {
-    if (!resourceStates || resourceStates.length === 0) {
+    if (resourceStates.length === 0) {
       return;
     }
 
