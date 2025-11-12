@@ -26,6 +26,7 @@ import { IsSvn18orGreater } from "./contexts/isSvn18orGreater";
 import { tempSvnFs } from "./temp_svn_fs";
 import { SvnFileSystemProvider } from "./svnFileSystemProvider";
 import { isPositron, getEnvironmentName } from "./positron/runtime";
+import { registerSvnConnectionsProvider } from "./positron/connectionsProvider";
 
 async function init(
   extensionContext: ExtensionContext,
@@ -68,6 +69,16 @@ async function init(
   outputChannel.appendLine(`Using svn "${info.version}" from "${info.path}"`);
   outputChannel.appendLine(`Running in ${getEnvironmentName()}`);
   console.log("SVN Extension: Providers created successfully");
+
+  // Register Positron-specific providers
+  if (isPositron()) {
+    console.log("SVN Extension: Registering Positron connections provider");
+    const connectionsDisposable = registerSvnConnectionsProvider(sourceControlManager);
+    if (connectionsDisposable) {
+      disposables.push(connectionsDisposable);
+      outputChannel.appendLine("Positron: SVN Connections provider registered");
+    }
+  }
 
   const onOutput = (str: string) => outputChannel.append(str);
   svn.onOutput.addListener("log", onOutput);

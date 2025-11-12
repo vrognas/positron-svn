@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.131
+**Version**: 2.17.132
 **Updated**: 2025-11-12
 
 ---
@@ -10,14 +10,14 @@
 Mature VS Code extension for SVN integration. Event-driven architecture, decorator-based commands, multi-repository management.
 
 **Stats**:
-- **Source lines**: ~12,500 (+70 Positron runtime detection)
+- **Source lines**: ~12,620 (+180 Positron integration)
 - **Repository**: 923 lines (22% reduction via 3 extracted services)
 - **Commands**: 50+ (27 refactored, 150 lines removed via factory pattern)
-- **Coverage**: ~50-55% (859 tests, +3 Positron) ✅ TARGET REACHED
+- **Coverage**: ~50-55% (862 tests, +6 Positron) ✅ TARGET REACHED
 - **Stability**: 🟢 P0 foundation complete ✅ (4 bugs fixed/addressed)
 - **Performance**: 🟢 All P1 bottlenecks fixed ✅ (commit 4-5x, status 3-5x, glob 3x, batch 2-3x faster)
 - **Security**: 🟢 All error logging sanitized ✅ (100% coverage, 0 violations)
-- **Positron**: 🟡 Runtime detection complete, connections provider pending
+- **Positron**: 🟢 Runtime detection + Connections pane ✅
 - **Bloat**: ~500-1000 lines removable (duplicate methods, god classes)
 
 ---
@@ -197,5 +197,5 @@ See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.14
-**Updated**: 2025-11-12 (v2.17.131)
+**Version**: 3.15
+**Updated**: 2025-11-12 (v2.17.132)

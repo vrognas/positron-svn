@@ -1,3 +1,20 @@
+## [2.17.132] (2025-11-12)
+
+### Positron: Connections provider (Phase 23.P1) ✅
+
+* **Connections pane integration**: src/positron/connectionsProvider.ts (110L)
+  - SvnConnectionsProvider: Implements ConnectionsDriver interface
+  - Register SVN repos in Positron Connections pane
+  - Connection inputs: Repository URL, local directory (optional)
+  - Generate SVN checkout code from user inputs
+  - checkDependencies(): Verify SVN availability
+* **Extension integration**: Auto-register in Positron
+  - Conditional activation when isPositron() returns true
+  - Output channel: "Positron: SVN Connections provider registered"
+  - Most visible Positron-specific value-add
+* **Tests**: +3 minimalist tests (connectionsProvider.test.ts)
+* **Next**: P2 Data science file decorations (R, Python, Jupyter)
+
 ## [2.17.131] (2025-11-12)
 
 ### Positron: Runtime detection (Phase 23.P0) ✅
