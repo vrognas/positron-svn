@@ -1,3 +1,14 @@
+## [2.17.130] (2025-11-12)
+
+### Positron: Install API package (Phase 23 prep)
+
+* **@posit-dev/positron v0.1.8**: TypeScript API definitions installed
+  - Package provides: tryAcquirePositronApi(), inPositron() helpers
+  - ConnectionsDriver API for Connections pane integration
+  - Runtime, window, preview namespaces available
+  - Base extension already Positron-compatible (uses VS Code Source Control API)
+* **Next**: P0 runtime detection, P1 connections provider
+
 ## [2.17.129] (2025-11-12)
 
 ### Security: Complete logError() migration (Phase 22.B.2) ✅
