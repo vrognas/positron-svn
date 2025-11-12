@@ -50,6 +50,7 @@ import { SearchLogByRevision } from "./commands/search_log_by_revision";
 import { SearchLogByText } from "./commands/search_log_by_text";
 import { RevealInExplorer } from "./commands/revealInExplorer";
 import { Merge } from "./commands/merge";
+import { DiffWithTortoiseSvn } from "./commands/diffWithTortoiseSvn";
 
 export function registerCommands(
   sourceControlManager: SourceControlManager,
@@ -105,4 +106,5 @@ export function registerCommands(
   disposables.push(new RevertExplorer());
   disposables.push(new SearchLogByRevision());
   disposables.push(new SearchLogByText());
+  disposables.push(new DiffWithTortoiseSvn());
 }

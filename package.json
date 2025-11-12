@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.137",
+    "version": "2.17.138",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -238,6 +238,11 @@
             {
                 "command": "svn.itemlog.openDiffBase",
                 "title": "Open diff with BASE",
+                "category": "SVN"
+            },
+            {
+                "command": "svn.diffWithTortoiseSvn",
+                "title": "Diff with TortoiseSVN",
                 "category": "SVN"
             },
             {
@@ -900,6 +905,11 @@
                 {
                     "command": "svn.openChangeHead",
                     "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external",
+                    "group": "navigation"
+                },
+                {
+                    "command": "svn.diffWithTortoiseSvn",
+                    "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == changes",
                     "group": "navigation"
                 },
                 {

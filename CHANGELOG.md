@@ -1,3 +1,16 @@
+## [2.17.138] (2025-11-13)
+
+### Feature: TortoiseSVN diff integration 🐢
+
+* **New command**: "Diff with TortoiseSVN" in source control context menu
+  - Right-click any modified file → "Diff with TortoiseSVN"
+  - Uses your configured external diff tool (e.g., BeyondCompare)
+  - Launches via TortoiseProc with BASE vs WORKING comparison
+  - Ideal for large tabular files (CSV) where built-in diff freezes
+  - Auto-detects TortoiseSVN installation path
+  - Location: diffWithTortoiseSvn.ts (new command file)
+  - Available in: changes group (modified files only)
+
 ## [2.17.137] (2025-11-12)
 
 ### Fix: Suppress noisy error logs for untracked files 🔇
