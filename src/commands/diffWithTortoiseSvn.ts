@@ -53,11 +53,11 @@ export class DiffWithTortoiseSvn extends Command {
       // Simple diff command compares working copy against BASE automatically
 
       // Debug: Show command being executed
-      console.log(`Launching TortoiseSVN: "${tortoiseProcPath}" /command:diff /path:${filePath}`);
+      console.log(`Launching TortoiseSVN: "${tortoiseProcPath}" /command:diff "/path:${filePath}"`);
 
       const child = spawn(
         tortoiseProcPath,
-        ["/command:diff", `/path:${filePath}`],
+        ["/command:diff", `"/path:${filePath}"`],
         {
           detached: true,
           stdio: ["ignore", "pipe", "pipe"]
