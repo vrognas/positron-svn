@@ -1,126 +1,100 @@
 # IMPLEMENTATION PLAN
 
-**Version**: v2.17.103
+**Version**: v2.17.104
 **Updated**: 2025-11-12
-**Status**: Phases 1-16 + 17A + Test Coverage Phase 1-5 + Timeout UX + Open* Factory + Stderr Sanitization COMPLETE ✅
+**Status**: Critical performance/security phases identified
 
 ---
 
-## Completed ✅
+## Phase 18: UI Performance - Non-Blocking Operations ⚡ CRITICAL
 
-- Phase 1: Build system modernization (tsc, strict types)
-- Phase 2: Services extracted (760 lines, 22% repo reduction)
-- Phase 4: Performance (debounce/throttle, 60-80% gain)
-- Phase 8: 15 bottlenecks (70% faster UI)
-- Phase 9: 3 NEW bottlenecks (45% impact)
-- Phase 10: Regression fixes (100% users)
-- Phase 11: Command boilerplate (82 lines removed)
-- Phase 12: Status cache (60-80% burst reduction)
-- Phase 13: Code bloat (45 lines, 17 commands)
-- Phase 14: Async deletion bug (DATA LOSS fix)
-- Phase 15: Decorator overhead (1-2ms → <0.5ms)
-- XML Parser Migration: xml2js → fast-xml-parser (79% bundle reduction)
-- Phase 16: Conditional index rebuild (5-15ms eliminated, 50-80% users)
-- Phase 17A: AuthService foundation (115 lines, 12 tests, 0 risk)
-- Test Coverage Phase 1: +37 tests (utilities + security)
-- Test Coverage Phase 2: +101 tests (command integration)
-- Test Coverage Phase 3: +116 tests (update, switch, patch, merge)
-- Test Coverage Phase 4a: +33 tests (changelist)
-- Test Coverage Phase 4b: +144 tests (log, checkout, cleanup, refresh)
-- Test Coverage Phase 5: +224 tests (ignore, rename, open, prompt, revertAll, unversioned) ✅ 50%+ TARGET
-- Timeout Error UX: Enhanced error messages (E170013, E175002, E170001, E155004), +31 tests
-- Open* Command Factory: 5 files → 1 file, 23 lines removed (31% reduction)
-- Stderr Sanitization: M-1 critical security fix, prevents credential/path disclosure, +20 tests (sanitizeStderr() method)
+**Impact**: 50-100% users, 2-5s UI freezes eliminated
+**Effort**: 4-6h
+**Risk**: MEDIUM (async refactor of critical path)
+**Priority**: P0 - Highest user impact
+
+### Problem
+Blocking SVN operations freeze UI during:
+- File saves (status update)
+- Branch switches (full repo scan)
+- Remote checks (5min poll)
+- Manual refresh
+
+**Root cause**: `await repository.getStatus()` + `svn stat --xml --show-updates` runs serially, blocks main thread.
+
+**User impact**: Editor unresponsive 2-5s per operation, 50-100% users affected.
+
+### Implementation
+1. Convert `run()` to non-blocking: use ProgressLocation.Notification
+2. Add cancellation tokens to long ops (status, update, log)
+3. Implement background queue for status updates
+4. Add "Cancel" button to progress UI
+5. Defer non-critical updates (decorations, counts)
+
+### Success Metrics
+- UI freeze <100ms (down from 2-5s)
+- Operations cancellable within 500ms
+- Background queue handles burst events
+
+### Tests
+- Status update doesn't block typing (integration)
+- Cancel interrupts long operation (unit)
+- Queue batches rapid events (unit)
 
 ---
 
-## Phase 17B: AuthService Integration 🔐 DEFERRED
+## Phase 19: Memory + Security Fixes 🔒 CRITICAL
 
-**Impact**: Security - completes Phase 17A infrastructure
+**Impact**: Memory leak (20-30% users, 100-500MB growth) + Security vuln
 **Effort**: 2-3h
-**Risk**: HIGH (modifies repository.ts retry logic)
-**Status**: DEFERRED (low priority)
+**Risk**: LOW (isolated fixes)
+**Priority**: P0 - Security + stability
 
-### Phase 17A Complete ✅
-- ✅ AuthService class (115 lines)
-- ✅ 12 comprehensive tests
-- ✅ ICredentialStorage abstraction
-- ✅ Zero breaking changes
+### Problems
+1. **Info cache unbounded**: `_infoCache` Map grows indefinitely, no LRU eviction
+2. **Security**: esbuild 0.24.2 has GHSA-67mh-4wv8-2f99 (CORS bypass)
+3. **Remote polling waste**: Full `svn stat` every 5min on network repos
 
-### Phase 17B Scope (DEFERRED)
-Integrate AuthService into repository.ts:
-- Replace `loadStoredAuths()` → `authService.loadStoredCredentials()`
-- Replace `saveAuth()` → `authService.saveCredentials()`
-- Replace `promptAuth()` → `authService.promptForCredentials()`
-- Replace `retryRun()` → `authService.retryWithAuth()`
-- Wire SecretStorage adapter
+### Implementation
+**A. Info cache LRU (1h)**
+- Add max size 500 entries
+- Track access time, evict LRU
+- Location: `svnRepository.ts:43-236`
 
-### Why Deferred
-- Infrastructure complete and tested
-- High integration risk (150+ lines in critical path)
-- Low incremental value (auth already works)
-- Can be adopted incrementally by new code
-- Phase 17A provides audit trail + abstraction
+**B. Update dependencies (30min)**
+- esbuild 0.24.2 → latest (>0.24.2)
+- Verify no breaking changes
 
-### Next Steps (When Needed)
-1. Create SecretStorage → ICredentialStorage adapter
-2. Inject AuthService into Repository constructor
-3. Migrate auth methods one at a time
-4. Extensive integration testing
+**C. Smart remote polling (1h)**
+- Use `svn log -r BASE:HEAD --limit 1` before full status
+- Early exit if no new revisions
+- Location: `remoteChangeService.ts:89-92`, `repository.ts:407-419`
 
----
+### Success Metrics
+- Memory stable after 8h session (<50MB growth)
+- Security scan passes
+- Remote polls 95% faster (no changes case)
 
-## Deferred (Medium/Low Priority)
-
-**Timeout Error UX** ✅ COMPLETE:
-- Enhanced error messages with actionable guidance (E170013, E175002, E170001, E155004)
-- 31 comprehensive tests covering all error types and edge cases
-- formatErrorMessage() method in command.ts with intelligent error detection
-
-**Open* Command Bloat** ✅ COMPLETE:
-- 5 thin wrapper files (74 lines) → single factory file (51 lines)
-- createOpenChangeCommand() + createOpenResourceCommand()
-- 23 lines removed (31% reduction), all 54 tests pass
-
-**Test Coverage** ✅ COMPLETE:
-- 138 → 793 tests (+655, +475%) - utilities, security, all major commands
-- Commands tested: commit, revert, add, remove, resolve, update, switch, patch, merge, log, checkout, cleanup, upgrade, refresh, changelist, ignore, rename, open*, prompt, revertAll, unversioned
-- Coverage: ~21-23% → ~50-55% ✅ TARGET REACHED
-- Future: Edge cases, integration tests, E2E scenarios
-
-**God Classes** (6-8h, diminishing returns):
-- repository.ts: 969 lines
-- svnRepository.ts: 1035 lines
+### Tests
+- Cache evicts LRU entries (unit)
+- Remote poll skips status when no changes (integration)
+- Dependency audit passes (CI)
 
 ---
 
 ## Metrics
 
-| Metric | Phase 15 | Phase 16 Target | Phase 17 Target |
-|--------|----------|-----------------|-----------------|
-| Status update waste | 5-15ms | 0ms | 0ms |
-| Users benefiting | 50-80% | 50-80% | 20-30% |
-| Auth vulnerabilities | Scattered | Scattered | FIXED |
-| Security isolation | None | None | Centralized |
+| Metric | Before | Phase 18 | Phase 19 |
+|--------|--------|----------|----------|
+| UI freeze | 2-5s | <100ms | <100ms |
+| Memory growth (8h) | 100-500MB | N/A | <50MB |
+| Remote poll waste | 100% | N/A | 5% |
+| Security vulns | 1 | 1 | 0 |
 
 ---
 
-## Execution Order
+## Unresolved
 
-**NEXT**: Quick wins (remote poll early exit, file watcher batching)
-
-**Rationale**:
-1. ✅ Phase 16: Performance - COMPLETE (conditional index rebuild)
-2. ✅ Phase 17A: Security foundation - COMPLETE (AuthService infrastructure)
-3. Phase 17B: DEFERRED (high risk, low incremental value)
-4. Quick wins: Low-hanging performance fruit (30-60min each)
-
-**Completed Effort**: Phase 16 (2h) + Phase 17A (1.5h) = 3.5h
-
----
-
-## Unresolved Questions
-
-- Batch file watcher events for bulk deletes?
-- Remote polling: early exit if no actual changes?
-- God class refactor ROI vs risk?
+- SVN concurrency limits?
+- Worker threads for status parsing?
+- Progressive status updates (show partial)?

@@ -1,3 +1,16 @@
+## [2.17.104] (2025-11-12)
+
+### Tech Debt Audit: Performance, bloat, modernization analysis
+
+* **Performance bottlenecks identified**: P0 issues (50-100% users)
+  - UI blocking: 2-5s freezes during status/refresh
+  - Memory leak: Info cache unbounded (100-500MB/8h)
+  - Remote polling: Full `svn stat` every 5min
+* **Code bloat**: Dead code (util.ts, svnRepository.ts), duplication (show/showBuffer 139 lines, 8 plain log methods)
+* **Tech debt**: 248 `any` types, esbuild vuln (GHSA-67mh-4wv8-2f99)
+* **Doc consolidation**: IMPLEMENTATION_PLAN.md → 2 critical phases only, LESSONS_LEARNED.md 892 → 185 lines
+* **Next**: Phase 18 (UI performance), Phase 19 (memory + security)
+
 ## [2.17.103] (2025-11-12)
 
 ### Code quality: Dead code removal in checkout tests

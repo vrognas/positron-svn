@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.103
+**Version**: 2.17.104
 **Updated**: 2025-11-12
 
 ---
@@ -11,11 +11,11 @@ Mature VS Code extension for SVN integration. Event-driven architecture, decorat
 
 **Stats**:
 - **Source lines**: ~12,400
-- **Repository**: 1,179 → 923 lines (22% reduction, 3 services extracted)
+- **Repository**: 923 lines (22% reduction via 3 extracted services)
 - **Commands**: 50+ (27 refactored, 150 lines removed via factory pattern)
-- **Coverage**: ~50-55% (844 tests, +638 command tests) ✅ TARGET REACHED
-- **Performance**: ✅ Phases 8-10+12+14-16 COMPLETE (25 bottlenecks fixed, 1 bug)
-- **Security**: ✅ Phase 17A+stderr sanitization (M-1 critical fix, information disclosure prevented)
+- **Coverage**: ~50-55% (844 tests) ✅ TARGET REACHED
+- **Performance**: ✅ 25 bottlenecks fixed, but P0 issues remain (UI freezes, memory leaks)
+- **Security**: ✅ Stderr sanitization complete, esbuild vuln pending
 
 ---
 
@@ -56,31 +56,41 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ---
 
-## Recent Improvements (Phases 10-16) ✅
+## Critical Issues (See IMPLEMENTATION_PLAN.md)
 
-### Performance (Phases 10+12+15+16, v2.17.58-91)
-- **processConcurrently import** ✅ Fixed regression (45% users)
-- **Command cache** ✅ Cached SourceControlManager (100% users, -10ms per command)
-- **updateInfo() cache** ✅ Timestamp 5s cache (30% users, 90% reduction)
-- **updateModelState cache** ✅ Timestamp 2s cache (50% users, 60-80% burst reduction)
-- **Decorator overhead** ✅ Removed @throttle (50-100% users, 1-2ms → <0.5ms)
-- **Conditional index rebuild** ✅ Hash-based detection (50-80% users, 5-15ms eliminated)
+### Performance (P0)
+- **UI blocking**: 50-100% users, 2-5s freezes during status/refresh
+- **Memory leak**: Info cache unbounded, 100-500MB growth in 8h sessions
+- **Remote polling**: Full `svn stat` every 5min on network repos
 
-### Code Quality (Phases 11+13, v2.17.58+64)
-- **127 lines removed** from 22 commands (Phase 11: 82, Phase 13: 45)
-- **5 helpers added**: executeOnResources, handleRepositoryOperation, executeRevert, getResourceStatesOrExit
-- **17 commands** using error helpers (up from 3)
-- **Single source of truth** for command patterns
+### Security (P0)
+- **esbuild 0.24.2**: GHSA-67mh-4wv8-2f99 (CORS bypass)
 
-### Bug Fixes (Phase 14, v2.17.67)
-- **Async deletion bug** ✅ Added await to deleteDirectory() (40-50% users, DATA LOSS fix)
+### Code Quality (P1)
+- **248 `any` types**: Type safety compromised across 25 files
+- **Dead code**: util.ts, svnRepository.ts (pathEquals, countNewCommit, etc.)
+- **Duplication**: show/showBuffer (139 lines 90% identical), 8 plain log methods
 
-### Technical Debt
+---
 
-**Deferred (Low ROI)**:
-- God classes: repository.ts (923) + svnRepository.ts (970) (diminishing returns)
-- Missing AuthService: Auth logic scattered (HIGH risk to extract)
-- Test coverage: 21-23% → 50%+ (20-30h effort)
+## Completed Improvements ✅
+
+### Performance (Phases 8-16)
+- Config cache, decorator removal, conditional index rebuild
+- 60-80% burst reduction, 5-15ms savings per operation
+- 25 bottlenecks fixed (but P0 issues remain)
+
+### Code Quality
+- 150 lines removed via helpers + factory pattern
+- 3 services extracted (760 lines)
+- Repository.ts: 1,179 → 923 lines (22% reduction)
+
+### Security
+- Stderr sanitization (M-1 critical fix, credential disclosure prevented)
+
+### Testing
+- 138 → 844 tests (+706, +512%)
+- 21-23% → 50-55% coverage ✅ TARGET
 
 ---
 
@@ -119,11 +129,11 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ## Next Actions
 
-See IMPLEMENTATION_PLAN.md (Deferred):
-- **Phase 2b**: AuthService extraction (70 lines, 4-6h, HIGH risk)
-- **Phase 12**: God classes refactoring (LOW ROI)
+See IMPLEMENTATION_PLAN.md for detailed plans:
+- **Phase 18**: UI Performance - Non-blocking operations (4-6h, CRITICAL)
+- **Phase 19**: Memory + Security fixes (2-3h, CRITICAL)
 
 ---
 
-**Version**: 1.23
-**Updated**: 2025-11-12 (v2.17.101)
+**Version**: 2.0
+**Updated**: 2025-11-12 (v2.17.104)
