@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.104
+**Version**: 2.17.107
 **Updated**: 2025-11-12
 
 ---
@@ -60,7 +60,7 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ### Performance (P0)
 - **UI blocking**: 50-100% users, 2-5s freezes during status/refresh
-- **Memory leak**: Info cache unbounded, 100-500MB growth in 8h sessions
+- **Memory leak**: ✅ FIXED - Info cache now LRU with 500 entry limit
 - **Remote polling**: Full `svn stat` every 5min on network repos
 
 ### Security (P0)

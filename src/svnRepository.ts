@@ -40,11 +40,9 @@ import {
 } from "./validation";
 
 export class Repository {
-  private _infoCache: {
-    [index: string]: ISvnInfo;
-  } = {};
+  private _infoCache = new Map<string, { info: ISvnInfo; timeout: NodeJS.Timeout; lastAccessed: number }>();
   private _info?: ISvnInfo;
-  private _infoCacheTimers = new Map<string, NodeJS.Timeout>(); // Phase 8.2 perf fix - track timers
+  private readonly MAX_CACHE_SIZE = 500;
   // Phase 10.3 perf fix - timestamp-based caching (5s)
   private lastInfoUpdate: number = 0;
   private readonly INFO_CACHE_MS = 5000;
@@ -123,6 +121,35 @@ export class Repository {
     return fixPegRevision(file);
   }
 
+  /**
+   * Check if there are new remote revisions without running full status.
+   * Uses `svn log -r BASE:HEAD --limit 1` to detect if BASE < HEAD.
+   * 
+   * @returns true if new revisions exist, false otherwise
+   */
+  public async hasRemoteChanges(): Promise<boolean> {
+    try {
+      const result = await this.exec([
+        "log",
+        "-r",
+        "BASE:HEAD",
+        "--limit",
+        "1",
+        "--xml"
+      ]);
+
+      // Parse log XML to check if any entries exist
+      // Empty log means BASE == HEAD (no new revisions)
+      const hasEntries = result.stdout.includes("<logentry");
+      
+      return hasEntries;
+    } catch (err) {
+      // If log fails, assume changes exist and fall back to full status
+      console.error("hasRemoteChanges failed, falling back to full status:", err);
+      return true;
+    }
+  }
+
   public async getStatus(params: {
     includeIgnored?: boolean;
     includeExternals?: boolean;
@@ -137,6 +164,16 @@ export class Repository {
       },
       params
     );
+
+
+    // Optimization: Check for remote changes before expensive status call
+    if (params.checkRemoteChanges) {
+      const hasChanges = await this.hasRemoteChanges();
+      if (!hasChanges) {
+        console.log("Remote poll: No new revisions, skipping status");
+        return [];
+      }
+    }
 
     const args = ["stat", "--xml"];
 
@@ -183,7 +220,27 @@ export class Repository {
   }
 
   public resetInfoCache(file: string = "") {
-    delete this._infoCache[file];
+    const entry = this._infoCache.get(file);
+    if (entry) {
+      clearTimeout(entry.timeout);
+      this._infoCache.delete(file);
+    }
+  }
+
+  private evictLRUEntry(): void {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+
+    for (const [key, entry] of this._infoCache.entries()) {
+      if (entry.lastAccessed < oldestTime) {
+        oldestTime = entry.lastAccessed;
+        oldestKey = key;
+      }
+    }
+
+    if (oldestKey !== null) {
+      this.resetInfoCache(oldestKey);
+    }
   }
 
   @sequentialize
@@ -193,8 +250,11 @@ export class Repository {
     skipCache: boolean = false,
     isUrl: boolean = false
   ): Promise<ISvnInfo> {
-    if (!skipCache && this._infoCache[file]) {
-      return this._infoCache[file];
+    const cacheEntry = this._infoCache.get(file);
+    if (!skipCache && cacheEntry) {
+      // Update access time on cache hit
+      cacheEntry.lastAccessed = Date.now();
+      return cacheEntry.info;
     }
 
     const args = ["info", "--xml"];
@@ -212,27 +272,31 @@ export class Repository {
 
     const result = await this.exec(args);
 
+    let info: ISvnInfo;
     try {
-      this._infoCache[file] = await parseInfoXml(result.stdout);
+      info = await parseInfoXml(result.stdout);
     } catch (err) {
       console.error(`Failed to parse info XML for ${file}:`, err);
       throw new Error(`File info unavailable for ${file}: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
 
-    // Phase 8.2 perf fix - track and cancel previous timer to prevent memory leak
-    const existingTimer = this._infoCacheTimers.get(file);
-    if (existingTimer) {
-      clearTimeout(existingTimer);
+    // Evict LRU entry if cache is at max size
+    if (this._infoCache.size >= this.MAX_CACHE_SIZE) {
+      this.evictLRUEntry();
     }
 
     // Cache for 2 minutes
     const timer = setTimeout(() => {
       this.resetInfoCache(file);
-      this._infoCacheTimers.delete(file);
     }, 2 * 60 * 1000);
-    this._infoCacheTimers.set(file, timer);
 
-    return this._infoCache[file];
+    this._infoCache.set(file, {
+      info,
+      timeout: timer,
+      lastAccessed: Date.now()
+    });
+
+    return info;
   }
 
   public async getChanges(): Promise<ISvnPathChange[]> {
@@ -1029,7 +1093,7 @@ export class Repository {
    * Should be called on repository disposal
    */
   public clearInfoCacheTimers(): void {
-    this._infoCacheTimers.forEach(timer => clearTimeout(timer));
-    this._infoCacheTimers.clear();
+    this._infoCache.forEach(entry => clearTimeout(entry.timeout));
+    this._infoCache.clear();
   }
 }

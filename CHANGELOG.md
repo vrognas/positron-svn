@@ -1,3 +1,15 @@
+## [2.17.107] (2025-11-12)
+
+### Performance: LRU cache for info cache (500 entry limit)
+
+* **Memory leak fix**: Info cache unbounded → 500 entry max
+* **Implementation**: LRU eviction when cache exceeds limit
+  - Track lastAccessed timestamp per entry
+  - Evict least recently used on size limit
+  - Preserve 2min TTL behavior
+* **Tests**: +3 LRU cache tests (eviction, access time update, size limit)
+* **Impact**: Prevents 100-500MB memory growth in 8h sessions
+
 ## [2.17.106] (2025-11-12)
 
 ### Security: Update esbuild (GHSA-67mh-4wv8-2f99 fix)

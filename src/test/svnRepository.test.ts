@@ -221,4 +221,217 @@ suite("Svn Repository Tests", () => {
     // Verify parallel execution (< 150ms for 3x50ms ops)
     assert.ok(elapsed < 150, `Should run in parallel: got ${elapsed}ms`);
   });
+
+  test("Test getInfo LRU cache evicts oldest when max size reached", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tpm",
+      ConstructorPolicy.LateInit
+    );
+
+    let execCount = 0;
+    repository.exec = async (args: string[]) => {
+      if (args[0] === "info") {
+        execCount++;
+        return {
+          exitCode: 0,
+          stderr: "",
+          stdout: `<?xml version="1.0"?><info><entry><url>${args[1] || "root"}</url><repository><uuid>test-uuid</uuid><root>http://test</root></repository><revision>1</revision></entry></info>`
+        };
+      }
+      return { exitCode: 0, stderr: "", stdout: "" };
+    };
+
+    // Fill cache with 501 entries
+    for (let i = 0; i < 501; i++) {
+      await repository.getInfo(`file${i}.txt`);
+    }
+
+    // First entry should be evicted, requires re-exec
+    const beforeCount = execCount;
+    await repository.getInfo("file0.txt");
+    const afterCount = execCount;
+
+    assert.ok(afterCount > beforeCount, "First entry should have been evicted and require re-fetch");
+  });
+
+  test("Test getInfo LRU cache updates access time on hit", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tpm",
+      ConstructorPolicy.LateInit
+    );
+
+    let execCount = 0;
+    repository.exec = async (args: string[]) => {
+      if (args[0] === "info") {
+        execCount++;
+        return {
+          exitCode: 0,
+          stderr: "",
+          stdout: `<?xml version="1.0"?><info><entry><url>${args[1] || "root"}</url><repository><uuid>test-uuid</uuid><root>http://test</root></repository><revision>1</revision></entry></info>`
+        };
+      }
+      return { exitCode: 0, stderr: "", stdout: "" };
+    };
+
+    // Add first file
+    await repository.getInfo("first.txt");
+
+    // Fill cache with 499 more entries
+    for (let i = 1; i < 500; i++) {
+      await repository.getInfo(`file${i}.txt`);
+    }
+
+    // Access first.txt again (updates its access time)
+    const beforeCount = execCount;
+    await repository.getInfo("first.txt");
+    assert.equal(execCount, beforeCount, "Should use cached value");
+
+    // Add one more entry (501st) - first.txt should NOT be evicted
+    await repository.getInfo("file500.txt");
+
+    // first.txt should still be cached
+    const beforeCount2 = execCount;
+    await repository.getInfo("first.txt");
+    assert.equal(execCount, beforeCount2, "first.txt should still be cached after being accessed");
+  });
+
+  test("Test getInfo LRU cache respects 500 entry limit", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tpm",
+      ConstructorPolicy.LateInit
+    );
+
+    let execCount = 0;
+    repository.exec = async (args: string[]) => {
+      if (args[0] === "info") {
+        execCount++;
+        return {
+          exitCode: 0,
+          stderr: "",
+          stdout: `<?xml version="1.0"?><info><entry><url>${args[1] || "root"}</url><repository><uuid>test-uuid</uuid><root>http://test</root></repository><revision>1</revision></entry></info>`
+        };
+      }
+      return { exitCode: 0, stderr: "", stdout: "" };
+    };
+
+    // Fill cache to exactly 500 entries
+    for (let i = 0; i < 500; i++) {
+      await repository.getInfo(`file${i}.txt`);
+    }
+
+    // All 500 should be cached
+    const beforeCount = execCount;
+    await repository.getInfo("file0.txt");
+    await repository.getInfo("file250.txt");
+    await repository.getInfo("file499.txt");
+    assert.equal(execCount, beforeCount, "All 500 entries should be cached");
+  });
+
+  test("hasRemoteChanges: Returns false when BASE == HEAD (no changes)", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tmp",
+      ConstructorPolicy.LateInit
+    );
+    
+    // Mock log output when BASE == HEAD (no new revisions)
+    repository.exec = async (args: string[]) => {
+      assert.equal(args[0], "log");
+      assert.equal(args[1], "-r");
+      assert.equal(args[2], "BASE:HEAD");
+      assert.equal(args[3], "--limit");
+      assert.equal(args[4], "1");
+      assert.equal(args[5], "--xml");
+      
+      return {
+        exitCode: 0,
+        stderr: "",
+        stdout: `<?xml version="1.0" encoding="UTF-8"?>
+<log>
+</log>`
+      };
+    };
+
+    const hasChanges = await repository.hasRemoteChanges();
+    assert.strictEqual(hasChanges, false, "Should return false when no new revisions");
+  });
+
+  test("hasRemoteChanges: Returns true when BASE < HEAD (new revisions)", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tmp",
+      ConstructorPolicy.LateInit
+    );
+    
+    // Mock log output when BASE < HEAD (new revisions exist)
+    repository.exec = async (args: string[]) => {
+      assert.equal(args[0], "log");
+      return {
+        exitCode: 0,
+        stderr: "",
+        stdout: `<?xml version="1.0" encoding="UTF-8"?>
+<log>
+<logentry revision="42">
+<author>user</author>
+<date>2025-11-12T10:00:00.000000Z</date>
+<msg>New remote change</msg>
+</logentry>
+</log>`
+      };
+    };
+
+    const hasChanges = await repository.hasRemoteChanges();
+    assert.strictEqual(hasChanges, true, "Should return true when new revisions exist");
+  });
+
+  test("getStatus: Skips status check when no remote changes", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tmp",
+      ConstructorPolicy.LateInit
+    );
+    
+    let logCalled = false;
+    let statusCalled = false;
+    
+    repository.exec = async (args: string[]) => {
+      if (args[0] === "log") {
+        logCalled = true;
+        return {
+          exitCode: 0,
+          stderr: "",
+          stdout: `<?xml version="1.0"?><log></log>`
+        };
+      }
+      if (args[0] === "stat") {
+        statusCalled = true;
+        return {
+          exitCode: 0,
+          stderr: "",
+          stdout: `<?xml version="1.0"?><status><target path="."><against revision="19"/></target></status>`
+        };
+      }
+      return { exitCode: 0, stderr: "", stdout: "" };
+    };
+
+    await repository.getStatus({ checkRemoteChanges: true });
+
+    assert.strictEqual(logCalled, true, "Should call log to check for changes");
+    assert.strictEqual(statusCalled, false, "Should NOT call status when no changes");
+  });
 });
