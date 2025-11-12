@@ -1,3 +1,17 @@
+## [2.17.94] (2025-11-12)
+
+### Test Coverage: Command integration tests (Phase 2)
+
+* **New test files**: 4 command test files (27 → 31 test files total)
+  - `commands/commit.test.ts` - Commit and CommitWithMessage commands (34 tests, 702 lines)
+  - `commands/revert.test.ts` - Revert command with depth handling (35 tests, 669 lines)
+  - `commands/addRemove.test.ts` - Add and Remove commands (22 tests, 474 lines)
+  - `commands/resolve.test.ts` - Resolve conflict command (10 tests, 225 lines)
+* **Tests added**: 101 new command integration tests (2,070 lines)
+* **Coverage**: 175 → 276 tests (+58%)
+* **Focus**: Critical user workflows (commit, revert, add, remove, resolve conflicts)
+* **Impact**: Major coverage improvement for command layer, user safety validation
+
 ## [2.17.93] (2025-11-11)
 
 ### Test Coverage: Expand utility and security tests
