@@ -1,3 +1,15 @@
+## [2.17.93] (2025-11-11)
+
+### Test Coverage: Expand utility and security tests
+
+* **New test files**: 3 added (24 → 27 test files)
+  - `util-events.test.ts` - anyEvent, filterEvent, throttleEvent, onceEvent (11 tests)
+  - `util-path.test.ts` - fixPathSeparator, normalizePath, isDescendant, fixPegRevision (13 tests)
+  - `security/errorSanitizer.test.ts` - sanitizeString, sanitizeError (13 tests)
+* **Tests added**: 37 new tests covering critical utility and security functions
+* **Coverage focus**: Event handling, path manipulation, security sanitization
+* **Impact**: Improved coverage of core utilities, security hardening validation
+
 ## [2.17.92] (2025-11-11)
 
 ### Security: Phase 17A - AuthService foundation (infrastructure)
