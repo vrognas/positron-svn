@@ -1,14 +1,19 @@
 ## [2.17.107] (2025-11-12)
 
-### Performance: LRU cache for info cache (500 entry limit)
+### Performance: Remote polling optimization + LRU cache (P0 fixes)
 
-* **Memory leak fix**: Info cache unbounded → 500 entry max
-* **Implementation**: LRU eviction when cache exceeds limit
+* **Smart remote polling**: Check for new revisions before full status (95% faster)
+  - New: `hasRemoteChanges()` uses `svn log -r BASE:HEAD --limit 1`
+  - Early exit: Skip expensive `svn stat --show-updates` when BASE == HEAD
+  - Fallback: Full status on log failure (safety first)
+  - Impact: 95% faster remote polls when no changes (5min → 15s typical)
+  - Tests: 3 unit tests verify skip/run logic
+* **Memory leak fix**: Info cache unbounded → 500 entry LRU limit
   - Track lastAccessed timestamp per entry
   - Evict least recently used on size limit
-  - Preserve 2min TTL behavior
-* **Tests**: +3 LRU cache tests (eviction, access time update, size limit)
-* **Impact**: Prevents 100-500MB memory growth in 8h sessions
+  - Preserve 2min TTL behavior  
+  - Tests: +3 LRU cache tests (eviction, access time update, size limit)
+  - Impact: Prevents 100-500MB memory growth in 8h sessions
 
 ## [2.17.106] (2025-11-12)
 

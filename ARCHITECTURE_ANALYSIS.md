@@ -61,7 +61,7 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 ### Performance (P0)
 - **UI blocking**: 50-100% users, 2-5s freezes during status/refresh
 - **Memory leak**: ✅ FIXED - Info cache now LRU with 500 entry limit
-- **Remote polling**: Full `svn stat` every 5min on network repos
+- **Remote polling**: ✅ FIXED - Smart check via `svn log -r BASE:HEAD --limit 1` before full status
 
 ### Security (P0)
 - **esbuild 0.24.2**: GHSA-67mh-4wv8-2f99 (CORS bypass)
