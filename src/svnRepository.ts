@@ -970,19 +970,6 @@ export class Repository {
     return parseSvnLog(result.stdout);
   }
 
-  public async countNewCommit(revision: string = "BASE:HEAD") {
-    const result = await this.exec(["log", "-r", revision, "-q", "--xml"]);
-
-    const matches = result.stdout.match(/<logentry/g);
-
-    if (matches && matches.length > 0) {
-      // Every return current commit
-      return matches.length - 1;
-    }
-
-    return 0;
-  }
-
   public async cleanup() {
     const result = await this.exec(["cleanup"]);
 

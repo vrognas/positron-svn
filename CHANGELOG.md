@@ -1,3 +1,12 @@
+## [2.17.110] (2025-11-12)
+
+### Code quality: Dead code removal
+
+* **Dead code removed**: Removed unused `countNewCommit` method
+  - Removed: `countNewCommit()` in svnRepository.ts (L973-984)
+  - Impact: -12 lines, never called
+  - Verification: grep confirmed 0 usages
+
 ## [2.17.109] (2025-11-12)
 
 ### Performance: CancellationToken support for long ops
