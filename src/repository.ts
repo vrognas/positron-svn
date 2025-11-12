@@ -805,9 +805,14 @@ export class Repository implements IRemoteRepository {
       return [];
     }
 
-    const credentials = JSON.parse(secret) as Array<IStoredAuth>;
-
-    return credentials;
+    // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed secrets
+    try {
+      const credentials = JSON.parse(secret) as Array<IStoredAuth>;
+      return credentials;
+    } catch (error) {
+      console.error("Failed to parse stored credentials:", error);
+      return [];
+    }
   }
 
   public async saveAuth(): Promise<void> {
@@ -815,8 +820,14 @@ export class Repository implements IRemoteRepository {
       const secret = await this.secrets.get(this.getCredentialServiceName());
       let credentials: Array<IStoredAuth> = [];
 
+      // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed secrets
       if (typeof secret === "string") {
-        credentials = JSON.parse(secret) as Array<IStoredAuth>;
+        try {
+          credentials = JSON.parse(secret) as Array<IStoredAuth>;
+        } catch (error) {
+          console.error("Failed to parse stored credentials:", error);
+          credentials = [];
+        }
       }
 
       credentials.push({

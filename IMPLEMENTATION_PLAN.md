@@ -1,15 +1,15 @@
 # IMPLEMENTATION PLAN
 
-**Version**: v2.17.117
+**Version**: v2.17.118
 **Updated**: 2025-11-12
-**Status**: Phase 20 active (2/4 bugs fixed ✅). Next: unsafe JSON.parse (1h).
+**Status**: Phase 20 active (3/4 bugs fixed ✅). Next: sanitization gaps (4-7h).
 
 ---
 
 ## Phase 20: P0 Stability & Security 🔴 CRITICAL
 
-**Target**: v2.17.115-118
-**Effort**: 8-12h (5-8h remaining)
+**Target**: v2.17.115-119
+**Effort**: 8-12h (4-7h remaining)
 **Impact**: Crashes eliminated, data races fixed, credential leaks prevented
 
 ### Critical Bugs
@@ -24,10 +24,10 @@
 - Fix: Append `this.root` to key (`_seqList["op:${root}"]`)
 - Impact: 30-40% users (multi-repo corruption eliminated)
 
-**C. Unsafe JSON.parse** (P0 - SECURITY)
-- `repository.ts:808,819`, `uri.ts:11`: No try-catch on credential parsing
-- Impact: 5-10% users (crash on malformed secrets)
-- Effort: 1h
+**C. Unsafe JSON.parse** ✅ FIXED (v2.17.118)
+- `repository.ts:809,826`, `uri.ts:12`: Safe try-catch wrappers
+- Fix: Returns safe defaults (empty array/default params)
+- Impact: 5-10% users (malformed storage no longer crashes)
 
 **D. Sanitization gaps** (P0 - SECURITY)
 - 43 catch blocks vs 6 sanitize calls (86% gap)
@@ -38,7 +38,7 @@
 |-------|-------|----------|--------|
 | Watcher crash | 1-5% | Extension kill | ✅ DONE |
 | Global state race | 30-40% | Data corruption | ✅ DONE |
-| Unsafe JSON.parse | 5-10% | Crash | 1h |
+| Unsafe JSON.parse | 5-10% | Crash | ✅ DONE |
 | Sanitization gaps | 100% | Credential leak | 4-7h |
 
 ---
@@ -98,7 +98,7 @@
 **Phase 21**: 7-11h, HIGH (performance, 80-100% users affected)
 **Total**: 15-23h for complete P0/P1 resolution
 
-**Next action**: Phase 20-C (unsafe JSON.parse) - 1h
+**Next action**: Phase 20-D (sanitization gaps) - 4-7h
 
 ---
 

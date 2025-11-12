@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.117
+**Version**: 2.17.118
 **Updated**: 2025-11-12
 
 ---
@@ -14,7 +14,7 @@ Mature VS Code extension for SVN integration. Event-driven architecture, decorat
 - **Repository**: 923 lines (22% reduction via 3 extracted services)
 - **Commands**: 50+ (27 refactored, 150 lines removed via factory pattern)
 - **Coverage**: ~50-55% (856 tests, +12 from Phases 18-19) ✅ TARGET REACHED
-- **Stability**: 🟢 2/4 P0 bugs fixed ✅, 2 remain (unsafe parse, sanitization gaps)
+- **Stability**: 🟢 3/4 P0 bugs fixed ✅, 1 remains (sanitization gaps)
 - **Performance**: ✅ P0 resolved. 4 P1 bottlenecks identified (NEW: commit traversal)
 - **Security**: 🔴 37 unsanitized catch blocks, unsafe JSON.parse
 - **Bloat**: ~500-1000 lines removable (duplicate methods, god classes)
@@ -71,10 +71,10 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 - 30-40% users protected from multi-repo corruption
 - Each repo now has independent operation queue
 
-**C. Unsafe JSON.parse** (`repository.ts:808,819`)
-- Credential parsing without try-catch
-- 5-10% users (malformed secrets crash extension)
-- Fix: 1h
+**C. Unsafe JSON.parse** ✅ FIXED (v2.17.118)
+- Safe try-catch wrappers implemented (`repository.ts:809,826`, `uri.ts:12`)
+- 5-10% users protected from crashes on malformed storage
+- Returns safe defaults, logs errors
 
 ### Security Bugs
 **D. Sanitization gaps** (43 catch blocks, only 6 sanitize calls)
@@ -184,5 +184,5 @@ See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.6
-**Updated**: 2025-11-12 (v2.17.117)
+**Version**: 3.7
+**Updated**: 2025-11-12 (v2.17.118)

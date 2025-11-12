@@ -8,7 +8,18 @@ import {
 import { getSvnDir } from "./util";
 
 export function fromSvnUri(uri: Uri): ISvnUriParams {
-  return JSON.parse(uri.query);
+  // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed URI queries
+  try {
+    return JSON.parse(uri.query);
+  } catch (error) {
+    console.error("Failed to parse SVN URI query:", error);
+    // Return safe default params to prevent extension crash
+    return {
+      action: SvnUriAction.SHOW,
+      fsPath: "",
+      extra: {}
+    };
+  }
 }
 
 export function toSvnUri(
