@@ -1,7 +1,7 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.79
-**Updated**: 2025-11-11
+**Version**: 2.17.103
+**Updated**: 2025-11-12
 
 ---
 
@@ -12,9 +12,10 @@ Mature VS Code extension for SVN integration. Event-driven architecture, decorat
 **Stats**:
 - **Source lines**: ~12,400
 - **Repository**: 1,179 → 923 lines (22% reduction, 3 services extracted)
-- **Commands**: 50+ (22 refactored, 127 lines removed)
-- **Coverage**: ~21-23% (138 tests)
-- **Performance**: ✅ Phases 8-10+12+14-15 COMPLETE (24 bottlenecks fixed, 1 bug)
+- **Commands**: 50+ (27 refactored, 150 lines removed via factory pattern)
+- **Coverage**: ~50-55% (844 tests, +638 command tests) ✅ TARGET REACHED
+- **Performance**: ✅ Phases 8-10+12+14-16 COMPLETE (25 bottlenecks fixed, 1 bug)
+- **Security**: ✅ Phase 17A+stderr sanitization (M-1 critical fix, information disclosure prevented)
 
 ---
 
@@ -55,14 +56,15 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ---
 
-## Recent Improvements (Phases 10-15) ✅
+## Recent Improvements (Phases 10-16) ✅
 
-### Performance (Phases 10+12+15, v2.17.58-68)
+### Performance (Phases 10+12+15+16, v2.17.58-91)
 - **processConcurrently import** ✅ Fixed regression (45% users)
 - **Command cache** ✅ Cached SourceControlManager (100% users, -10ms per command)
 - **updateInfo() cache** ✅ Timestamp 5s cache (30% users, 90% reduction)
 - **updateModelState cache** ✅ Timestamp 2s cache (50% users, 60-80% burst reduction)
 - **Decorator overhead** ✅ Removed @throttle (50-100% users, 1-2ms → <0.5ms)
+- **Conditional index rebuild** ✅ Hash-based detection (50-80% users, 5-15ms eliminated)
 
 ### Code Quality (Phases 11+13, v2.17.58+64)
 - **127 lines removed** from 22 commands (Phase 11: 82, Phase 13: 45)
@@ -123,5 +125,5 @@ See IMPLEMENTATION_PLAN.md (Deferred):
 
 ---
 
-**Version**: 1.11
-**Updated**: 2025-11-11 (v2.17.68)
+**Version**: 1.23
+**Updated**: 2025-11-12 (v2.17.101)

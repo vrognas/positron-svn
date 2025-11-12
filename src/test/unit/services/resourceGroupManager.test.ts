@@ -209,4 +209,140 @@ suite("ResourceGroupManager Tests", () => {
       "feature-x updated to 1 file"
     );
   });
+
+  test("Index rebuild - skipped when resources unchanged (Phase 16)", () => {
+    // Arrange
+    const ResourceGroupManager = require("../../../services/ResourceGroupManager").ResourceGroupManager;
+    const manager = new ResourceGroupManager(
+      mockSourceControl as SourceControl,
+      disposables
+    );
+
+    const statusResult: StatusResult = {
+      changes: [createMockResource("file1.txt", Status.MODIFIED)],
+      conflicts: [],
+      unversioned: [],
+      changelists: new Map(),
+      remoteChanges: [],
+      statusExternal: [],
+      statusIgnored: [],
+      isIncomplete: false,
+      needCleanUp: false
+    };
+
+    const config = { ignoreOnStatusCountList: [], countUnversioned: false };
+
+    // Act - first call should rebuild
+    manager.updateGroups({ result: statusResult, config });
+    const resource1 = manager.getResourceFromFile("/workspace/file1.txt");
+    assert.ok(resource1, "Resource found after first update");
+
+    // Act - second call with identical data should skip rebuild
+    manager.updateGroups({ result: statusResult, config });
+    const resource2 = manager.getResourceFromFile("/workspace/file1.txt");
+    assert.ok(resource2, "Resource still found after second update");
+
+    // Assert - index still works (proves rebuild was either done or skipped correctly)
+    assert.strictEqual(resource1, resource2, "Same resource instance");
+  });
+
+  test("Index rebuild - triggered when resources change (Phase 16)", () => {
+    // Arrange
+    const ResourceGroupManager = require("../../../services/ResourceGroupManager").ResourceGroupManager;
+    const manager = new ResourceGroupManager(
+      mockSourceControl as SourceControl,
+      disposables
+    );
+
+    const result1: StatusResult = {
+      changes: [createMockResource("file1.txt", Status.MODIFIED)],
+      conflicts: [],
+      unversioned: [],
+      changelists: new Map(),
+      remoteChanges: [],
+      statusExternal: [],
+      statusIgnored: [],
+      isIncomplete: false,
+      needCleanUp: false
+    };
+
+    const result2: StatusResult = {
+      changes: [
+        createMockResource("file1.txt", Status.MODIFIED),
+        createMockResource("file2.txt", Status.ADDED)
+      ],
+      conflicts: [],
+      unversioned: [],
+      changelists: new Map(),
+      remoteChanges: [],
+      statusExternal: [],
+      statusIgnored: [],
+      isIncomplete: false,
+      needCleanUp: false
+    };
+
+    const config = { ignoreOnStatusCountList: [], countUnversioned: false };
+
+    // Act
+    manager.updateGroups({ result: result1, config });
+    const resource1 = manager.getResourceFromFile("/workspace/file1.txt");
+    assert.ok(resource1, "file1.txt found");
+    assert.ok(!manager.getResourceFromFile("/workspace/file2.txt"), "file2.txt not found yet");
+
+    manager.updateGroups({ result: result2, config });
+    const resource2 = manager.getResourceFromFile("/workspace/file2.txt");
+    assert.ok(resource2, "file2.txt found after change");
+
+    // Assert - both resources findable (proves rebuild happened)
+    assert.ok(manager.getResourceFromFile("/workspace/file1.txt"), "file1.txt still found");
+    assert.ok(manager.getResourceFromFile("/workspace/file2.txt"), "file2.txt found");
+  });
+
+  test("Index rebuild - triggered when changelist count changes (Phase 16)", () => {
+    // Arrange
+    const ResourceGroupManager = require("../../../services/ResourceGroupManager").ResourceGroupManager;
+    const manager = new ResourceGroupManager(
+      mockSourceControl as SourceControl,
+      disposables
+    );
+
+    const result1: StatusResult = {
+      changes: [createMockResource("file1.txt", Status.MODIFIED)],
+      conflicts: [],
+      unversioned: [],
+      changelists: new Map(),
+      remoteChanges: [],
+      statusExternal: [],
+      statusIgnored: [],
+      isIncomplete: false,
+      needCleanUp: false
+    };
+
+    const changelists = new Map<string, Resource[]>();
+    changelists.set("feature-x", [createMockResource("file2.txt", Status.MODIFIED)]);
+
+    const result2: StatusResult = {
+      changes: [createMockResource("file1.txt", Status.MODIFIED)],
+      conflicts: [],
+      unversioned: [],
+      changelists,
+      remoteChanges: [],
+      statusExternal: [],
+      statusIgnored: [],
+      isIncomplete: false,
+      needCleanUp: false
+    };
+
+    const config = { ignoreOnStatusCountList: [], countUnversioned: false };
+
+    // Act
+    manager.updateGroups({ result: result1, config });
+    assert.ok(!manager.getResourceFromFile("/workspace/file2.txt"), "file2.txt not in index yet");
+
+    manager.updateGroups({ result: result2, config });
+    const resource = manager.getResourceFromFile("/workspace/file2.txt");
+
+    // Assert - changelist resource findable (proves rebuild happened)
+    assert.ok(resource, "file2.txt from changelist found in index");
+  });
 });

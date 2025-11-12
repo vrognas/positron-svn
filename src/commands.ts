@@ -13,13 +13,15 @@ import { FileOpen } from "./commands/fileOpen";
 import { FinishCheckout } from "./commands/finishCheckout";
 import { GetSourceControlManager } from "./commands/get_source_control_manager";
 import { Log } from "./commands/log";
-import { OpenChangeBase } from "./commands/openChangeBase";
-import { OpenChangeHead } from "./commands/openChangeHead";
-import { OpenChangePrev } from "./commands/openChangePrev";
+import {
+  OpenChangeBase,
+  OpenChangeHead,
+  OpenChangePrev,
+  OpenResourceBase,
+  OpenResourceHead
+} from "./commands/openCommands";
 import { OpenFile } from "./commands/openFile";
 import { OpenHeadFile } from "./commands/openHeadFile";
-import { OpenResourceBase } from "./commands/openResourceBase";
-import { OpenResourceHead } from "./commands/openResourceHead";
 import { Patch } from "./commands/patch";
 import { PatchAll } from "./commands/patchAll";
 import { PatchChangeList } from "./commands/patchChangeList";

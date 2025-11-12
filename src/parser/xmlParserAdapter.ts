@@ -63,10 +63,9 @@ export class XmlParserAdapter {
       alwaysCreateTextNode: false,
       commentPropName: false, // Ignore comments
       isArray: () => false, // Single elements not wrapped in arrays
-      tagValueProcessor: (tagName: string, tagValue: string) => tagValue,
-      attributeValueProcessor: (attrName: string, attrValue: string) => attrValue,
+      tagValueProcessor: (_tagName: string, tagValue: string) => tagValue,
+      attributeValueProcessor: (_attrName: string, attrValue: string) => attrValue,
       // Disable strict XML validation to match xml2js permissiveness
-      ignorePI: true, // Ignore processing instructions
       ignorePiTags: true, // Ignore PI tags
       preserveOrder: false // Don't preserve order
     });
