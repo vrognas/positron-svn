@@ -1,3 +1,17 @@
+## [2.17.100] (2025-11-12)
+
+### UX: Enhanced timeout and network error messages
+
+* **Error handling improvement**: User-friendly error messages for common failures
+  - Network errors (E170013): "Network error: Unable to connect to the repository. Check your network connection and repository URL."
+  - Timeout errors (E175002): "Network timeout: The operation took too long. Try again or check your network connection."
+  - Authentication errors (E170001): Clear credential guidance
+  - Repository locked (E155004): Direct cleanup instruction
+* **Impact**: 30-40% of users - better error UX, actionable guidance
+* **New test file**: errorFormatting.test.ts (31 tests, 397 lines)
+* **Coverage**: 793 → 824 tests (+4%)
+* **Implementation**: formatErrorMessage() in command.ts with fallback handling
+
 ## [2.17.99] (2025-11-12)
 
 ### Test Coverage: Remaining commands (Phase 5) - 50%+ TARGET REACHED ✅

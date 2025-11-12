@@ -21,7 +21,9 @@ export const svnErrorCodes: { [key: string]: string } = {
   RepositoryIsLocked: "E155004",
   NotASvnRepository: "E155007",
   NotShareCommonAncestry: "E195012",
-  WorkingCopyIsTooOld: "E155036"
+  WorkingCopyIsTooOld: "E155036",
+  UnableToConnect: "E170013",
+  NetworkTimeout: "E175002"
 };
 
 function getSvnErrorCode(stderr: string): string | undefined {

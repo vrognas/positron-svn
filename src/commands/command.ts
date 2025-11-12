@@ -578,6 +578,53 @@ export abstract class Command implements Disposable {
   }
 
   /**
+   * Format user-friendly error message based on error type.
+   * Provides actionable guidance for common errors (network, timeout, auth).
+   */
+  private formatErrorMessage(error: any, fallbackMsg: string): string {
+    const errorStr = error?.message || error?.toString() || "";
+    const stderr = error?.stderr || error?.stderrFormated || "";
+    const fullError = `${errorStr} ${stderr}`.toLowerCase();
+
+    // Network/connection errors (E170013)
+    if (
+      fullError.includes("e170013") ||
+      fullError.includes("unable to connect") ||
+      fullError.includes("connection refused") ||
+      fullError.includes("could not resolve host")
+    ) {
+      return "Network error: Unable to connect to the repository. Check your network connection and repository URL.";
+    }
+
+    // Timeout errors (E175002)
+    if (
+      fullError.includes("e175002") ||
+      fullError.includes("timed out") ||
+      fullError.includes("timeout") ||
+      fullError.includes("operation timed out")
+    ) {
+      return "Network timeout: The operation took too long. Try again or check your network connection.";
+    }
+
+    // Authentication errors (E170001)
+    if (
+      fullError.includes("e170001") ||
+      fullError.includes("authorization failed") ||
+      fullError.includes("authentication failed")
+    ) {
+      return "Authentication failed: Please check your credentials and try again.";
+    }
+
+    // Repository locked (E155004)
+    if (fullError.includes("e155004") || fullError.includes("locked")) {
+      return "Working copy is locked: Run 'SVN: Cleanup' to unlock.";
+    }
+
+    // Use fallback message for other errors
+    return fallbackMsg;
+  }
+
+  /**
    * Handle repository operation with consistent error handling.
    * Pattern: try/catch with console.log + showErrorMessage
    */
@@ -589,7 +636,8 @@ export abstract class Command implements Disposable {
       return await operation();
     } catch (error) {
       console.log(error);
-      window.showErrorMessage(errorMsg);
+      const userMessage = this.formatErrorMessage(error, errorMsg);
+      window.showErrorMessage(userMessage);
       return undefined;
     }
   }
