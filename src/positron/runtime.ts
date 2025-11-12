@@ -5,7 +5,16 @@
  * and safely accessing Positron-specific APIs
  */
 
-import { tryAcquirePositronApi, inPositron as checkPositron, type PositronApi } from "@posit-dev/positron";
+import type { PositronApi } from "@posit-dev/positron";
+
+// Dynamic import to avoid failure when module not available
+let positronModule: any = undefined;
+try {
+  positronModule = require("@posit-dev/positron");
+} catch {
+  // Module not available - running in VS Code or Positron module not bundled
+  positronModule = undefined;
+}
 
 /**
  * Check if extension is running in Positron IDE
@@ -21,7 +30,7 @@ import { tryAcquirePositronApi, inPositron as checkPositron, type PositronApi } 
  * ```
  */
 export function isPositron(): boolean {
-  return checkPositron();
+  return positronModule?.inPositron?.() ?? false;
 }
 
 /**
@@ -39,7 +48,7 @@ export function isPositron(): boolean {
  * ```
  */
 export function getPositronApi(): PositronApi | undefined {
-  return tryAcquirePositronApi();
+  return positronModule?.tryAcquirePositronApi?.();
 }
 
 /**

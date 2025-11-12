@@ -1,3 +1,14 @@
+## [2.17.135] (2025-11-12)
+
+### Fix: Extension activation - dynamic Positron import 🔧
+
+* **CRITICAL FIX**: Extension failed to activate - missing @posit-dev/positron module
+  - Error: "Cannot find module '@posit-dev/positron'"
+  - Root cause: Static import at top level, module not bundled in VSIX
+  - Fix: Changed to dynamic require() with try-catch in runtime.ts
+  - Impact: Extension now works in both VS Code and Positron
+  - Behavior: Positron features disabled when module unavailable
+
 ## [2.17.134] (2025-11-12)
 
 ### Fix: Reveal in File Explorer code review fixes ✅
