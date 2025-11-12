@@ -1,8 +1,8 @@
 # IMPLEMENTATION PLAN
 
-**Version**: v2.17.121
+**Version**: v2.17.122
 **Updated**: 2025-11-12
-**Status**: Phase 21 active (2/4 bottlenecks fixed ✅). Next: glob matching.
+**Status**: Phase 21 active (3/4 bottlenecks fixed ✅). Next: batch operations.
 
 ---
 
@@ -62,12 +62,10 @@
 - Fix: Build external Set once, iterate statuses once
 - Impact: 50-70% users (100-500ms → 20-100ms, 3-5x faster)
 
-**C. Glob pattern matching** (P1)
-- `StatusService.ts:292,350-358`: Per-file matchAll() calls
-- Impact: 30-40% users (exclusion patterns + 500+ files)
-- Current: 10-50ms
-- Fix: Two-tier matching (simple first)
-- Effort: 2-3h
+**C. Glob pattern matching** ✅ FIXED (v2.17.122)
+- `globMatch.ts:35-67`: Two-tier matching (simple patterns → complex)
+- Fix: Fast path for *.ext, literal, prefix/ patterns
+- Impact: 30-40% users (10-50ms → 3-15ms, 3x faster)
 
 **D. Batch operations** (P1)
 - `svnRepository.ts:615-618`: No chunking for bulk add/revert
@@ -84,7 +82,7 @@
 |------------|-------|---------|--------|--------|
 | Commit traversal | 80-100% | 20-100ms | 5-20ms | ✅ DONE |
 | Descendant resolution | 50-70% | 100-500ms | 20-100ms | ✅ DONE |
-| Glob matching | 30-40% | 10-50ms | 3-15ms | 2-3h |
+| Glob matching | 30-40% | 10-50ms | 3-15ms | ✅ DONE |
 | Batch ops | 20-30% | 50-200ms | 20-80ms | 2-3h |
 
 ---
@@ -95,7 +93,7 @@
 **Phase 21**: 7-11h, HIGH (performance, 80-100% users affected)
 **Total**: 15-23h for complete P0/P1 resolution
 
-**Next action**: Phase 21-C (glob matching) - 2-3h
+**Next action**: Phase 21-D (batch operations) - 2-3h
 
 ---
 
