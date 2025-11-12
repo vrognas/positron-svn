@@ -53,28 +53,39 @@ export class DiffWithTortoiseSvn extends Command {
       // Simple diff command compares working copy against BASE automatically
 
       // Debug: Show command being executed
-      console.log(`Launching TortoiseSVN: "${tortoiseProcPath}" /command:diff /path:"${filePath}"`);
+      console.log(`Launching TortoiseSVN: "${tortoiseProcPath}" /command:diff /path:${filePath}`);
 
       const child = spawn(
         tortoiseProcPath,
-        ["/command:diff", `/path:"${filePath}"`],
+        ["/command:diff", `/path:${filePath}`],
         {
           detached: true,
           stdio: ["ignore", "pipe", "pipe"]
         }
       );
 
+      // Log stdout
+      child.stdout?.on("data", (data) => {
+        console.log("TortoiseSVN stdout:", data.toString());
+      });
+
       // Log any errors from stderr
       child.stderr?.on("data", (data) => {
         const errorMsg = data.toString();
+        console.error("TortoiseSVN stderr:", errorMsg);
         logError("TortoiseSVN stderr", new Error(errorMsg));
       });
 
       child.on("error", (error) => {
+        console.error("TortoiseSVN spawn error:", error);
         logError("Failed to spawn TortoiseSVN", error);
         window.showErrorMessage(
           `Failed to launch TortoiseSVN: ${error.message}`
         );
+      });
+
+      child.on("exit", (code, signal) => {
+        console.log(`TortoiseSVN exited with code ${code}, signal ${signal}`);
       });
 
       // Detach the process so it runs independently
