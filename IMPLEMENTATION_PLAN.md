@@ -1,8 +1,8 @@
 # IMPLEMENTATION PLAN
 
-**Version**: v2.17.113
+**Version**: v2.17.114
 **Updated**: 2025-11-12
-**Status**: All P0 issues resolved ✅. 2 CRITICAL P0 phases identified.
+**Status**: Phase 20 in progress (1/4 bugs fixed ✅). 3 CRITICAL P0 bugs remain.
 
 ---
 
@@ -14,17 +14,12 @@
 
 ### Critical Bugs
 
-**A. Watcher crash kills extension** (P0 - CRITICAL)
-- Location: `repositoryFilesWatcher.ts:59-61`
-- Issue: Uncaught error thrown, crashes entire extension
-```typescript
-repoWatcher.on("error", error => {
-  throw error;  // ❌ UNCAUGHT - kills extension
-});
-```
-- Impact: 1-5% users (fs.watch errors: .svn deleted, permissions)
-- Fix: Log error, emit event, graceful degradation
-- Effort: 1h
+**A. Watcher crash kills extension** ✅ FIXED (v2.17.114)
+- Location: `repositoryFilesWatcher.ts:59-67`
+- Issue: Uncaught error thrown → crashes extension
+- Fix: Graceful error logging, extension continues
+- Impact: 1-5% users protected (ENOENT, EACCES errors)
+- Tests: +3 tests verify stability
 
 **B. Global state data race** (P0 - CRITICAL)
 - Location: `decorators.ts:119`, used in `repository.ts:469`

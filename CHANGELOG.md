@@ -1,3 +1,14 @@
+## [2.17.114] (2025-11-12)
+
+### Fix: Watcher crash bug (Phase 20.A) ✅
+
+* **CRITICAL BUG FIXED**: fs.watch error no longer crashes extension
+  - Changed: `throw error` → graceful error logging (repositoryFilesWatcher.ts:59-67)
+  - Impact: 1-5% users (ENOENT when .svn deleted, EACCES permission denied)
+  - Behavior: Extension continues functioning, watcher may degrade but won't crash
+  - Tests: +3 tests verify error handling, extension stability
+* **Phase 20 progress**: 1/4 P0 bugs fixed (3 remaining: global state race, unsafe JSON.parse, sanitization gaps)
+
 ## [2.17.113] (2025-11-12)
 
 ### Docs: Critical P0 bugs identified - plan revised

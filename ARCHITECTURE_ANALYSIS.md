@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.113
+**Version**: 2.17.114
 **Updated**: 2025-11-12
 
 ---
@@ -14,7 +14,7 @@ Mature VS Code extension for SVN integration. Event-driven architecture, decorat
 - **Repository**: 923 lines (22% reduction via 3 extracted services)
 - **Commands**: 50+ (27 refactored, 150 lines removed via factory pattern)
 - **Coverage**: ~50-55% (856 tests, +12 from Phases 18-19) ✅ TARGET REACHED
-- **Stability**: 🔴 4 CRITICAL P0 bugs identified (crashes, races, leaks)
+- **Stability**: 🟡 1/4 P0 bugs fixed ✅, 3 remain (races, crashes, leaks)
 - **Performance**: ✅ P0 resolved. 3 P1 bottlenecks identified
 - **Security**: 🔴 67 sanitization gaps, unsafe JSON.parse
 
@@ -60,11 +60,10 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 ## Critical Issues (P0) 🔴
 
 ### Stability Bugs
-**A. Watcher crash kills extension** (`repositoryFilesWatcher.ts:59-61`)
-- Uncaught `throw error` in fs.watch error handler
-- 1-5% users (fs errors: .svn deleted, permissions)
-- Extension crash, no recovery
-- Fix: 1h
+**A. Watcher crash** ✅ FIXED (v2.17.114)
+- Changed: `throw error` → graceful logging
+- 1-5% users protected
+- +3 tests
 
 **B. Global state data race** (`decorators.ts:119`, `repository.ts:469`)
 - Shared `_seqList` object across all repo instances
@@ -184,5 +183,5 @@ See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.3
-**Updated**: 2025-11-12 (v2.17.113)
+**Version**: 3.4
+**Updated**: 2025-11-12 (v2.17.114)

@@ -57,7 +57,13 @@ export class RepositoryFilesWatcher implements IDisposable {
       );
 
       repoWatcher.on("error", error => {
-        throw error;
+        // Phase 20.A fix: Log error gracefully instead of crashing extension
+        // Common errors: ENOENT (.svn deleted), EACCES (permission denied)
+        console.error(
+          `SVN repository watcher error for ${root}:`,
+          error instanceof Error ? error.message : String(error)
+        );
+        // Extension continues functioning - watcher may degrade but won't crash
       });
 
       onRepoChange = this._onRepoChange.event;
