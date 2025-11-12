@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.111
+**Version**: 2.17.114
 **Updated**: 2025-11-12
 
 ---
@@ -14,8 +14,9 @@ Mature VS Code extension for SVN integration. Event-driven architecture, decorat
 - **Repository**: 923 lines (22% reduction via 3 extracted services)
 - **Commands**: 50+ (27 refactored, 150 lines removed via factory pattern)
 - **Coverage**: ~50-55% (856 tests, +12 from Phases 18-19) ✅ TARGET REACHED
-- **Performance**: ✅ Phases 18 & 19 COMPLETE (UI freezes eliminated, memory leak fixed, remote polling optimized)
-- **Security**: ✅ Phase 19 complete (esbuild vuln fixed), stderr sanitization complete
+- **Stability**: 🟡 1/4 P0 bugs fixed ✅, 3 remain (races, crashes, leaks)
+- **Performance**: ✅ P0 resolved. 3 P1 bottlenecks identified
+- **Security**: 🔴 67 sanitization gaps, unsafe JSON.parse
 
 ---
 
@@ -56,21 +57,62 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ---
 
-## All P0 Issues Resolved ✅
+## Critical Issues (P0) 🔴
 
-### Performance (All Fixed)
-- ✅ **UI blocking**: FIXED (v2.17.108-109) - Non-blocking progress + cancellation support
-- ✅ **Memory leak**: FIXED (v2.17.107) - Info cache LRU with 500 entry limit
-- ✅ **Remote polling**: FIXED (v2.17.107) - Smart check via `svn log -r BASE:HEAD --limit 1`
+### Stability Bugs
+**A. Watcher crash** ✅ FIXED (v2.17.114)
+- Changed: `throw error` → graceful logging
+- 1-5% users protected
+- +3 tests
 
-### Security (Fixed)
-- ✅ **esbuild vuln**: FIXED (v2.17.106) - Updated 0.24.2 → 0.27.0
+**B. Global state data race** (`decorators.ts:119`, `repository.ts:469`)
+- Shared `_seqList` object across all repo instances
+- 30-40% users (multi-repo data corruption)
+- `@globalSequentialize("updateModelState")` uses same queue for all repos
+- Fix: 2-3h
 
-### Code Quality (P1)
-- **248 `any` types**: Type safety compromised across 25 files
-- **Duplication**: show/showBuffer (139 lines 90% identical), 8 plain log methods
-- ✅ **Dead code**: PARTIAL - countNewCommit removed (v2.17.110), other items in use
-- ✅ **Encapsulation**: IMPROVED - 2 methods made private (v2.17.111)
+**C. Unsafe JSON.parse** (`repository.ts:808,819`)
+- Credential parsing without try-catch
+- 5-10% users (malformed secrets crash extension)
+- Fix: 1h
+
+### Security Bugs
+**D. Sanitization gaps** (77 catch blocks, only 10 sanitize calls)
+- 67 catch blocks missing sanitization
+- 100% users on error paths (credential disclosure)
+- Fix: 4-7h (extract error utility, apply to all catches)
+
+---
+
+## Performance Analysis
+
+### P0 Issues - Resolved ✅
+- ✅ **UI blocking**: FIXED (v2.17.108-109)
+- ✅ **Memory leak**: FIXED (v2.17.107)
+- ✅ **Remote polling**: FIXED (v2.17.107)
+
+### P1 Issues
+**A. Quadratic descendant** (`StatusService.ts:217-223`): 50-70% users, 100-500ms, 1-2h
+**B. Glob matching** (`StatusService.ts:292,350-358`): 30-40% users, 10-50ms, 2-3h
+**C. Batch ops** (`svnRepository.ts:615-618`): 20-30% users, 50-200ms, 2-3h
+
+---
+
+## Code Quality Analysis
+
+### Bloat (P2)
+- show/showBuffer: 139L duplicate
+- util.ts: 336L dumping ground
+- Error handling: 70 catch blocks, inconsistent
+
+### Type Safety (P2)
+- 248 `any` types (25 files)
+- Unsafe casts, missing guards
+
+### Security (P2)
+- Password CLI exposure (`svn.ts:110-113`)
+- ✅ esbuild vuln: FIXED (v2.17.106)
+- ✅ stderr leaks: FIXED (v2.17.102)
 
 ---
 
@@ -133,14 +175,13 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ## Next Actions
 
-All P0 issues resolved. Future opportunities (P1/P2):
-- Duplication fixes (show/showBuffer 139 lines, 8 plain log methods)
-- Type safety improvements (248 `any` types)
+**P0 (Phase 20)**: Stability & security - CRITICAL (8-12h, MUST FIX FIRST)
+**P1 (Phase 21)**: Performance optimization (5-8h)
+**P2/P3**: Code quality, type safety, architecture (110-155h)
 
-✅ **Phase 18 & 19**: COMPLETE (v2.17.106-109)
-✅ **Dead code cleanup**: COMPLETE (v2.17.110-111)
+See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.1
-**Updated**: 2025-11-12 (v2.17.111)
+**Version**: 3.4
+**Updated**: 2025-11-12 (v2.17.114)

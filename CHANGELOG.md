@@ -1,3 +1,47 @@
+## [2.17.114] (2025-11-12)
+
+### Fix: Watcher crash bug (Phase 20.A) ✅
+
+* **CRITICAL BUG FIXED**: fs.watch error no longer crashes extension
+  - Changed: `throw error` → graceful error logging (repositoryFilesWatcher.ts:59-67)
+  - Impact: 1-5% users (ENOENT when .svn deleted, EACCES permission denied)
+  - Behavior: Extension continues functioning, watcher may degrade but won't crash
+  - Tests: +3 tests verify error handling, extension stability
+* **Phase 20 progress**: 1/4 P0 bugs fixed (3 remaining: global state race, unsafe JSON.parse, sanitization gaps)
+
+## [2.17.113] (2025-11-12)
+
+### Docs: Critical P0 bugs identified - plan revised
+
+* **CRITICAL BUGS IDENTIFIED** (Phase 20 - P0):
+  - Watcher crash: Uncaught error kills extension (repositoryFilesWatcher.ts:59-61) - 1-5% users
+  - Global state race: Shared _seqList across repos (decorators.ts:119) - 30-40% users
+  - Unsafe JSON.parse: Credential parsing crashes (repository.ts:808,819) - 5-10% users
+  - Sanitization gaps: 67 catch blocks missing sanitization - 100% users
+* **Priority reordering**: P0 stability/security (8-12h) BEFORE P1 performance (5-8h)
+* **Plan update**: IMPLEMENTATION_PLAN.md v2.17.113 (Phase 20: P0 bugs, Phase 21: Performance)
+* **Architecture update**: ARCHITECTURE_ANALYSIS.md v3.3 (critical issues section)
+
+## [2.17.112] (2025-11-12)
+
+### Docs: Tech debt audit + plan consolidation
+
+* **Performance audit**: Identified 3 P1 bottlenecks (Phase 20)
+  - Quadratic descendant resolution: 50-70% users, 100-500ms
+  - Glob pattern matching: 30-40% users, 10-50ms
+  - Batch operations: 20-30% users, 50-200ms
+* **Code bloat audit**: Identified ~200 removable lines (Phase 21)
+  - show/showBuffer duplication: 139 lines, 90% identical
+  - util.ts dumping ground: 336 lines, split needed
+  - Error handling: 70 catch blocks, inconsistent
+* **Tech debt audit**: Type safety + security issues catalogued
+  - 248 `any` types across 25 files
+  - Password CLI exposure (svn.ts:110-113)
+  - Unsafe JSON.parse (repository.ts:808,819)
+* **Doc cleanup**: Removed redundant DEV_WORKFLOW.md
+* **Plan update**: IMPLEMENTATION_PLAN.md → 2 critical phases only
+* **Architecture update**: ARCHITECTURE_ANALYSIS.md → v3.2 with findings
+
 ## [2.17.111] (2025-11-12)
 
 ### Code quality: Encapsulation improvements
