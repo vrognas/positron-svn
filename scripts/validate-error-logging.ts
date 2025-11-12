@@ -30,9 +30,10 @@ function checkCatchBlock(
 ): void {
   const catchBlock = node.block;
 
-  function visitCatchStatement(stmt: ts.Statement) {
-    if (ts.isExpressionStatement(stmt)) {
-      const expr = stmt.expression;
+  function visitNode(node: ts.Node) {
+    // Check if this node is an expression statement with a console call
+    if (ts.isExpressionStatement(node)) {
+      const expr = node.expression;
 
       if (ts.isCallExpression(expr)) {
         const callExpr = expr as ts.CallExpression;
@@ -60,7 +61,7 @@ function checkCatchBlock(
                 // Check for @security-allow comment
                 const commentRanges = ts.getLeadingCommentRanges(
                   sourceFile.text,
-                  stmt.pos
+                  node.pos
                 );
 
                 const hasAllowComment = commentRanges?.some((range) => {
@@ -69,10 +70,10 @@ function checkCatchBlock(
                 });
 
                 if (!hasAllowComment) {
-                  const { line, character } = sourceFile.getLineAndCharacterOfPosition(stmt.pos);
+                  const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.pos);
                   const codeSnippet = sourceFile.text.substring(
-                    stmt.pos,
-                    Math.min(stmt.end, stmt.pos + 80)
+                    node.pos,
+                    Math.min(node.end, node.pos + 80)
                   ).trim();
 
                   violations.push({
@@ -89,9 +90,13 @@ function checkCatchBlock(
         }
       }
     }
+
+    // Recursively visit all child nodes
+    ts.forEachChild(node, visitNode);
   }
 
-  catchBlock.statements.forEach(visitCatchStatement);
+  // Start visiting from the catch block
+  ts.forEachChild(catchBlock, visitNode);
 }
 
 /**

@@ -2,6 +2,7 @@ import { commands, window } from "vscode";
 import { IBranchItem, ISvnErrorData } from "../common/types";
 import { isTrunk, selectBranch } from "../helpers/branch";
 import { Repository } from "../repository";
+import { logError } from "../util/errorLogger";
 import { Command } from "./command";
 
 export class Merge extends Command {
@@ -47,7 +48,7 @@ export class Merge extends Command {
           );
         }
       } else {
-        console.log(error);
+        logError("merge:unexpected-error", error);
         window.showErrorMessage("Unable to merge branch");
       }
     }

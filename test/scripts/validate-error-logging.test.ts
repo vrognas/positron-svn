@@ -26,9 +26,9 @@ function hasViolation(sourceFile: ts.SourceFile): boolean {
     if (ts.isTryStatement(node) && node.catchClause) {
       const catchBlock = node.catchClause.block;
 
-      ts.forEachChild(catchBlock, (stmt) => {
-        if (ts.isExpressionStatement(stmt)) {
-          const expr = stmt.expression;
+      function visitNode(n: ts.Node) {
+        if (ts.isExpressionStatement(n)) {
+          const expr = n.expression;
 
           // Check for console.error/log/warn calls
           if (ts.isCallExpression(expr)) {
@@ -57,7 +57,12 @@ function hasViolation(sourceFile: ts.SourceFile): boolean {
             }
           }
         }
-      });
+
+        // Recursively visit child nodes
+        ts.forEachChild(n, visitNode);
+      }
+
+      ts.forEachChild(catchBlock, visitNode);
     }
 
     ts.forEachChild(node, visit);
@@ -120,5 +125,69 @@ describe("Security Validator - CI catch block scanner (Phase 22.A)", () => {
     const violation = hasViolation(sourceFile);
 
     assert.strictEqual(violation, false, "Should allow static strings");
+  });
+
+  /**
+   * Test 4: Detect console.error in nested if statement
+   */
+  it("detects console.error(e) in nested if statement", () => {
+    const code = `
+      try {
+        doSomething();
+      } catch (e) {
+        if (condition) {
+          console.error(e);
+        }
+      }
+    `;
+
+    const sourceFile = createTestFile(code);
+    const violation = hasViolation(sourceFile);
+
+    assert.strictEqual(violation, true, "Should detect console.error in nested if");
+  });
+
+  /**
+   * Test 5: Detect console.log in nested try-catch
+   */
+  it("detects console.log(err) in nested try-catch", () => {
+    const code = `
+      try {
+        doSomething();
+      } catch (err) {
+        try {
+          handleError();
+        } catch (inner) {
+          console.log(err);
+        }
+      }
+    `;
+
+    const sourceFile = createTestFile(code);
+    const violation = hasViolation(sourceFile);
+
+    assert.strictEqual(violation, true, "Should detect console.log in nested try-catch");
+  });
+
+  /**
+   * Test 6: Detect console.warn in else block
+   */
+  it("detects console.warn(error) in else block", () => {
+    const code = `
+      try {
+        doSomething();
+      } catch (error) {
+        if (condition) {
+          logError("context", error);
+        } else {
+          console.warn(error);
+        }
+      }
+    `;
+
+    const sourceFile = createTestFile(code);
+    const violation = hasViolation(sourceFile);
+
+    assert.strictEqual(violation, true, "Should detect console.warn in else block");
   });
 });
