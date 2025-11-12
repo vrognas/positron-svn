@@ -43,7 +43,6 @@ function hasViolation(sourceFile: ts.SourceFile): boolean {
                 if (["error", "log", "warn"].includes(prop.text)) {
                   // Check if error variable is passed
                   if (callExpr.arguments.length > 0) {
-                    const firstArg = callExpr.arguments[0];
                     const hasErrorArg = callExpr.arguments.some((arg) => {
                       return ts.isIdentifier(arg) &&
                              ["err", "error", "e", "ex"].includes(arg.text);
