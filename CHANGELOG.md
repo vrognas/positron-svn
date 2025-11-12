@@ -1,3 +1,19 @@
+## [2.17.129] (2025-11-12)
+
+### Security: Complete logError() migration (Phase 22.B.2) ✅
+
+* **14 catch blocks migrated**: All remaining violations fixed
+  - Commands: command.ts (5), switchBranch.ts (1)
+  - Core: source_control_manager.ts (2), svn.ts (1), svnRepository.ts (1)
+  - Providers: svnFileSystemProvider.ts (2)
+  - Test utils: testUtil.ts (2)
+  - Pattern: console.error/log(err) → logError("context", err)
+  - Violations: 14 → 0 (100% coverage) ✅
+* **Tests**: +3 minimalist sanitization tests (errorLogging.test.ts)
+* **Validator**: CI passes ✅ - zero violations across 181 files
+* **Impact**: 100% users protected - all error logs sanitize credentials
+* **Phase 22 complete**: Security hardening done
+
 ## [2.17.128] (2025-11-12)
 
 ### Security: Migrate parsers to logError() (Phase 22.B.1) ✅

@@ -5,6 +5,7 @@ import * as path from "path";
 import * as tmp from "tmp";
 import { extensions, Uri, window } from "vscode";
 import { timeout } from "../util";
+import { logError } from "../util/errorLogger";
 
 tmp.setGracefulCleanup();
 
@@ -156,7 +157,7 @@ export async function destroyPath(fullPath: string) {
       break;
     } catch (error) {
       await timeout(3000);
-      console.error(error);
+      logError("Failed to remove directory", error);
     }
   }
   return true;
@@ -173,7 +174,7 @@ export function destroyAllTempPaths() {
     try {
       dir.removeCallback();
     } catch (error) {
-      console.error("Failed to remove temp directory:", error);
+      logError("Failed to remove temp directory", error);
     }
   }
 }

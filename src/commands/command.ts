@@ -28,6 +28,7 @@ import { Resource } from "../resource";
 import IncomingChangeNode from "../treeView/nodes/incomingChangeNode";
 import { fromSvnUri, toSvnUri } from "../uri";
 import { getSvnDir } from "../util";
+import { logError } from "../util/errorLogger";
 
 /**
  * Type-safe command argument patterns used across all commands.
@@ -486,7 +487,7 @@ export abstract class Command implements Disposable {
         e.insert(new Position(0, 0), content);
       });
     } catch (error) {
-      console.error(error);
+      logError("Patch operation failed", error);
       window.showErrorMessage("Unable to patch");
     }
   }
@@ -538,7 +539,7 @@ export abstract class Command implements Disposable {
           window.showInformationMessage(`File(s) is now being ignored`);
         }
       } catch (error) {
-        console.log(error);
+        logError("Property ignore operation failed", error);
         window.showErrorMessage("Unable to set property ignore");
       }
     });
@@ -571,7 +572,7 @@ export abstract class Command implements Disposable {
       try {
         await operation(repository, paths);
       } catch (error) {
-        console.log(error);
+        logError("Repository resource operation failed", error);
         window.showErrorMessage(errorMsg);
       }
     });
@@ -661,7 +662,7 @@ export abstract class Command implements Disposable {
     try {
       return await operation();
     } catch (error) {
-      console.log(error);
+      logError("Repository operation failed", error);
       const userMessage = this.formatErrorMessage(error, errorMsg);
       window.showErrorMessage(userMessage);
       return undefined;
@@ -686,7 +687,7 @@ export abstract class Command implements Disposable {
       try {
         await repository.revert(paths, depth);
       } catch (error) {
-        console.log(error);
+        logError("Revert operation failed", error);
         window.showErrorMessage("Unable to revert");
       }
     });

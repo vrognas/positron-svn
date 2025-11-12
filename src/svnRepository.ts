@@ -146,7 +146,7 @@ export class Repository {
       return hasEntries;
     } catch (err) {
       // If log fails, assume changes exist and fall back to full status
-      console.error("hasRemoteChanges failed, falling back to full status:", err);
+      logError("hasRemoteChanges failed, falling back to full status", err);
       return true;
     }
   }

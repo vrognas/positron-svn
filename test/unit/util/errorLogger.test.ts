@@ -1,6 +1,5 @@
 import * as assert from "assert";
 import { describe, it } from "mocha";
-import { logError } from "../../../src/util/errorLogger";
 
 /**
  * Error Logging Sanitization Tests (Phase 20.D)
@@ -12,11 +11,6 @@ describe("Security - Error logging sanitization (Phase 20.D)", () => {
    * Test 1: logError sanitizes credentials in error messages
    */
   it("logError sanitizes password in error message", () => {
-    const logs: string[] = [];
-    const mockConsole = {
-      error: (...args: any[]) => logs.push(args.join(" "))
-    };
-
     const error = new Error("Auth failed for user:pass@server.com");
 
     // Mock sanitization behavior

@@ -23,6 +23,7 @@ import { RemoteRepository } from "./remoteRepository";
 import { Repository } from "./repository";
 import { Svn, svnErrorCodes } from "./svn";
 import SvnError from "./svnError";
+import { logError } from "./util/errorLogger";
 import {
   anyEvent,
   dispose,
@@ -307,7 +308,7 @@ export class SourceControlManager implements IDisposable {
             return;
           }
         }
-        console.error(err);
+        logError("Repository scan failed", err);
       }
       return;
     }
@@ -521,7 +522,7 @@ export class SourceControlManager implements IDisposable {
       const result = await this.svn.exec(folderPath, ["upgrade"]);
       return result.exitCode === 0;
     } catch (e) {
-      console.log(e);
+      logError("Working copy upgrade failed", e);
     }
     return false;
   }
