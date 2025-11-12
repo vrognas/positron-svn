@@ -1,3 +1,22 @@
+## [2.17.115] (2025-11-12)
+
+### Docs: Multi-agent perf/bloat/tech-debt audit
+
+* **NEW P1 bottleneck identified**: Commit parent traversal (commit.ts:38-48)
+  - Impact: 80-100% users (every commit), 20-100ms overhead
+  - O(n×d) getResourceFromFile in while loop
+  - Highest user impact of all Phase 21 bottlenecks
+* **Plan consolidation**: IMPLEMENTATION_PLAN.md reduced to 2 critical phases only
+  - Phase 20: P0 stability/security (8-12h) - 3 bugs remain
+  - Phase 21: P1 performance (7-11h) - 4 bottlenecks (NEW commit traversal added)
+  - Removed future opportunities section (P2/P3 deferred)
+* **Bloat analysis**: 500-1000 lines removable
+  - Duplicate show/showBuffer: 95 lines
+  - Duplicate plainLog methods: 48 lines
+  - God classes: 200-350 line improvement potential
+* **Security audit**: 86% catch block gap (37 of 43 missing sanitization)
+* **Docs updated**: ARCHITECTURE_ANALYSIS.md v3.5, CLAUDE.md (removed DEV_WORKFLOW.md ref)
+
 ## [2.17.114] (2025-11-12)
 
 ### Fix: Watcher crash bug (Phase 20.A) ✅

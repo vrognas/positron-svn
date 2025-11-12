@@ -1,142 +1,97 @@
 # IMPLEMENTATION PLAN
 
-**Version**: v2.17.114
+**Version**: v2.17.115
 **Updated**: 2025-11-12
-**Status**: Phase 20 in progress (1/4 bugs fixed ✅). 3 CRITICAL P0 bugs remain.
+**Status**: Phase 20 active (1/4 bugs fixed ✅). Phase 21 validated w/ new finding.
 
 ---
 
 ## Phase 20: P0 Stability & Security 🔴 CRITICAL
 
-**Target**: v2.17.114-117
+**Target**: v2.17.115-118
 **Effort**: 8-12h
 **Impact**: Crashes eliminated, data races fixed, credential leaks prevented
 
 ### Critical Bugs
 
-**A. Watcher crash kills extension** ✅ FIXED (v2.17.114)
-- Location: `repositoryFilesWatcher.ts:59-67`
-- Issue: Uncaught error thrown → crashes extension
-- Fix: Graceful error logging, extension continues
-- Impact: 1-5% users protected (ENOENT, EACCES errors)
-- Tests: +3 tests verify stability
+**A. Watcher crash** ✅ FIXED (v2.17.114)
+- `repositoryFilesWatcher.ts:59-67`: Uncaught error → extension crash
+- Fix: Graceful logging
+- Impact: 1-5% users
 
 **B. Global state data race** (P0 - CRITICAL)
-- Location: `decorators.ts:119`, used in `repository.ts:469`
-- Issue: Shared `_seqList` object across all repo instances
-```typescript
-const _seqList: { [key: string]: any } = {};  // ❌ Global!
-@globalSequentialize("updateModelState")  // All repos share queue
-```
-- Impact: 30-40% users (multi-repo data corruption, race conditions)
-- Fix: Instance-level sequentialization or per-repo keys
+- `decorators.ts:119`, `repository.ts:469`: Shared `_seqList` across all repos
+- Impact: 30-40% users (multi-repo corruption, perf degradation)
 - Effort: 2-3h
 
 **C. Unsafe JSON.parse** (P0 - SECURITY)
-- Location: `repository.ts:808,819`
-- Issue: Credential parsing without try-catch
-```typescript
-const credentials = JSON.parse(secret);  // ❌ Crashes on corruption
-```
-- Impact: 5-10% users (malformed secrets crash extension)
-- Fix: Wrap in try-catch, validate schema
+- `repository.ts:808,819`, `uri.ts:11`: No try-catch on credential parsing
+- Impact: 5-10% users (crash on malformed secrets)
 - Effort: 1h
 
 **D. Sanitization gaps** (P0 - SECURITY)
-- Coverage: 10 sanitize calls vs 77 catch blocks (67 gaps!)
-- Issue: Error messages leak credentials in 30+ files
-- Impact: 100% users on error paths (credential disclosure)
-- Fix: Extract error handler utility, apply to all catch blocks
+- 43 catch blocks vs 6 sanitize calls (86% gap)
+- Impact: 100% users (credential disclosure on errors)
 - Effort: 4-7h
-
-### Metrics
 
 | Issue | Users | Severity | Effort |
 |-------|-------|----------|--------|
-| Watcher crash | 1-5% | Extension kill | 1h |
+| Watcher crash | 1-5% | Extension kill | DONE |
 | Global state race | 30-40% | Data corruption | 2-3h |
-| Unsafe JSON.parse | 5-10% | Extension crash | 1h |
+| Unsafe JSON.parse | 5-10% | Crash | 1h |
 | Sanitization gaps | 100% | Credential leak | 4-7h |
 
 ---
 
 ## Phase 21: P1 Performance Optimization ⚡
 
-**Target**: v2.17.118-120
-**Effort**: 5-8h
-**Impact**: 50-70% users, 2-5x faster status updates
+**Target**: v2.17.119-122
+**Effort**: 7-11h
+**Impact**: 50-100% users, 2-10x faster operations
 
 ### Bottlenecks
 
-**A. Quadratic descendant resolution** (P1)
-- Location: `StatusService.ts:217-223`
-- Issue: O(n*m) nested loop (100-500ms on 1000+ files)
-- Impact: 50-70% users
-- Fix: Build descendant set once, single iteration
+**A. Commit parent traversal** (P1 - NEW FINDING)
+- `commit.ts:38-48`: O(n×d) getResourceFromFile in while loop
+- Impact: 80-100% users (every commit operation)
+- Current: 20-100ms on deep trees
+- Fix: Cache parent lookups or flat map
 - Effort: 1-2h
 
-**B. Glob pattern matching** (P1)
-- Location: `StatusService.ts:292,350-358`
-- Issue: Per-item `matchAll()` calls (10-50ms on 500+ files)
-- Impact: 30-40% users
-- Fix: Pre-filter simple patterns, two-tier matching
+**B. Quadratic descendant resolution** (P1)
+- `StatusService.ts:217-223`: O(e×n) nested loop despite "fix" comment
+- Impact: 50-70% users (externals + 1000+ files)
+- Current: 100-500ms
+- Fix: Build descendant set once
+- Effort: 1-2h
+
+**C. Glob pattern matching** (P1)
+- `StatusService.ts:292,350-358`: Per-file matchAll() calls
+- Impact: 30-40% users (exclusion patterns + 500+ files)
+- Current: 10-50ms
+- Fix: Two-tier matching (simple first)
 - Effort: 2-3h
 
-**C. Batch operations** (P1)
-- Location: `svnRepository.ts:615-618`
-- Issue: No chunking for bulk ops (50-200ms overhead)
-- Impact: 20-30% users
-- Fix: Batch SVN commands (50 files/chunk)
+**D. Batch operations** (P1)
+- `svnRepository.ts:615-618`: No chunking for bulk add/revert
+- Impact: 20-30% users (100+ file operations)
+- Current: 50-200ms overhead
+- Fix: 50 files/chunk batching
 - Effort: 2-3h
 
-### Metrics
-
-| Metric | Current | Target |
-|--------|---------|--------|
-| Status update (1000 files) | 100-500ms | 20-100ms |
-| Glob filtering (500 files) | 10-50ms | 3-15ms |
-| Bulk add (100 files) | 50-200ms | 20-80ms |
-
----
-
-## Completed Phases ✅
-
-**Phase 18 (v2.17.108-109)**: UI Performance
-- Non-blocking progress (ProgressLocation.Notification)
-- CancellationToken support
-- Impact: UI freezes eliminated (2-5s → 0s)
-
-**Phase 19 (v2.17.106-107)**: Memory + Security
-- Info cache LRU (500 entry limit)
-- esbuild update (vuln fix)
-- Smart remote polling (95% faster)
-- Impact: Memory stable (<50MB vs 100-500MB/8h)
-
----
-
-## Future Opportunities (P2/P3)
-
-**Code Quality** (12-15h):
-- show/showBuffer duplication (139 lines, 90% identical)
-- util.ts split (336 lines → 3 modules)
-- Optional chaining (48 occurrences)
-
-**Type Safety** (80-120h):
-- 248 `any` types across 25 files
-- Decorator type definitions
-- Error type guards
-
-**Architecture** (16-20h):
-- Extract FileOperationsService
-- Extract DiffService
-- Repository god class (923L → 550L)
+| Bottleneck | Users | Current | Target | Effort |
+|------------|-------|---------|--------|--------|
+| Commit traversal | 80-100% | 20-100ms | 5-20ms | 1-2h |
+| Descendant resolution | 50-70% | 100-500ms | 20-100ms | 1-2h |
+| Glob matching | 30-40% | 10-50ms | 3-15ms | 2-3h |
+| Batch ops | 20-30% | 50-200ms | 20-80ms | 2-3h |
 
 ---
 
 ## Summary
 
-**P0 (Phase 20)**: 8-12h effort, CRITICAL (crashes, races, leaks)
-**P1 (Phase 21)**: 5-8h effort, high user impact (performance)
-**P2/P3**: 110-155h effort, lower priority
+**Phase 20**: 8-12h, CRITICAL (stability/security)
+**Phase 21**: 7-11h, HIGH (performance, 80-100% users affected)
+**Total**: 15-23h for complete P0/P1 resolution
 
-**Next action**: Phase 20 (Stability & Security) - MUST FIX FIRST
+**Next action**: Phase 20-B (global state race) - 2-3h

@@ -1,6 +1,6 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.114
+**Version**: 2.17.115
 **Updated**: 2025-11-12
 
 ---
@@ -15,8 +15,9 @@ Mature VS Code extension for SVN integration. Event-driven architecture, decorat
 - **Commands**: 50+ (27 refactored, 150 lines removed via factory pattern)
 - **Coverage**: ~50-55% (856 tests, +12 from Phases 18-19) ✅ TARGET REACHED
 - **Stability**: 🟡 1/4 P0 bugs fixed ✅, 3 remain (races, crashes, leaks)
-- **Performance**: ✅ P0 resolved. 3 P1 bottlenecks identified
-- **Security**: 🔴 67 sanitization gaps, unsafe JSON.parse
+- **Performance**: ✅ P0 resolved. 4 P1 bottlenecks identified (NEW: commit traversal)
+- **Security**: 🔴 37 unsanitized catch blocks, unsafe JSON.parse
+- **Bloat**: ~500-1000 lines removable (duplicate methods, god classes)
 
 ---
 
@@ -77,8 +78,8 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 - Fix: 1h
 
 ### Security Bugs
-**D. Sanitization gaps** (77 catch blocks, only 10 sanitize calls)
-- 67 catch blocks missing sanitization
+**D. Sanitization gaps** (43 catch blocks, only 6 sanitize calls)
+- 37 catch blocks missing sanitization (86% gap)
 - 100% users on error paths (credential disclosure)
 - Fix: 4-7h (extract error utility, apply to all catches)
 
@@ -92,9 +93,10 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 - ✅ **Remote polling**: FIXED (v2.17.107)
 
 ### P1 Issues
-**A. Quadratic descendant** (`StatusService.ts:217-223`): 50-70% users, 100-500ms, 1-2h
-**B. Glob matching** (`StatusService.ts:292,350-358`): 30-40% users, 10-50ms, 2-3h
-**C. Batch ops** (`svnRepository.ts:615-618`): 20-30% users, 50-200ms, 2-3h
+**A. Commit traversal** (`commit.ts:38-48`): 80-100% users, 20-100ms, 1-2h (NEW)
+**B. Quadratic descendant** (`StatusService.ts:217-223`): 50-70% users, 100-500ms, 1-2h
+**C. Glob matching** (`StatusService.ts:292,350-358`): 30-40% users, 10-50ms, 2-3h
+**D. Batch ops** (`svnRepository.ts:615-618`): 20-30% users, 50-200ms, 2-3h
 
 ---
 
@@ -183,5 +185,5 @@ See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.4
-**Updated**: 2025-11-12 (v2.17.114)
+**Version**: 3.5
+**Updated**: 2025-11-12 (v2.17.115)
