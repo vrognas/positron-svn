@@ -31,6 +31,7 @@ import {
   normalizePath,
   unwrap
 } from "./util";
+import { logError } from "./util/errorLogger";
 import { matchAll } from "./util/globMatch";
 import { parseDiffXml } from "./parser/diffParser";
 import {
@@ -84,7 +85,7 @@ export class Repository {
     try {
       this._info = await parseInfoXml(result.stdout);
     } catch (err) {
-      console.error(`Failed to parse repository info for ${this.workspaceRoot}:`, err);
+      logError(`Failed to parse repository info for ${this.workspaceRoot}`, err);
       throw new Error(`Repository info unavailable: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   }
@@ -193,7 +194,7 @@ export class Repository {
     try {
       status = await parseStatusXml(result.stdout);
     } catch (err) {
-      console.error(`Failed to parse status XML for ${this.workspaceRoot}:`, err);
+      logError(`Failed to parse status XML for ${this.workspaceRoot}`, err);
       throw new Error(`Status update failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
 
@@ -276,7 +277,7 @@ export class Repository {
     try {
       info = await parseInfoXml(result.stdout);
     } catch (err) {
-      console.error(`Failed to parse info XML for ${file}:`, err);
+      logError(`Failed to parse info XML for ${file}`, err);
       throw new Error(`File info unavailable for ${file}: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
 
@@ -617,13 +618,21 @@ export class Repository {
     return this.exec(["add", "--depth=empty", ...files]);
   }
 
-  public addFiles(files: string[]) {
+  public async addFiles(files: string[]) {
     const ignoreList = configuration.get<string[]>("sourceControl.ignore");
     if (ignoreList.length > 0) {
       return this.addFilesByIgnore(files, ignoreList);
     }
     files = files.map(file => this.removeAbsolutePath(file));
-    return this.exec(["add", ...files]);
+
+    // Phase 21.D: Adaptive batching for large file sets
+    const { executeBatched } = await import("./util/batchOperations");
+    const results = await executeBatched(files, async (chunk) => {
+      return this.exec(["add", ...chunk]);
+    });
+
+    // Combine results - return last non-empty stdout
+    return results.reverse().find(r => r.stdout)?.stdout || "";
   }
 
   public addChangelist(files: string[], changelist: string) {
@@ -798,8 +807,15 @@ export class Repository {
 
   public async revert(files: string[], depth: keyof typeof SvnDepth) {
     files = files.map(file => this.removeAbsolutePath(file));
-    const result = await this.exec(["revert", "--depth", depth, ...files]);
-    return result.stdout;
+
+    // Phase 21.D: Adaptive batching for large file sets
+    const { executeBatched } = await import("./util/batchOperations");
+    const results = await executeBatched(files, async (chunk) => {
+      return this.exec(["revert", "--depth", depth, ...chunk]);
+    });
+
+    // Combine results - return last non-empty stdout
+    return results.reverse().find(r => r.stdout)?.stdout || "";
   }
 
   public async update(ignoreExternals: boolean = true): Promise<string> {
@@ -1026,7 +1042,7 @@ export class Repository {
 
       currentIgnore = currentIgnoreResult.stdout.trim();
     } catch (error) {
-      console.error(error);
+      logError("Merge operation failed", error);
     }
 
     const ignores = currentIgnore.split(/[\r\n]+/);

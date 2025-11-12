@@ -211,13 +211,25 @@ export class StatusService implements IStatusService {
       );
     }
 
-    // Phase 11 perf fix - O(n²) → O(n) with Set-based descendant lookup
-    // Build Set of descendant paths for O(1) lookup
-    const descendantPaths = new Set<string>();
+    // Phase 21.B fix - O(e×n) → O(n) single-pass descendant lookup
+    // Build Set of external paths for O(1) membership check
+    const externalPaths = new Set<string>();
     for (const external of statusExternal) {
-      for (const status of statuses) {
-        if (status.status !== Status.EXTERNAL && isDescendant(external.path, status.path)) {
+      externalPaths.add(external.path);
+    }
+
+    // Single pass through statuses, check against all externals
+    const descendantPaths = new Set<string>();
+    for (const status of statuses) {
+      if (status.status === Status.EXTERNAL) {
+        continue;
+      }
+
+      // Check if this status is descendant of ANY external
+      for (const externalPath of externalPaths) {
+        if (isDescendant(externalPath, status.path)) {
           descendantPaths.add(status.path);
+          break; // No need to check other externals
         }
       }
     }

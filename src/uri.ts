@@ -6,9 +6,21 @@ import {
   SvnUriAction
 } from "./common/types";
 import { getSvnDir } from "./util";
+import { logError } from "./util/errorLogger";
 
 export function fromSvnUri(uri: Uri): ISvnUriParams {
-  return JSON.parse(uri.query);
+  // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed URI queries
+  try {
+    return JSON.parse(uri.query);
+  } catch (error) {
+    logError("Failed to parse SVN URI query", error);
+    // Return safe default params to prevent extension crash
+    return {
+      action: SvnUriAction.SHOW,
+      fsPath: "",
+      extra: {}
+    };
+  }
 }
 
 export function toSvnUri(

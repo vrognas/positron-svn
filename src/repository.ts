@@ -54,6 +54,7 @@ import {
   isReadOnly,
   timeout
 } from "./util";
+import { logError } from "./util/errorLogger";
 import { match } from "./util/globMatch";
 import { RepositoryFilesWatcher } from "./watchers/repositoryFilesWatcher";
 
@@ -526,6 +527,15 @@ export class Repository implements IRemoteRepository {
     return this.groupManager.getResourceFromFile(uri);
   }
 
+  /**
+   * Get flat resource map for batch operations (Phase 21.A perf)
+   * Avoids repeated URI conversion overhead in hot loops
+   * @returns Map of file paths to resources
+   */
+  public getResourceMap(): Map<string, Resource> {
+    return this.groupManager.getResourceMap();
+  }
+
   public provideOriginalResource(uri: Uri): Uri | undefined {
     if (uri.scheme !== "file") {
       return;
@@ -805,9 +815,14 @@ export class Repository implements IRemoteRepository {
       return [];
     }
 
-    const credentials = JSON.parse(secret) as Array<IStoredAuth>;
-
-    return credentials;
+    // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed secrets
+    try {
+      const credentials = JSON.parse(secret) as Array<IStoredAuth>;
+      return credentials;
+    } catch (error) {
+      logError("Failed to parse stored credentials", error);
+      return [];
+    }
   }
 
   public async saveAuth(): Promise<void> {
@@ -815,8 +830,14 @@ export class Repository implements IRemoteRepository {
       const secret = await this.secrets.get(this.getCredentialServiceName());
       let credentials: Array<IStoredAuth> = [];
 
+      // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed secrets
       if (typeof secret === "string") {
-        credentials = JSON.parse(secret) as Array<IStoredAuth>;
+        try {
+          credentials = JSON.parse(secret) as Array<IStoredAuth>;
+        } catch (error) {
+          logError("Failed to parse stored credentials", error);
+          credentials = [];
+        }
       }
 
       credentials.push({

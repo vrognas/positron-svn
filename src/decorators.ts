@@ -123,11 +123,14 @@ export function globalSequentialize(
 ): (_target: any, key: string, descriptor: any) => void {
   return decorate((fn, _key) => {
     return function (this: any, ...args: any[]) {
+      // Phase 20.B fix: Use per-repo keys to prevent multi-repo race conditions
+      // Append repo root if available, ensuring each repo has independent queue
+      const repoKey = this.root ? `${name}:${this.root}` : name;
       const currentPromise =
-        (_seqList[name] as Promise<any>) || Promise.resolve(null);
+        (_seqList[repoKey] as Promise<any>) || Promise.resolve(null);
       const run = async () => fn.apply(this, args);
-      _seqList[name] = currentPromise.then(run, run);
-      return _seqList[name];
+      _seqList[repoKey] = currentPromise.then(run, run);
+      return _seqList[repoKey];
     };
   });
 }

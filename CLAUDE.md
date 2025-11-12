@@ -3,7 +3,7 @@
   Write minimalist tests. Don't overdo it - about three general end-to-end tests per implementation is enough.
 - Commit often, with small and focused commits.
 - Update the version number and the changelog with every commit.
-- For every commit, go over `CLAUDE.md`, `ARCHITECTURE_ANALYSIS.md`, `DEV_WORKFLOW.md`, and `LESSONS_LEARNED.md` to see if everything is up-to-date.
+- For every commit, go over `CLAUDE.md`, `ARCHITECTURE_ANALYSIS.md`, and `LESSONS_LEARNED.md` to see if everything is up-to-date.
 - For simple queries, use under five tool calls, but for more complex queries you can use up to 15 tool calls.
 
 ## Architecture
