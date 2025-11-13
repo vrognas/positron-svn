@@ -56,7 +56,7 @@ export class DiffWithTortoiseSvn extends Command {
       console.log(`Launching TortoiseSVN: "${tortoiseProcPath}" /command:diff /path:"${filePath}"`);
 
       const child = spawn(
-        tortoiseProcPath,
+        `"${tortoiseProcPath}"`,
         ["/command:diff", `/path:"${filePath}"`],
         {
           detached: true,
