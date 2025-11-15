@@ -68,7 +68,7 @@ export class DiffWithExternalTool extends Command {
       await diffWithExternalTool(
         repository.workspaceRoot,
         filePath,
-        repository.exec.bind(repository)
+        sourceControlManager.svn.exec.bind(sourceControlManager.svn)
       );
 
     } catch (error) {

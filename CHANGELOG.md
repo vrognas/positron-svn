@@ -1,3 +1,12 @@
+## [2.17.150] (2025-11-16)
+
+### Fix: Diff external tool - exec binding error
+
+* **CHANGES view**: Fix undefined exec error
+  - Changed repository.exec to sourceControlManager.svn.exec
+  - Resolves "Cannot read properties of undefined (reading 'bind')"
+* **File**: src/commands/diffWithExternalTool.ts
+
 ## [2.17.149] (2025-11-16)
 
 ### Add: Repo context menu - Reveal & Diff 🚀
