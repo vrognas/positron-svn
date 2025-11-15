@@ -1,7 +1,7 @@
 # Lessons Learned
 
-**Version**: v2.17.134
-**Updated**: 2025-11-12
+**Version**: v2.17.137
+**Updated**: 2025-11-15
 
 ---
 
@@ -57,7 +57,16 @@
 - Zero functionality changes
 - Can swap parser again in future
 
+**Critical Fix** (v2.17.137):
+- Bug: Revision expansion failed - `textNodeName` was `#text` not `_`
+- Root cause: fast-xml-parser uses different defaults than xml2js
+- xml2js: text nodes → `_` (when mergeAttrs: true)
+- fast-xml-parser: text nodes → configurable via `textNodeName`
+- Fix: Set `textNodeName: "_"` to match xml2js behavior
+- Test gap: No test verified `_` property, only attributes
+
 **Rule**: De-risk migrations with adapters + incremental rollout.
+**Rule**: Test text content extraction, not just attributes.
 
 ---
 
