@@ -1,3 +1,14 @@
+## [2.17.138] (2025-11-15)
+
+### Test: E2E revision expansion coverage ✅
+
+* **Added E2E test**: Full integration test for revision expansion
+  - File: test/unit/historyView/repoLogProvider.test.ts
+  - Tests: XML → parser → path.basename/dirname (crash points)
+  - Coverage: Multiple paths, empty commits, special characters
+  - Validates: pathElem._ accessible throughout flow
+* **Updated comment**: util.ts - fixed outdated #text reference
+
 ## [2.17.137] (2025-11-15)
 
 ### Fix: Revision expansion - path content parsing 🐛
