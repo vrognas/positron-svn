@@ -74,4 +74,30 @@ suite("LogParser", () => {
     assert.strictEqual(Array.isArray(result[0].paths), true);
     assert.strictEqual(result[0].paths.length, 0);
   });
+
+  test("parses path content (_) correctly", async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<log>
+  <logentry revision="126">
+    <author>testuser</author>
+    <date>2025-11-15T10:00:00.000000Z</date>
+    <msg>Test path content</msg>
+    <paths>
+      <path kind="file" action="M">/trunk/src/file.txt</path>
+      <path kind="dir" action="A">/trunk/newdir</path>
+    </paths>
+  </logentry>
+</log>`;
+
+    const result = await parseSvnLog(xml);
+
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].paths.length, 2);
+    assert.strictEqual(result[0].paths[0]._, "/trunk/src/file.txt");
+    assert.strictEqual(result[0].paths[0].action, "M");
+    assert.strictEqual(result[0].paths[0].kind, "file");
+    assert.strictEqual(result[0].paths[1]._, "/trunk/newdir");
+    assert.strictEqual(result[0].paths[1].action, "A");
+    assert.strictEqual(result[0].paths[1].kind, "dir");
+  });
 });

@@ -43,7 +43,7 @@ export class XmlParserAdapter {
     return new XMLParser({
       ignoreAttributes: false,
       attributeNamePrefix: "@_",
-      textNodeName: "#text",
+      textNodeName: "_",
       ignoreDeclaration: true,
       trimValues: true,
       parseAttributeValue: false,
@@ -122,7 +122,7 @@ export class XmlParserAdapter {
         // Merge attribute into parent (strip @_ prefix)
         const attrName = key.substring(2);
         result[attrName] = obj[key];
-      } else if (key === "#text") {
+      } else if (key === "_") {
         hasTextNode = true;
         textNodeValue = obj[key];
       } else {
@@ -135,9 +135,9 @@ export class XmlParserAdapter {
       return textNodeValue;
     }
 
-    // If text node exists with other properties, keep it as #text
+    // If text node exists with other properties, keep it as _
     if (hasTextNode) {
-      result["#text"] = textNodeValue;
+      result["_"] = textNodeValue;
     }
 
     return result;

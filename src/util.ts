@@ -166,7 +166,7 @@ export function camelcase(name: string) {
   }
 
   // Security: Validate character set (allow @, #, . for XML parser compatibility)
-  // @ for attribute prefix (@_), # for text nodes (#text), . for XML tag names
+  // @ for attribute prefix (@_), _ for text nodes (underscore), . for XML tag names
   if (!/^[a-zA-Z0-9_\-\s@#.:]+$/.test(name)) {
     throw new Error('Invalid characters in tag name');
   }

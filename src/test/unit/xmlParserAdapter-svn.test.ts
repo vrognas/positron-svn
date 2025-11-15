@@ -192,8 +192,8 @@ suite("XmlParserAdapter - SVN XML Compatibility", () => {
     assert.strictEqual(result.paths.path.props, "none");
     assert.strictEqual(result.paths.path.kind, "file");
     assert.strictEqual(result.paths.path.item, "modified");
-    // Text content stored in #text
-    assert.strictEqual(result.paths.path["#text"], "/trunk/test.txt");
+    // Text content stored in _
+    assert.strictEqual(result.paths.path._, "/trunk/test.txt");
   });
 
   test("handles boolean-like string attributes", () => {

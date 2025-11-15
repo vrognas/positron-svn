@@ -153,7 +153,7 @@ suite("XmlParserAdapter", () => {
     });
 
     assert.strictEqual(result.paths.path.kind, "file");
-    assert.strictEqual(result.paths.path["#text"], "/trunk/file.txt");
+    assert.strictEqual(result.paths.path._, "/trunk/file.txt");
   });
 
   test("combined options (mergeAttrs + camelcase + explicitArray)", () => {
@@ -180,6 +180,6 @@ suite("XmlParserAdapter", () => {
     assert.strictEqual(result.log.logentry.msg, "Test commit");
     assert.strictEqual(result.log.logentry.paths.path.kind, "file");
     assert.strictEqual(result.log.logentry.paths.path.action, "M");
-    assert.strictEqual(result.log.logentry.paths.path["#text"], "/trunk/file.txt");
+    assert.strictEqual(result.log.logentry.paths.path._, "/trunk/file.txt");
   });
 });
