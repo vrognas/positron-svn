@@ -62,6 +62,16 @@ export async function diffWithExternalTool(
     throw error;
   }
 
+  // Security: Reject UNC paths on Windows to prevent remote code execution
+  if (process.platform === "win32" && diffToolPath.startsWith("\\\\")) {
+    const error = new Error(
+      `UNC paths not allowed for security: ${diffToolPath}`
+    );
+    logError("UNC path rejected", error);
+    window.showErrorMessage(error.message);
+    throw error;
+  }
+
   // Validate tool exists
   if (!(await exists(diffToolPath))) {
     const error = new Error(`External diff tool not found at: ${diffToolPath}`);

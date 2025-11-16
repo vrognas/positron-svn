@@ -21,7 +21,8 @@
       "Bash(git log:*)",
       "Bash(node build.js:*)",
       "Bash(npx eslint:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

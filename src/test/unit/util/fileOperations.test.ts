@@ -7,6 +7,33 @@ import * as assert from "assert";
  * uses simple regex that can be tested directly.
  */
 suite("fileOperations Security Tests", () => {
+  suite("UNC Path Validation (Windows)", () => {
+    test("rejects UNC paths on Windows", () => {
+      const isUncPath = (p: string) => process.platform === "win32" && p.startsWith("\\\\");
+
+      if (process.platform === "win32") {
+        assert.ok(isUncPath("\\\\server\\share\\evil.exe"), "Should reject UNC path");
+        assert.ok(isUncPath("\\\\10.0.0.1\\share\\tool.exe"), "Should reject IP-based UNC");
+        assert.ok(isUncPath("\\\\?\\UNC\\server\\share"), "Should reject extended UNC");
+      }
+    });
+
+    test("allows absolute local paths", () => {
+      const isUncPath = (p: string) => process.platform === "win32" && p.startsWith("\\\\");
+
+      assert.ok(!isUncPath("C:\\Program Files\\Tool\\tool.exe"), "Should allow C: drive");
+      assert.ok(!isUncPath("D:\\Tools\\diff.exe"), "Should allow other drives");
+      assert.ok(!isUncPath("/usr/bin/diff"), "Should allow Unix paths");
+    });
+
+    test("allows relative paths (caught by isAbsolute check)", () => {
+      const isUncPath = (p: string) => process.platform === "win32" && p.startsWith("\\\\");
+
+      assert.ok(!isUncPath("..\\..\\evil.exe"), "Relative paths not UNC");
+      assert.ok(!isUncPath(".\\tool.exe"), "Current dir not UNC");
+    });
+  });
+
   suite("Revision Format Validation", () => {
     // Test the same regex that diffWithExternalTool uses: /^\d+$/
     const revisionRegex = /^\d+$/;

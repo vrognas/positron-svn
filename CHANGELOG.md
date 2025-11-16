@@ -1,3 +1,12 @@
+## [2.17.155] (2025-11-16)
+
+### Add: Security - UNC path rejection for Windows
+
+* **Security**: Reject UNC paths (\\\\server\\share) on Windows
+* **Protection**: Prevent remote code execution via diff tool config
+* **Testing**: 3 tests for UNC validation logic
+* **File**: src/util/fileOperations.ts, src/test/unit/util/fileOperations.test.ts
+
 ## [2.17.154] (2025-11-16)
 
 ### Add: Security test coverage - revision validation

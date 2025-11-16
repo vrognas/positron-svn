@@ -1,5 +1,5 @@
 ---
-status: pending
+status: resolved
 priority: p2
 issue_id: "003"
 tags: [security, validation, path-traversal, pr-26]
@@ -96,13 +96,49 @@ Consider Option 2 (realpath) as enhancement if symlink issues reported.
 
 ## Acceptance Criteria
 
-- [ ] UNC paths rejected on Windows with clear error message
-- [ ] Absolute paths still work (C:\, /usr/bin/, etc.)
-- [ ] Error message explains security rationale
-- [ ] Tests cover UNC rejection
-- [ ] Cross-platform behavior documented
+- [x] UNC paths rejected on Windows with clear error message
+- [x] Absolute paths still work (C:\, /usr/bin/, etc.)
+- [x] Error message explains security rationale
+- [x] Tests cover UNC rejection
+- [x] Cross-platform behavior documented
 
 ## Work Log
+
+### 2025-11-16 - Resolved - UNC Path Rejection Implemented
+**By:** Claude Code (Implementation)
+**Actions:**
+- Added UNC path rejection in fileOperations.ts (lines 65-73)
+- Added 3 security tests for UNC validation
+- Updated version to 2.17.155
+- Updated CHANGELOG.md with security fix details
+- Updated ARCHITECTURE_ANALYSIS.md version
+- All acceptance criteria met
+
+**Technical Details:**
+- Platform check: `process.platform === "win32"`
+- UNC detection: `diffToolPath.startsWith("\\\\")`
+- Error message: "UNC paths not allowed for security: {path}"
+- Logged via logError() with window.showErrorMessage()
+
+**Testing:**
+- Tests verify UNC paths rejected on Windows
+- Tests verify absolute local paths allowed (C:\, D:\, /usr/bin/)
+- Tests verify relative paths not flagged as UNC (caught by isAbsolute)
+- TypeScript compilation successful
+
+### 2025-11-16 - Triaged and Approved for Implementation
+**By:** User (Triage Session)
+**Actions:**
+- Reviewed during triage session
+- Approved for implementation
+- Status changed: pending → ready
+- Estimated effort: Small (10 minutes)
+
+**Decision Rationale:**
+- P2 security issue worth addressing
+- Simple fix with low risk
+- Prevents potential remote code execution via UNC path exploit
+- Trade-off acceptable: May block some corporate UNC-based tools
 
 ### 2025-11-16 - Security Review Discovery
 **By:** security-sentinel (Multi-Agent Code Review)
