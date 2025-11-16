@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.153",
+    "version": "2.17.154",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -1119,7 +1119,10 @@
                     "default": true
                 },
                 "svn.diff.tool": {
-                    "type": ["string", "null"],
+                    "type": [
+                        "string",
+                        "null"
+                    ],
                     "description": "Path to external diff tool (e.g., 'C:\\\\Program Files\\\\Beyond Compare 5\\\\BCompare.exe'). Command uses svn diff --diff-cmd.",
                     "default": null,
                     "scope": "machine"

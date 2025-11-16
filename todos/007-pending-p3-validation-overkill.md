@@ -1,9 +1,11 @@
 ---
-status: pending
+status: skipped
 priority: p3
 issue_id: "007"
 tags: [code-simplicity, validation, overkill, pr-26]
 dependencies: []
+skipped_date: 2025-11-16
+skipped_reason: "Conflicts with security hardening (003, 004) - defense-in-depth preferred"
 ---
 
 # Validation Overkill in fileOperations.ts

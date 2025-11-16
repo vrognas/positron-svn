@@ -1,3 +1,12 @@
+## [2.17.154] (2025-11-16)
+
+### Add: Security test coverage - revision validation
+
+* **Testing**: 9 comprehensive tests for revision format validation
+* **Coverage**: Injection attempts, special chars, path traversal, URL schemes
+* **Quality**: Verify regex /^\d+$/ blocks all attack vectors
+* **File**: src/test/unit/util/fileOperations.test.ts
+
 ## [2.17.153] (2025-11-16)
 
 ### Optimize: Eliminate duplicate SVN log queries

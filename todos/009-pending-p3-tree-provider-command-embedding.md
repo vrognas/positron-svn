@@ -1,9 +1,11 @@
 ---
-status: pending
+status: skipped
 priority: p3
 issue_id: "009"
 tags: [architecture, separation-of-concerns, tree-provider, pr-26]
 dependencies: []
+skipped_date: 2025-11-16
+skipped_reason: "Pragmatic embedding acceptable - extracting adds complexity without clear benefit"
 ---
 
 # Architecture: Tree Provider Command Logic Embedding

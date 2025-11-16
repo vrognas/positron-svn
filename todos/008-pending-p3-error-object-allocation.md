@@ -1,9 +1,11 @@
 ---
-status: pending
+status: skipped
 priority: p3
 issue_id: "008"
 tags: [performance, optimization, hot-path, pr-26]
 dependencies: []
+skipped_date: 2025-11-16
+skipped_reason: "Premature optimization - validation failures are exceptional cases, not hot path"
 ---
 
 # Performance: Error Object Allocation in Hot Path
