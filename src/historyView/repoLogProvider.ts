@@ -307,20 +307,29 @@ export class RepoLogProvider
     try {
       const commit = element.data as ISvnLogEntryPath;
       const item = this.getCached(element);
-      const pathInfo = item.repo.getPathNormalizer().parse(commit._);
+      const parent = (element.parent as ILogTreeItem).data as ISvnLogEntry;
+      const remotePath = item.repo
+        .getPathNormalizer()
+        .parse(commit._).remoteFullPath;
 
-      // Require local path for diff
-      if (!pathInfo.localFullPath) {
-        window.showWarningMessage("File not available locally for diff");
+      // Get previous revision for this file
+      const revs = await item.repo.log(parent.revision, "1", 2, remotePath);
+
+      if (revs.length !== 2) {
+        window.showWarningMessage("Cannot find previous commit for diff");
         return;
       }
 
-      // Get SourceControlManager for SVN exec
+      const prevRev = revs[1];
+
+      // Diff between previous and current revision
       const scm = this.sourceControlManager;
       await diffWithExternalTool(
-        pathInfo.localFullPath.fsPath,
-        pathInfo.localFullPath.fsPath,
-        scm.svn.exec.bind(scm.svn)
+        item.repo instanceof Repository ? item.repo.workspaceRoot : "",
+        remotePath.toString(),
+        scm.svn.exec.bind(scm.svn),
+        prevRev.revision,
+        parent.revision
       );
     } catch (error) {
       logError("Failed to open external diff", error);

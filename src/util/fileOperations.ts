@@ -24,13 +24,17 @@ export async function revealFileInOS(fsPath: string | Uri): Promise<void> {
 /**
  * Open file with external diff tool using SVN's --diff-cmd
  * @param workspaceRoot Workspace root path
- * @param filePath Absolute file system path
+ * @param filePath Absolute file system path or remote URL
  * @param svnExec SVN exec function (repository.exec for Repository or sourceControlManager.svn.exec for RemoteRepository)
+ * @param oldRevision Optional: old revision for historical diff (e.g., "123")
+ * @param newRevision Optional: new revision for historical diff (e.g., "124")
  */
 export async function diffWithExternalTool(
   workspaceRoot: string,
   filePath: string,
-  svnExec: (cwd: string, args: string[]) => Promise<any>
+  svnExec: (cwd: string, args: string[]) => Promise<any>,
+  oldRevision?: string,
+  newRevision?: string
 ): Promise<void> {
   // Read external diff tool configuration
   const config = workspace.getConfiguration("svn");
@@ -51,12 +55,17 @@ export async function diffWithExternalTool(
   }
 
   try {
+    const args = ["diff", `--diff-cmd=${diffToolPath}`];
+
+    // Add revision range if provided
+    if (oldRevision && newRevision) {
+      args.push(`-r${oldRevision}:${newRevision}`);
+    }
+
+    args.push(filePath);
+
     // Call svn diff with --diff-cmd pointing to external tool
-    await svnExec(workspaceRoot, [
-      "diff",
-      `--diff-cmd=${diffToolPath}`,
-      filePath
-    ]);
+    await svnExec(workspaceRoot, args);
   } catch (error) {
     logError("Failed to launch external diff", error);
     throw error;

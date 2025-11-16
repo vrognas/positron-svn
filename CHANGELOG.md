@@ -1,3 +1,16 @@
+## [2.17.151] (2025-11-16)
+
+### Update: Repo diff - revision-based external diff
+
+* **REPOSITORIES view**: Diff between revisions, not working copy
+  - Added revision params to diffWithExternalTool()
+  - Get previous revision via log query (matches IDE diff)
+  - Args: `-r{oldRev}:{newRev}` for historical diffs
+* **CHANGES view**: Unchanged - still working copy diff
+* **Files**:
+  - src/util/fileOperations.ts
+  - src/historyView/repoLogProvider.ts
+
 ## [2.17.150] (2025-11-16)
 
 ### Fix: Diff external tool - exec binding error
