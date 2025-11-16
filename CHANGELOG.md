@@ -1,3 +1,15 @@
+## [2.17.156] (2025-11-16)
+
+### Update: Architecture review & implementation plan
+
+* **Analysis**: Multi-agent architecture, performance, bloat, tech debt review
+* **Planning**: Updated IMPLEMENTATION_PLAN.md - 2 critical phases
+  - Phase 22: Type Safety Audit (8-12h) - 248+ `any` types
+  - Phase 23: Architecture Refactoring (10-15h) - God classes
+* **Cleanup**: Resolved TODOs removed/renamed (001-005, 010)
+* **Deferred**: Performance opt, Positron integration, code bloat (P2)
+* **Files**: IMPLEMENTATION_PLAN.md, todos/
+
 ## [2.17.155] (2025-11-16)
 
 ### Add: Security - UNC path rejection for Windows

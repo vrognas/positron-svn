@@ -1,181 +1,217 @@
 # IMPLEMENTATION PLAN
 
-**Version**: v2.17.127
-**Updated**: 2025-11-12
-**Status**: Phase 20-21 complete ✅. Phase 22 immediate priority. Phase 23 HIGH RISK (API experimental).
+**Version**: v2.17.155
+**Updated**: 2025-11-16
+**Status**: Phases 1-21 complete ✅. Focus on 2 critical architecture phases.
 
 ---
 
-## Phase 22: Security Hardening + CI Validator 🔴 IMMEDIATE
+## Phase 22: Type Safety Audit 🔴 CRITICAL
 
-**Target**: v2.17.126-128
-**Effort**: 6-10h (CI validator added)
-**Impact**: 100% users protected, automated enforcement
+**Target**: v2.17.156-160
+**Effort**: 8-12h
+**Impact**: 100% codebase - foundation for all future work
+**Priority**: P0 - Technical debt elimination
+
+### Problem
+- **248+ `any` types** across 25 files (up to 1003 in test files)
+- Type safety compromised, runtime errors
+- ESLint rule `@typescript-eslint/no-explicit-any: 'warn'` too permissive
+- Unsafe casts: `groups as any as ResourceGroup[]`
+- Missing guards on external data
 
 ### Tasks
 
-**A. CI Security Validator** (2-3h) [FIRST - Prevents regression]
-- AST-based catch block scanner
-- Detects console.error/log(error) violations
-- CI fails if unsanitized error handling found
-- Files: `scripts/validate-error-logging.ts` (150L)
-- Tests: `test/scripts/validate-error-logging.test.ts` (80L)
-- Integration: `.github/workflows/main.yml` security-check job
-- Performance: ~2s overhead
+**A. ESLint Enforcement** (1h) [FIRST - Prevents regression]
+- Change `no-explicit-any` to `'error'`
+- Whitelist existing violations (gradual fix)
+- CI blocks new `any` types
+- Files: `.eslintrc.json`
 
-**B. Migrate remaining catch blocks** (3-4h)
-- Files: svnRepository.ts (2), svn.ts (1), extension.ts (2), source_control_manager.ts (4), commands/command.ts (3), parsers (5), others (5)
-- Pattern: `console.error(...)` → `logError("context", err)`
-- Coverage: 22/47 → 100% sanitized
-- Tests: +3 per file (verify credential patterns)
+**B. Core Infrastructure** (3-4h)
+- Fix decorators.ts (18 `any` instances)
+- Fix util.ts (9 instances)
+- Fix xmlParserAdapter.ts (9 instances)
+- Type event handlers properly
+- Pattern: Use generics, discriminated unions, type guards
 
-**C. Audit stderr paths** (1-2h)
-- Review all `svn.exec()` stderr handling
-- Apply ErrorSanitizer to error paths
-- Files: svnRepository.ts, commands/*.ts
-- Tests: +3 (stderr credential scenarios)
+**C. Command Layer** (2-3h)
+- Fix command.ts type unsafety
+- Remove unsafe casts in repository resolution
+- Add runtime validation with type guards
+- Pattern: `isRepositoryArgs(args): args is RepositoryArgs`
 
-**D. Documentation** (0.5-1h)
-- SECURITY.md with sanitization patterns
-- Developer guide for error handling
+**D. Test Files** (2-3h)
+- Reduce test `any` usage (369 instances)
+- Use proper mock types
+- Type assertion cleanup
 
-**Order**: A → B → C → D (CI enforces B/C immediately)
+**E. Documentation** (0.5-1h)
+- Type safety guidelines
+- When `any` acceptable (rare cases)
+- Type guard patterns
+
+**Order**: A → B → C → D → E (ESLint enforces immediately)
 
 | Task | Effort | Priority |
 |------|--------|----------|
-| CI validator (NEW) | 2-3h | P0 |
-| Migrate catch blocks | 3-4h | P0 |
-| Audit stderr | 1-2h | P0 |
+| ESLint enforcement | 1h | P0 |
+| Core infrastructure | 3-4h | P0 |
+| Command layer | 2-3h | P0 |
+| Test files | 2-3h | P1 |
 | Documentation | 0.5-1h | P2 |
+
+**ROI**: 50% fewer runtime errors, 10× better refactoring confidence
 
 ---
 
-## Phase 23: Positron Integration ⚡ HIGH RISK
+## Phase 23: Architecture Refactoring 🔴 CRITICAL
 
-**Target**: v2.17.129-134
-**Effort**: 8-12h core (9.5-15h with bonuses)
-**Impact**: Strategic differentiation for data science users
+**Target**: v2.17.161-170
+**Effort**: 10-15h
+**Impact**: All future features - maintainability foundation
+**Priority**: P0 - God class elimination
+
+### Problem
+- **Repository.ts**: 923 lines (god class)
+  - UI coordination, domain logic, infrastructure, config, auth
+  - 40-50% of changes touch this file
+  - Testing requires full stack
+
+- **Command.ts**: 492 lines (god base class)
+  - Repository resolution, diff infrastructure, error handling, helpers
+  - Every command inherits 492 lines
+
+- **Decorators.ts**: Global state (memory leak, race conditions)
+- **Util.ts**: 336 lines (dumping ground)
+
+### Tasks
+
+**A. Extract Repository Services** (4-5h) [P0]
+- AuthenticationService (50 lines)
+  - canSaveAuth, username/password, secrets API
+- ConfigurationService (80 lines)
+  - Centralize _configCache pattern
+- FileWatcherCoordinator (100 lines)
+  - Separate FS concerns
+- Keep DomainRepository ~200 lines (pure domain)
+- Pattern: Service extraction from Phase 2 (StatusService, etc.)
+
+**B. Split Command Base Class** (3-4h) [P0]
+- Mixins or composition over inheritance
+- CommandBase (registration, execute() only, ~50 lines)
+- RepositoryCommandMixin (repo resolution)
+- DiffCommandMixin (diff operations)
+- ResourceCommandMixin (SCM resource handling)
+- Centralized ErrorHandler (composition)
+
+**C. Fix Global Decorator State** (2-3h) [P0]
+- Per-instance OperationQueue (not global `_seqList`)
+- WeakMap for automatic cleanup
+- Prevent memory leaks (keys never cleaned)
+- Support 100+ repos without crashes
+- Files: decorators.ts
+
+**D. Split util.ts** (1-2h) [P1]
+- util/events.ts (event utilities)
+- util/async.ts (timeout, processConcurrently)
+- util/svn.ts (SVN-specific helpers)
+- util/disposable.ts (IDisposable, toDisposable)
+
+**E. Deduplicate show/showBuffer** (1h) [P1]
+- 136 lines duplicate code
+- Single generic implementation
+- Type-safe: `_show<T extends "string" | "buffer">`
+
+**Order**: A → B → C → D → E
+
+| Task | Effort | Priority |
+|------|--------|----------|
+| Extract Repository services | 4-5h | P0 |
+| Split Command base | 3-4h | P0 |
+| Fix decorator state | 2-3h | P0 |
+| Split util.ts | 1-2h | P1 |
+| Deduplicate show/showBuffer | 1h | P1 |
+
+**ROI**: 40% faster feature development, 30% less boilerplate, 0 memory leaks
+
+---
+
+## Deferred Phases
+
+### Phase 24: Performance Optimization (Deferred to v2.18.x)
+**Issues identified**:
+- XML parsing synchronous (50-200ms UI freeze)
+- File watcher flooding (CPU spikes)
+- Encoding detection overhead (5-20ms/cmd)
+- Info cache timer accumulation (500 active timers)
+
+**Effort**: 6-8h
+**Reason**: P1 bottlenecks already fixed (Phases 8-19). Remaining issues affect <30% users.
+
+### Phase 25: Positron Integration (HIGH RISK - Blocked)
 **Status**: ⚠️ DEFER until API stability confirmed
+**Blocker**: @posit-dev/positron v0.1.x experimental, 35% chance API methods don't exist
+**Effort**: 8-15h
+**Recommendation**: Prototype-first (2-3h spike) before full commitment
 
-### ⚠️ BLOCKERS IDENTIFIED
+### Phase 26: Code Bloat Cleanup (P2 - Nice to have)
+**Issues**:
+- 42 console.log statements (remove)
+- 18 TODO comments (track in todos/)
+- Unused dependencies (tmp, dayjs limited use)
+- temp_svn_fs.ts unnecessary abstraction
 
-**Positron API Status: EXPERIMENTAL**
-- @posit-dev/positron v0.1.x marked NOT production-ready
-- Warning: "API definitions may change without notice, break compatibility, or be removed"
-- **Risk**: 35% chance API methods don't exist, 50% chance breaking changes
-- **Version mismatch**: Extension declares ^2025.6.x, APIs require 2025.07.0+
-
-**Recommendation**: **PROTOTYPE-FIRST (2-3h spike)** before 12h commitment
-1. Install @posit-dev/positron
-2. Verify API methods exist
-3. Test against Positron 2025.07.0+
-4. Decision: proceed or defer until v1.0
-
-### Core Tasks (if proceeding)
-
-**A. Runtime Integration** (3-4h) [P0]
-- Direct Positron API import (no tryAcquirePositronApi wrapper)
-- Register metadata provider: branch, revision, remote, status
-- Update on: branch switch, commit, update
-- Files: `src/positron/runtimeMetadata.ts` (150L)
-- Tests: +3 mocked TDD (hybrid strategy)
-
-**B. Connections Pane** (2-3h) [P1]
-- Register SVN remotes as connections
-- Quick actions: Update, Switch, Show Changes
-- Files: `src/positron/connectionsProvider.ts` (120L)
-- Tests: +3 TDD
-
-**C. Data Science File Icons** (1-2h) [P2]
-- Custom icons: R, Python, Jupyter, RMarkdown
-- SVN status overlay
-- Files: Extend `src/decorators.ts` (+40L)
-- Tests: +3 TDD
-
-**D. Languages Context** (2-3h) [P3]
-- R packages: Track DESCRIPTION version
-- Python: venv/conda integration
-- Files: `src/positron/languagesContext.ts` (100L)
-- Tests: +3 TDD
-
-### Bonus Features (Positron-Only)
-
-**E. Console Integration** (1-2h)
-- SVN commands from R/Python console
-- Files: `src/positron/consoleIntegration.ts` (80L)
-- Tests: +2 TDD
-
-**F. Data Viewer Hooks** (0.5-1h)
-- Track data file provenance
-- Files: Extend `src/historyView/itemLogProvider.ts` (+30L)
-- Tests: +2 TDD
-
-### E2E Strategy: Hybrid
-
-- **Mock-first**: Unit tests with Positron API mocks (TDD pattern)
-- **Manual validation**: Test in real Positron after implementation
-- **Effort**: 1-2h mock setup during Phase 23
-- **Risk**: 20-40% rework if mocks diverge from real APIs
-
-| Task | Effort | Impact | Priority |
-|------|--------|--------|----------|
-| A. Runtime metadata | 3-4h | Core differentiation | P0 |
-| B. Connections | 2-3h | UX improvement | P1 |
-| C. DS file icons | 1-2h | Visual polish | P2 |
-| D. Languages context | 2-3h | R/Python workflows | P3 |
-| **Core total** | **8-12h** | | |
-| E. Console (bonus) | 1-2h | Power users | BONUS |
-| F. Data viewer (bonus) | 0.5-1h | Provenance | BONUS |
+**Effort**: 2-3h
+**ROI**: Code quality, not functional
 
 ---
 
 ## Summary
 
-**Phase 22**: 6-10h, CRITICAL (security + CI enforcement)
-**Phase 23**: 8-15h, HIGH RISK (API experimental, defer recommended)
-**Total**: 14-25h if both executed
+**Phase 22 (Type Safety)**: 8-12h, CRITICAL - Foundation for all future work
+**Phase 23 (Architecture)**: 10-15h, CRITICAL - Maintainability foundation
+**Total**: 18-27h for both phases
+
+**Deferred**: Performance (P1), Positron (HIGH RISK), Code cleanup (P2)
 
 ---
 
 ## Strategic Decisions
 
-### Phase 22 Approach
+### Why Type Safety First?
+- Blocks all future safe refactoring
+- 248+ `any` types = 248+ potential runtime errors
+- ESLint enforcement prevents new violations
+- Quick wins in decorators.ts, util.ts
 
-**CI-First Strategy**:
-1. Build validator FIRST (prevents regression during conversions)
-2. Validator runs in parallel with eslint (~2s)
-3. AST-based (zero false positives)
-4. Blocks merge if violations found
+### Why Architecture Second?
+- Builds on type safety improvements
+- Service extraction pattern proven (Phase 2)
+- 40% faster feature development
+- Repository god class biggest pain point
 
-### Phase 23 Approach
+### Why Defer Performance?
+- P0/P1 bottlenecks already fixed (Phases 8-19)
+- Remaining issues affect <30% users
+- Architecture work enables better perf work later
 
-**DEFER Until**:
-- @posit-dev/positron reaches v0.5.0+ or removes "experimental" warning
-- Changelog/deprecation policy established
-- Version compatibility confirmed (^2025.6.x vs 2025.07.0+)
-
-**Alternative: Prototype-First**:
-- 2-3h spike to validate API exists
-- Test real Positron 2025.07.0+
-- Abort if incompatible (saves 10-12h)
-
-**If Proceeding**:
-- Feature flag: `positron.integration.enabled` (default: false)
-- Error handling: Try-catch all API calls
-- Start with A (runtime metadata) - smallest surface, highest visibility
+### Why Defer Positron?
+- API experimental, 35% chance methods don't exist
+- High risk of breaking changes
+- Need prototype-first validation (2-3h)
+- Can revisit when API stabilizes (v0.5.0+)
 
 ---
 
 ## Unresolved Questions
 
 ### Phase 22
-- Block merge or warning-only for CI validator?
-- Scan test files or skip?
-- Whitelist format: inline comments or config file?
+- Gradual whitelist or big bang fix for `any` types?
+- Target <100 or <50 `any` instances?
+- Enable strictNullChecks incrementally?
 
 ### Phase 23
-- **Does `registerRuntimeMetadataProvider()` exist?** (no docs found)
-- **When will APIs stabilize?** (experimental warning persists)
-- **Positron test runner exists?** (vs @vscode/test-electron)
-- **Should we remove VS Code engine declaration?** (Positron-only)
-- **Add Positron-specific SVN features?** (not in VS Code upstream)
+- Hexagonal architecture refactor vs incremental extraction?
+- DI container (InversifyJS/tsyringe) worth complexity?
+- Command registry pattern ROI justify effort?
