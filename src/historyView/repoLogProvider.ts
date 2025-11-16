@@ -312,23 +312,14 @@ export class RepoLogProvider
         .getPathNormalizer()
         .parse(commit._).remoteFullPath;
 
-      // Check if this is the first revision (added file)
-      if (commit.action === "A") {
-        // Try to get previous revisions, but it might not exist
-        const revs = await item.repo.log(parent.revision, "1", 2, remotePath);
-        if (revs.length < 2) {
-          window.showWarningMessage(
-            "This is the first revision of this file - no previous version to diff"
-          );
-          return;
-        }
-      }
-
-      // Get previous revision for this file
+      // Single query - reuse result
       const revs = await item.repo.log(parent.revision, "1", 2, remotePath);
 
-      if (revs.length !== 2) {
-        window.showWarningMessage("Cannot find previous commit for diff");
+      if (revs.length < 2) {
+        const message = commit.action === "A"
+          ? "This is the first revision of this file - no previous version to diff"
+          : "Cannot find previous commit for diff";
+        window.showWarningMessage(message);
         return;
       }
 
