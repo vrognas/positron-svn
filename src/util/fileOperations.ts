@@ -3,9 +3,10 @@
  * Used by both SCM changes view and repository log tree view
  */
 
+import * as path from "path";
 import { commands, Uri, window, workspace } from "vscode";
 import { logError } from "./errorLogger";
-import { existsSync } from "fs";
+import { exists } from "../fs";
 
 /**
  * Reveal file in OS file explorer
@@ -23,11 +24,12 @@ export async function revealFileInOS(fsPath: string | Uri): Promise<void> {
 
 /**
  * Open file with external diff tool using SVN's --diff-cmd
- * @param workspaceRoot Workspace root path
+ * @param workspaceRoot Workspace root path (or empty for current directory)
  * @param filePath Absolute file system path or remote URL
- * @param svnExec SVN exec function (repository.exec for Repository or sourceControlManager.svn.exec for RemoteRepository)
+ * @param svnExec SVN exec function (sourceControlManager.svn.exec)
  * @param oldRevision Optional: old revision for historical diff (e.g., "123")
  * @param newRevision Optional: new revision for historical diff (e.g., "124")
+ * @throws Error if configuration invalid, tool not found, or execution fails
  */
 export async function diffWithExternalTool(
   workspaceRoot: string,
@@ -40,18 +42,47 @@ export async function diffWithExternalTool(
   const config = workspace.getConfiguration("svn");
   const diffToolPath = config.get<string>("diff.tool");
 
+  // Validate configuration exists
   if (!diffToolPath) {
-    window.showErrorMessage(
+    const error = new Error(
       "External diff tool not configured. Set svn.diff.tool to path of bcsvn.bat"
     );
-    return;
+    logError("Diff tool not configured", error);
+    window.showErrorMessage(error.message);
+    throw error;
   }
 
-  if (!existsSync(diffToolPath)) {
-    window.showErrorMessage(
-      `External diff tool not found at: ${diffToolPath}`
+  // Security: Validate path is absolute to prevent relative path exploits
+  if (!path.isAbsolute(diffToolPath)) {
+    const error = new Error(
+      `External diff tool must be an absolute path: ${diffToolPath}`
     );
-    return;
+    logError("Diff tool path not absolute", error);
+    window.showErrorMessage(error.message);
+    throw error;
+  }
+
+  // Validate tool exists
+  if (!(await exists(diffToolPath))) {
+    const error = new Error(`External diff tool not found at: ${diffToolPath}`);
+    logError("Diff tool not found", error);
+    window.showErrorMessage(error.message);
+    throw error;
+  }
+
+  // Security: Validate revision format (must be numeric)
+  const revisionRegex = /^\d+$/;
+  if (oldRevision && !revisionRegex.test(oldRevision)) {
+    const error = new Error(`Invalid old revision format: ${oldRevision}`);
+    logError("Invalid revision format", error);
+    window.showErrorMessage(error.message);
+    throw error;
+  }
+  if (newRevision && !revisionRegex.test(newRevision)) {
+    const error = new Error(`Invalid new revision format: ${newRevision}`);
+    logError("Invalid revision format", error);
+    window.showErrorMessage(error.message);
+    throw error;
   }
 
   try {
@@ -66,7 +97,14 @@ export async function diffWithExternalTool(
 
     // Call svn diff with --diff-cmd pointing to external tool
     await svnExec(workspaceRoot, args);
-  } catch (error) {
+  } catch (error: any) {
+    // External diff tools (like Beyond Compare) stay open, causing SVN to timeout
+    // Exit code 124 = timeout, but tool launched successfully - treat as success
+    if (error.exitCode === 124 && error.svnCommand === "diff") {
+      // Tool launched successfully, just timed out waiting for close
+      return;
+    }
+
     logError("Failed to launch external diff", error);
     throw error;
   }

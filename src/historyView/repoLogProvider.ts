@@ -312,6 +312,18 @@ export class RepoLogProvider
         .getPathNormalizer()
         .parse(commit._).remoteFullPath;
 
+      // Check if this is the first revision (added file)
+      if (commit.action === "A") {
+        // Try to get previous revisions, but it might not exist
+        const revs = await item.repo.log(parent.revision, "1", 2, remotePath);
+        if (revs.length < 2) {
+          window.showWarningMessage(
+            "This is the first revision of this file - no previous version to diff"
+          );
+          return;
+        }
+      }
+
       // Get previous revision for this file
       const revs = await item.repo.log(parent.revision, "1", 2, remotePath);
 
@@ -323,9 +335,15 @@ export class RepoLogProvider
       const prevRev = revs[1];
 
       // Diff between previous and current revision
+      // Use workspaceRoot if available (Repository), otherwise empty string (RemoteRepository)
+      // Empty string is handled by svn.exec - uses current process working directory
+      const workspaceRoot = item.repo instanceof Repository
+        ? item.repo.workspaceRoot
+        : "";
+
       const scm = this.sourceControlManager;
       await diffWithExternalTool(
-        item.repo instanceof Repository ? item.repo.workspaceRoot : "",
+        workspaceRoot,
         remotePath.toString(),
         scm.svn.exec.bind(scm.svn),
         prevRev.revision,

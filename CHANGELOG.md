@@ -1,3 +1,17 @@
+## [2.17.152] (2025-11-16)
+
+### Fix: Security & robustness - diff tool validation
+
+* **Security**: Validate diffToolPath is absolute path
+* **Security**: Validate revision format (numeric only)
+* **Robustness**: Handle GUI diff tool timeout (exit 124)
+* **Correctness**: Use async exists() vs sync existsSync
+* **Correctness**: First-revision edge case handling
+* **Correctness**: workspaceRoot fallback documented
+* **Quality**: Consistent error handling (all throw)
+* **Docs**: Updated JSDoc comments
+* **Files**: src/util/fileOperations.ts, src/historyView/repoLogProvider.ts
+
 ## [2.17.151] (2025-11-16)
 
 ### Update: Repo diff - revision-based external diff
