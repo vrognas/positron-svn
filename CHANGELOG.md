@@ -1,3 +1,13 @@
+## [2.17.156] (2025-11-17)
+
+### UX: Consolidate views to built-in Source Control container
+
+* **Views**: Moved all custom views to built-in SCM container
+* **Removed**: Separate "Subversion" Activity Bar icon
+* **Location**: Incoming Changes, Repo Log, File History, Branch Changes now in Source Control view
+* **Benefit**: Single location for all SCM features, follows VS Code conventions
+* **File**: package.json
+
 ## [2.17.155] (2025-11-16)
 
 ### Add: Security - UNC path rejection for Windows
