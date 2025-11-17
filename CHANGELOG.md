@@ -1,3 +1,11 @@
+## [2.17.168] (2025-11-17)
+
+### Fix: Set inputBox.visible = true for Commit button
+
+* **Fix**: Explicitly enable inputBox visibility (required for acceptInputCommand button)
+* **Change**: Set sourceControl.inputBox.visible = true in constructor
+* **File**: src/repository.ts:243
+
 ## [2.17.167] (2025-11-17)
 
 ### Optimize: Further package size reduction

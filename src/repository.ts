@@ -240,6 +240,7 @@ export class Repository implements IRemoteRepository {
     this.sourceControl.count = 0;
     this.sourceControl.inputBox.placeholder =
       "Message (press Ctrl+Enter to commit)";
+    this.sourceControl.inputBox.visible = true;
     this.sourceControl.acceptInputCommand = {
       command: "svn.commitAll",
       title: "Commit",
