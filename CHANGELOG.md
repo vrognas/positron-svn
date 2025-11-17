@@ -1,3 +1,11 @@
+## [2.17.166] (2025-11-17)
+
+### Fix: Register svn.commitAll command in package.json
+
+* **Fix**: Commit button now appears (command must be declared in package.json)
+* **Added**: svn.commitAll to commands array
+* **File**: package.json:203-206
+
 ## [2.17.165] (2025-11-17)
 
 ### UX: Enable folder decoration propagation
