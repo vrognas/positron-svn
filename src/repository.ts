@@ -247,6 +247,13 @@ export class Repository implements IRemoteRepository {
       arguments: [this.sourceControl]
     };
     this.sourceControl.quickDiffProvider = this;
+
+    // Debug: Log acceptInputCommand setup
+    console.log("[SVN] acceptInputCommand configured:", {
+      command: this.sourceControl.acceptInputCommand?.command,
+      title: this.sourceControl.acceptInputCommand?.title,
+      inputBoxVisible: this.sourceControl.inputBox.visible
+    });
     this.disposables.push(this.sourceControl);
 
     this.statusBar = new StatusBarCommands(this);

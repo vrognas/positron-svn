@@ -1,3 +1,13 @@
+## [2.17.170] (2025-11-17)
+
+### Debug: Add logging and cleanup for Commit button
+
+* **Fixed**: Removed duplicate svn.commitAll command registration
+* **Added**: commitAll to command palette for manual testing
+* **Debug**: Added console logging to verify acceptInputCommand setup
+* **Note**: If button doesn't appear, check if Positron supports acceptInputCommand API
+* **Files**: package.json, src/repository.ts:251-256
+
 ## [2.17.169] (2025-11-17)
 
 ### Fix: Repository log file decorations
