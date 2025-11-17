@@ -1,3 +1,13 @@
+## [2.17.163] (2025-11-17)
+
+### Fix: Show prominent "Commit" button via acceptInputCommand
+
+* **Button**: Uses VS Code's built-in yellow primary button UI
+* **Command**: acceptInputCommand now uses svn.commitAll
+* **Title**: Changed to "Commit" (capitalized, like Git)
+* **Removed**: Duplicate menu item from scm/title
+* **Files**: src/repository.ts, package.json
+
 ## [2.17.162] (2025-11-17)
 
 ### Fix: File decorations now appear in Explorer and Repository Log
