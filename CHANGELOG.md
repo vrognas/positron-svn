@@ -1,3 +1,13 @@
+## [2.17.159] (2025-11-17)
+
+### Feature: Explorer file decorations
+
+* **Feature**: Show SVN status badges (M, A, D, etc.) on files in Explorer view
+* **Colors**: Uses Git theme colors for consistency
+* **Badges**: M=Modified, A=Added, D=Deleted, C=Conflicted, U=Unversioned, !=Missing, I=Ignored, R=Renamed
+* **Auto-refresh**: Updates when repository status changes
+* **Files**: src/fileDecorationProvider.ts, src/repository.ts
+
 ## [2.17.158] (2025-11-17)
 
 ### UX: Improve Commit All - direct to message entry

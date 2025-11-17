@@ -95,6 +95,7 @@ export class Repository implements IRemoteRepository {
   private statusService: StatusService;
   private groupManager: ResourceGroupManager;
   private remoteChangeService: RemoteChangeService;
+  private fileDecorationProvider: any; // Imported below to avoid circular dependency
   private _configCache: RepositoryConfig | undefined;
 
   // Property accessors for backward compatibility
@@ -271,6 +272,14 @@ export class Repository implements IRemoteRepository {
         )
       })
     );
+
+    // Initialize FileDecorationProvider for Explorer view decorations
+    const { SvnFileDecorationProvider } = require("./fileDecorationProvider");
+    this.fileDecorationProvider = new SvnFileDecorationProvider(this);
+    this.disposables.push(
+      window.registerFileDecorationProvider(this.fileDecorationProvider)
+    );
+    this.disposables.push(this.fileDecorationProvider);
 
     // For each deleted file, add to set (auto-deduplicates)
     this._fsWatcher.onDidWorkspaceDelete(
@@ -517,6 +526,11 @@ export class Repository implements IRemoteRepository {
     }
 
     this._onDidChangeStatus.fire();
+
+    // Refresh file decorations in Explorer view
+    if (this.fileDecorationProvider) {
+      this.fileDecorationProvider.refresh();
+    }
 
     this.currentBranch = await this.getCurrentBranch();
 
