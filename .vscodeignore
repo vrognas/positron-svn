@@ -1,5 +1,7 @@
 .*
+!.vscodeignore
 .github/**
+node_modules/**
 .vscode-test/**
 .vscode/**
 **/*.map
@@ -44,6 +46,11 @@ DEPENDENCY_ASSESSMENT.md
 VERIFICATION_CHECKLIST.md
 UI_RESPONSIVENESS_ANALYSIS.md
 PERFORMANCE_ANALYSIS_MULTI_REPO.md
+CONSOLIDATION_PLAN.md
+FILE_DECORATIONS_PLAN.md
+REPOLOG_DISPLAY_PLAN.md
+*_PLAN.md
+todos/**
 node_modules/**/CHANGELOG*
 node_modules/**/changelog*
 node_modules/**/.npmignore
