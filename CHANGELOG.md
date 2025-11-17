@@ -1,3 +1,11 @@
+## [2.17.172] (2025-11-17)
+
+### UX: Simplify commit message placeholder
+
+* **Change**: Placeholder text changed from "Message (press Ctrl+Enter to commit)" to "Commit message"
+* **Matches**: Git extension placeholder style
+* **File**: src/repository.ts:242
+
 ## [2.17.171] (2025-11-17)
 
 ### Fix: Set contextValue and inputBox.enabled for Commit button
