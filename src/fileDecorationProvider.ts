@@ -58,7 +58,7 @@ export class SvnFileDecorationProvider
       badge,
       tooltip,
       color,
-      propagate: false // Don't show on parent folders to avoid clutter
+      propagate: true // Show on parent folders like Git
     };
   }
 
