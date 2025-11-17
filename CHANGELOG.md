@@ -1,3 +1,12 @@
+## [2.17.167] (2025-11-17)
+
+### Optimize: Further package size reduction
+
+* **Size**: Reduced from 152 KB to 109 KB (31 files)
+* **Excluded**: CHANGELOG.md, logo SVGs, build/config files
+* **Savings**: 42.6 KB (28% reduction)
+* **File**: .vscodeignore
+
 ## [2.17.166] (2025-11-17)
 
 ### Fix: Register svn.commitAll command in package.json

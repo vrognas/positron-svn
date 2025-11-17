@@ -62,5 +62,11 @@ node_modules/**/*.md
 node_modules/**/docs/**
 node_modules/**/examples/**
 node_modules/dayjs/locale/**
+images/subversion-logo.svg
 icons/subversion-logo.svg
+CLAUDE.md
+build.js
+eslint.config.js
+scripts/**
+CHANGELOG.md
 
