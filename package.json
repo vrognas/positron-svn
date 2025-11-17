@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.172",
+    "version": "2.17.173",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -202,7 +202,8 @@
             {
                 "command": "svn.commitAll",
                 "title": "Commit",
-                "category": "SVN"
+                "category": "SVN",
+                "icon": "$(check)"
             },
             {
                 "command": "svn.commitWithMessage",

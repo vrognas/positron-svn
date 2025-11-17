@@ -1,3 +1,12 @@
+## [2.17.173] (2025-11-17)
+
+### Fix: Reorder props and add icon for Commit button
+
+* **Fix**: Set acceptInputCommand before inputBox properties (order matters)
+* **Fix**: Added icon to svn.commitAll command definition
+* **Fix**: Corrected placeholder text to "Commit message"
+* **Files**: src/repository.ts:241-250, package.json:203-207
+
 ## [2.17.172] (2025-11-17)
 
 ### UX: Simplify commit message placeholder

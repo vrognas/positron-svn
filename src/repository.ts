@@ -238,16 +238,15 @@ export class Repository implements IRemoteRepository {
     );
 
     this.sourceControl.contextValue = "repository";
-    this.sourceControl.count = 0;
-    this.sourceControl.inputBox.placeholder =
-      "Message (press Ctrl+Enter to commit)";
-    this.sourceControl.inputBox.visible = true;
-    this.sourceControl.inputBox.enabled = true;
     this.sourceControl.acceptInputCommand = {
       command: "svn.commitAll",
       title: "Commit",
       arguments: [this.sourceControl]
     };
+    this.sourceControl.count = 0;
+    this.sourceControl.inputBox.placeholder = "Commit message";
+    this.sourceControl.inputBox.visible = true;
+    this.sourceControl.inputBox.enabled = true;
     this.sourceControl.quickDiffProvider = this;
 
     // Debug: Log acceptInputCommand setup
