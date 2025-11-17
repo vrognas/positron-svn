@@ -429,11 +429,11 @@ export class RepoLogProvider
 
       ti = new TreeItem(basename, TreeItemCollapsibleState.None);
 
-      // Show directory path with status badge at end (Git Graph style)
-      ti.description = dirname ? `${dirname} • ${pathElem.action}` : pathElem.action;
+      // Show directory path (decoration badge added automatically by FileDecorationProvider)
+      ti.description = dirname;
       ti.tooltip = parsedPath.relativeFromBranch;
 
-      // Use resourceUri to show file type icon instead of status icon
+      // Use resourceUri to show file type icon and trigger file decorations
       if (parsedPath.localFullPath) {
         ti.resourceUri = parsedPath.localFullPath;
       }
