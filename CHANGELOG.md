@@ -1,3 +1,14 @@
+## [2.17.183] (2025-11-18)
+
+### Fix: Cache preservation actually working now
+
+* **Bug**: Entries deleted before retrieval → `prev` undefined → `[]`
+* **Root cause**: Delete loop ran before save, so `prev?.entries` always undefined
+* **Fix**: Save entries to Map before deletion, restore from Map when rebuilding
+* **Testing showed**: "entries: 0" even with preservation attempt
+* **Implementation**: `savedEntries = new Map()` → preserve → rebuild
+* **Files**: src/historyView/repoLogProvider.ts:408-441
+
 ## [2.17.182] (2025-11-18)
 
 ### Fix: Logging error in cache preservation

@@ -403,12 +403,21 @@ export class RepoLogProvider
     } else if (element === undefined) {
       // Full refresh: preserve cache, update repo list
       console.log("[RepoLog] Full refresh - preserving cache");
+
+      // Save entries before modifying cache
+      const savedEntries = new Map<string, ISvnLogEntry[]>();
       for (const [k, v] of this.logCache) {
-        // Remove auto-added repositories
+        savedEntries.set(k, v.entries);
+      }
+
+      // Remove auto-added repositories
+      for (const [k, v] of this.logCache) {
         if (!v.persisted.userAdded) {
           this.logCache.delete(k);
         }
       }
+
+      // Rebuild cache with preserved entries
       for (const repo of this.sourceControlManager.repositories) {
         const remoteRoot = repo.branchRoot;
         const repoUrl = remoteRoot.toString(true);
@@ -420,15 +429,16 @@ export class RepoLogProvider
         if (prev) {
           persisted = prev.persisted;
         }
+        const preservedEntries = savedEntries.get(repoUrl) || [];
         this.logCache.set(repoUrl, {
-          entries: prev?.entries || [],
+          entries: preservedEntries,
           isComplete: false,
           repo,
           svnTarget: remoteRoot,
           persisted,
           order: this.logCache.size
         });
-        console.log("[RepoLog] Cache preserved for", repoUrl, "- entries:", prev?.entries.length || 0);
+        console.log("[RepoLog] Cache preserved for", repoUrl, "- entries:", preservedEntries.length);
       }
     }
     console.log("[RepoLog] Firing _onDidChangeTreeData");
