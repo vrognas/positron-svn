@@ -1,3 +1,14 @@
+## [2.17.187] (2025-11-18)
+
+### Feature: Blame parser implementation
+
+* **Parser**: blameParser.ts using XmlParserAdapter (fast-xml-parser)
+* **Types**: ISvnBlameLine interface, SvnUriAction.BLAME enum
+* **Tests**: 10 E2E tests (basic parsing, edge cases, performance)
+* **Handles**: committed lines, uncommitted lines, merged lines, empty files
+* **Performance**: Parses 1000 lines in <100ms
+* **Validation**: Malformed XML rejection, missing elements detection
+
 ## [2.17.186] (2025-11-18)
 
 ### Feature: Blame configuration & settings system

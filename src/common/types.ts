@@ -256,7 +256,8 @@ export enum SvnUriAction {
   PATCH = "PATCH",
   SHOW = "SHOW",
   LOG_REVISION = "LOG_REVISION",
-  LOG_SEARCH = "LOG_SEARCH"
+  LOG_SEARCH = "LOG_SEARCH",
+  BLAME = "BLAME"
 }
 
 export interface ISvnUriExtraParams {
@@ -271,6 +272,20 @@ export interface ISvnUriParams {
   action: SvnUriAction;
   fsPath: string;
   extra: ISvnUriExtraParams;
+}
+
+/** Blame line info from svn blame --xml */
+export interface ISvnBlameLine {
+  lineNumber: number;
+  revision?: string;
+  author?: string;
+  date?: string;
+  merged?: {
+    path: string;
+    revision: string;
+    author: string;
+    date: string;
+  };
 }
 
 export interface IDisposable {
