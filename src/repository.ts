@@ -540,14 +540,12 @@ export class Repository implements IRemoteRepository {
 
     // Refresh file decorations in Explorer view
     if (this.fileDecorationProvider) {
-      // Collect all changed file URIs for decoration update
-      const changedUris: Uri[] = [];
-      this.changes.resourceStates.forEach(r => changedUris.push(r.resourceUri));
-      this.unversioned.resourceStates.forEach(r => changedUris.push(r.resourceUri));
-      this.conflicts.resourceStates.forEach(r => changedUris.push(r.resourceUri));
-
-      // Pass undefined to refresh all, or specific URIs
-      this.fileDecorationProvider.refresh(changedUris.length > 0 ? changedUris : undefined);
+      // Always refresh all decorations - simpler and handles all cases:
+      // - Files added to changes
+      // - Files removed from changes (reverted)
+      // - Files moved between groups
+      // Passing undefined refreshes all tracked files efficiently
+      this.fileDecorationProvider.refresh(undefined);
     }
 
     this.currentBranch = await this.getCurrentBranch();

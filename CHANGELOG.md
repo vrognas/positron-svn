@@ -1,3 +1,13 @@
+## [2.17.174] (2025-11-17)
+
+### Fix: File decorations now refresh properly after revert
+
+* **Fix**: Decorations update when files are reverted/removed from changes
+* **Approach**: Refresh all decorations on every status update (simple & correct)
+* **Before**: Only refreshed files currently in changes/unversioned/conflicts
+* **After**: Refreshes all tracked files, clearing stale decorations
+* **File**: src/repository.ts:542-548
+
 ## [2.17.173] (2025-11-17)
 
 ### Fix: Reorder props and add icon for Commit button
