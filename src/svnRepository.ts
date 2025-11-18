@@ -12,7 +12,8 @@ import {
   SvnDepth,
   ISvnPathChange,
   ISvnPath,
-  ISvnListItem
+  ISvnListItem,
+  ISvnBlameLine
 } from "./common/types";
 import { sequentialize } from "./decorators";
 import * as encodeUtil from "./encoding";
@@ -23,6 +24,7 @@ import { parseInfoXml } from "./parser/infoParser";
 import { parseSvnList } from "./parser/listParser";
 import { parseSvnLog } from "./parser/logParser";
 import { parseStatusXml } from "./parser/statusParser";
+import { parseSvnBlame } from "./parser/blameParser";
 import { Svn, BufferResult } from "./svn";
 import {
   fixPathSeparator,
@@ -47,6 +49,11 @@ export class Repository {
   // Phase 10.3 perf fix - timestamp-based caching (5s)
   private lastInfoUpdate: number = 0;
   private readonly INFO_CACHE_MS = 5000;
+
+  // Blame cache - smaller than info cache (blame is heavier operation)
+  private _blameCache = new Map<string, { blame: ISvnBlameLine[]; timeout: NodeJS.Timeout; lastAccessed: number }>();
+  private readonly MAX_BLAME_CACHE_SIZE = 100;
+  private readonly BLAME_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
   public username?: string;
   public password?: string;
@@ -244,6 +251,30 @@ export class Repository {
     }
   }
 
+  public resetBlameCache(cacheKey: string): void {
+    const entry = this._blameCache.get(cacheKey);
+    if (entry) {
+      clearTimeout(entry.timeout);
+      this._blameCache.delete(cacheKey);
+    }
+  }
+
+  private evictBlameEntry(): void {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+
+    for (const [key, entry] of this._blameCache.entries()) {
+      if (entry.lastAccessed < oldestTime) {
+        oldestTime = entry.lastAccessed;
+        oldestKey = key;
+      }
+    }
+
+    if (oldestKey !== null) {
+      this.resetBlameCache(oldestKey);
+    }
+  }
+
   @sequentialize
   public async getInfo(
     file: string = "",
@@ -298,6 +329,99 @@ export class Repository {
     });
 
     return info;
+  }
+
+  /**
+   * Get blame information for a file
+   *
+   * @param file Absolute or relative path to file
+   * @param revision Revision to blame (default: HEAD)
+   * @param skipCache Skip cache and force fresh blame
+   * @returns Array of blame line information
+   *
+   * @example
+   * const blame = await repository.blame("src/file.ts");
+   * const blameAtRev = await repository.blame("src/file.ts", "100");
+   */
+  @sequentialize
+  public async blame(
+    file: string,
+    revision: string = "HEAD",
+    skipCache: boolean = false
+  ): Promise<ISvnBlameLine[]> {
+    // Convert to relative path
+    const relativePath = this.removeAbsolutePath(file);
+
+    // Cache key includes revision for per-revision caching
+    const cacheKey = `${relativePath}@${revision}`;
+
+    // Check cache first (unless skipCache=true)
+    const cacheEntry = this._blameCache.get(cacheKey);
+    if (!skipCache && cacheEntry) {
+      // Update access time on cache hit
+      cacheEntry.lastAccessed = Date.now();
+      return cacheEntry.blame;
+    }
+
+    // Build SVN blame command
+    const args = [
+      "blame",
+      "--xml",
+      "-x",
+      "-w --ignore-eol-style", // Ignore whitespace/EOL changes
+      "-r",
+      revision
+    ];
+
+    args.push(fixPegRevision(relativePath));
+
+    // Execute SVN command
+    let result: IExecutionResult;
+    try {
+      result = await this.exec(args);
+    } catch (err: any) {
+      // Handle known SVN errors
+      if (err.stderr) {
+        if (err.stderr.includes("E195012") && err.stderr.includes("binary")) {
+          throw new Error(`Cannot blame binary file: ${relativePath}`);
+        }
+        if (err.stderr.includes("E155007")) {
+          throw new Error(`File not under version control: ${relativePath}`);
+        }
+        if (err.stderr.includes("E160006")) {
+          throw new Error(`Invalid revision: ${revision}`);
+        }
+      }
+      logError(`Failed to execute blame for ${relativePath}`, err);
+      throw new Error(`Blame failed for ${relativePath}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+
+    // Parse blame XML
+    let blame: ISvnBlameLine[];
+    try {
+      blame = await parseSvnBlame(result.stdout);
+    } catch (err) {
+      logError(`Failed to parse blame XML for ${relativePath}`, err);
+      throw new Error(`Blame parse failed for ${relativePath}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+
+    // Evict LRU entry if cache is at max size
+    if (this._blameCache.size >= this.MAX_BLAME_CACHE_SIZE) {
+      this.evictBlameEntry();
+    }
+
+    // Cache with TTL
+    const timer = setTimeout(() => {
+      this.resetBlameCache(cacheKey);
+    }, this.BLAME_CACHE_TTL_MS);
+
+    this._blameCache.set(cacheKey, {
+      blame,
+      timeout: timer,
+      lastAccessed: Date.now()
+    });
+
+    return blame;
   }
 
   public async getChanges(): Promise<ISvnPathChange[]> {
@@ -1098,5 +1222,7 @@ export class Repository {
   public clearInfoCacheTimers(): void {
     this._infoCache.forEach(entry => clearTimeout(entry.timeout));
     this._infoCache.clear();
+    this._blameCache.forEach(entry => clearTimeout(entry.timeout));
+    this._blameCache.clear();
   }
 }

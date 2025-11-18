@@ -1,3 +1,17 @@
+## [2.17.188] (2025-11-18)
+
+### Feature: Blame repository layer
+
+* **Method**: blame(file, revision?, skipCache?) with @sequentialize
+* **Cache**: LRU blame cache (100 entries, 5min TTL)
+* **Cache key**: `${relativePath}@${revision}` for per-revision caching
+* **LRU eviction**: Oldest accessed entry evicted when MAX_BLAME_CACHE_SIZE hit
+* **Error handling**: Binary files, not versioned, invalid revision
+* **SVN command**: `svn blame --xml -x "-w --ignore-eol-style" -r HEAD file`
+* **Integration**: clearInfoCacheTimers() now clears blame cache
+* **Tests**: 12 unit tests covering execution, cache, errors, performance
+* **Pattern**: Follows getInfo() pattern exactly (sequentialize, cache, parse, error)
+
 ## [2.17.187] (2025-11-18)
 
 ### Feature: Blame parser implementation
