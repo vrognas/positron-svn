@@ -27,6 +27,7 @@ import { tempSvnFs } from "./temp_svn_fs";
 import { SvnFileSystemProvider } from "./svnFileSystemProvider";
 import { isPositron, getEnvironmentName } from "./positron/runtime";
 import { registerSvnConnectionsProvider } from "./positron/connectionsProvider";
+import { BlameStatusBar } from "./blame/blameStatusBar";
 
 async function init(
   extensionContext: ExtensionContext,
@@ -69,6 +70,19 @@ async function init(
   outputChannel.appendLine(`Using svn "${info.version}" from "${info.path}"`);
   outputChannel.appendLine(`Running in ${getEnvironmentName()}`);
   console.log("SVN Extension: Providers created successfully");
+
+  // Initialize blame status bar (singleton)
+  console.log("SVN Extension: Creating BlameStatusBar...");
+  const blameStatusBar = new BlameStatusBar(sourceControlManager);
+  disposables.push(blameStatusBar);
+
+  // Register blame commands
+  disposables.push(
+    commands.registerCommand("svn.showBlameCommit", () => {
+      blameStatusBar.showCommitDetails();
+    })
+  );
+  console.log("SVN Extension: BlameStatusBar created");
 
   // Register Positron-specific providers
   if (isPositron()) {

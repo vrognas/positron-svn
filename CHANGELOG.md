@@ -1,3 +1,18 @@
+## [2.17.195] (2025-11-18)
+
+### Add: BlameStatusBar - Phase 2 (status bar integration)
+
+* **BlameStatusBar**: Singleton status bar manager for current line blame
+* **Cursor tracking**: Debounced (150ms) cursor position monitoring
+* **Template rendering**: Configurable format - `$(person) ${author}, $(clock) ${date}`
+* **QuickPick actions**: Click → Show commit / Copy revision / Toggle blame
+* **Tooltips**: Full commit info with merge details
+* **5-min cache**: Per-file blame data with TTL
+* **Repository detection**: Auto-determines repo from active editor URI
+* **Uncommitted handling**: Shows "$(edit) Not committed" for working copy changes
+* **TDD**: 3 E2E tests (show, hide, cursor change)
+* **Command**: `svn.showBlameCommit` registered
+
 ## [2.17.194] (2025-11-18)
 
 ### Add: BlameProvider - Phase 1 (gutter decorations)
