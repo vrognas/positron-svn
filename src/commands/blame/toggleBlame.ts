@@ -5,6 +5,10 @@ import { Command } from "../command";
 import { blameStateManager } from "../../blame/blameStateManager";
 
 export class ToggleBlame extends Command {
+  constructor() {
+    super("svn.blame.toggleBlame");
+  }
+
   async execute(uri?: Uri): Promise<void> {
     if (!uri) {
       const editor = window.activeTextEditor;

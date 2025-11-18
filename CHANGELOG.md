@@ -1,3 +1,12 @@
+## [2.17.190] (2025-11-18)
+
+### Fix: Blame command constructors
+
+* **ShowBlame/ToggleBlame/ClearBlame**: Add missing constructors calling super() with command IDs
+* **Issue**: Extension activation failed with "Cannot read properties of undefined (reading 'trim')"
+* **Root cause**: Command subclasses missing super() call in constructor
+* **Fixed**: Added constructors with super("svn.blame.showBlame"), etc.
+
 ## [2.17.189] (2025-11-18)
 
 ### Feature: Blame command layer
