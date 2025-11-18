@@ -428,8 +428,8 @@ export class RepoLogProvider
           persisted,
           order: this.logCache.size
         });
+        console.log("[RepoLog] Cache preserved for", repoUrl, "- entries:", prev?.entries.length || 0);
       }
-      console.log("[RepoLog] Cache preserved, entries:", this.logCache.get(repo.branchRoot.toString(true))?.entries.length || 0);
     }
     console.log("[RepoLog] Firing _onDidChangeTreeData");
     this._onDidChangeTreeData.fire(element);

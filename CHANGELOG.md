@@ -1,3 +1,11 @@
+## [2.17.182] (2025-11-18)
+
+### Fix: Logging error in cache preservation
+
+* **Bug**: `repo` undefined in console.log outside loop
+* **Fix**: Moved logging inside loop, use `repoUrl` and `prev`
+* **Files**: src/historyView/repoLogProvider.ts:431
+
 ## [2.17.181] (2025-11-18)
 
 ### Performance: Repository Log cache preservation (Phase 3)
