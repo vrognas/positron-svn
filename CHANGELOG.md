@@ -1,3 +1,11 @@
+## [2.17.191] (2025-11-18)
+
+### Build: Compile blame functionality
+
+* **Build**: npm install + node build.js to compile blame() method into dist/extension.js
+* **Issue**: "e.blame is not a function" - extension running old compiled code
+* **Fixed**: Built extension with new blame repository methods
+
 ## [2.17.190] (2025-11-18)
 
 ### Fix: Blame command constructors
