@@ -1,3 +1,14 @@
+## [2.17.184] (2025-11-18)
+
+### UX: Explicit refresh clears cache
+
+* **Issue**: Clicking "Refresh log" button didn't fetch fresh data (cache preserved)
+* **Fix**: Distinguish explicit user refresh from automatic refresh
+* **Explicit refresh**: Clears cache, fetches fresh → `explicitRefreshCmd()`
+* **Automatic refresh**: Preserves cache → `refresh()` from onDidChangeRepository
+* **Implementation**: New `explicitRefresh` param + wrapper command
+* **Files**: src/historyView/repoLogProvider.ts:144,397-399,405-454
+
 ## [2.17.183] (2025-11-18)
 
 ### Fix: Cache preservation actually working now

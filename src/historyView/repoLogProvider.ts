@@ -141,7 +141,7 @@ export class RepoLogProvider
         this.openFileLocal,
         this
       ),
-      commands.registerCommand("svn.repolog.refresh", this.refresh, this),
+      commands.registerCommand("svn.repolog.refresh", this.explicitRefreshCmd, this),
       commands.registerCommand("svn.repolog.revealInExplorer", this.revealInExplorerCmd, this),
       commands.registerCommand("svn.repolog.diffWithExternalTool", this.diffWithExternalToolCmd, this),
       this.sourceControlManager.onDidChangeRepository(
@@ -393,21 +393,34 @@ export class RepoLogProvider
     }
   }
 
-  public async refresh(element?: ILogTreeItem, fetchMoreClick?: boolean) {
-    console.log("[RepoLog] refresh() called, element:", element?.kind, "fetchMore:", fetchMoreClick);
+  // Wrapper for explicit user refresh (clears cache)
+  public async explicitRefreshCmd(element?: ILogTreeItem, fetchMoreClick?: boolean) {
+    return this.refresh(element, fetchMoreClick, true);
+  }
+
+  public async refresh(element?: ILogTreeItem, fetchMoreClick?: boolean, explicitRefresh?: boolean) {
+    console.log("[RepoLog] refresh() called, element:", element?.kind, "fetchMore:", fetchMoreClick, "explicit:", explicitRefresh);
 
     if (fetchMoreClick) {
       // Fetch more commits for current repo
       const cached = this.getCached(element);
       await fetchMore(cached);
     } else if (element === undefined) {
-      // Full refresh: preserve cache, update repo list
-      console.log("[RepoLog] Full refresh - preserving cache");
+      // Determine if we should clear or preserve cache
+      const shouldClearCache = explicitRefresh === true;
 
-      // Save entries before modifying cache
+      if (shouldClearCache) {
+        console.log("[RepoLog] Explicit refresh - clearing cache");
+      } else {
+        console.log("[RepoLog] Automatic refresh - preserving cache");
+      }
+
+      // Save entries before modifying cache (if preserving)
       const savedEntries = new Map<string, ISvnLogEntry[]>();
-      for (const [k, v] of this.logCache) {
-        savedEntries.set(k, v.entries);
+      if (!shouldClearCache) {
+        for (const [k, v] of this.logCache) {
+          savedEntries.set(k, v.entries);
+        }
       }
 
       // Remove auto-added repositories
@@ -417,7 +430,7 @@ export class RepoLogProvider
         }
       }
 
-      // Rebuild cache with preserved entries
+      // Rebuild cache with preserved or empty entries
       for (const repo of this.sourceControlManager.repositories) {
         const remoteRoot = repo.branchRoot;
         const repoUrl = remoteRoot.toString(true);
@@ -429,16 +442,16 @@ export class RepoLogProvider
         if (prev) {
           persisted = prev.persisted;
         }
-        const preservedEntries = savedEntries.get(repoUrl) || [];
+        const entries = shouldClearCache ? [] : (savedEntries.get(repoUrl) || []);
         this.logCache.set(repoUrl, {
-          entries: preservedEntries,
+          entries,
           isComplete: false,
           repo,
           svnTarget: remoteRoot,
           persisted,
           order: this.logCache.size
         });
-        console.log("[RepoLog] Cache preserved for", repoUrl, "- entries:", preservedEntries.length);
+        console.log("[RepoLog]", shouldClearCache ? "Cleared" : "Preserved", "cache for", repoUrl, "- entries:", entries.length);
       }
     }
     console.log("[RepoLog] Firing _onDidChangeTreeData");
