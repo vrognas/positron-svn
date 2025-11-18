@@ -1,3 +1,12 @@
+## [2.17.175] (2025-11-17)
+
+### Debug: Enhanced logging for acceptInputCommand issue
+
+* **Debug**: Added detailed SourceControl property logging
+* **Order**: Set inputBox properties before acceptInputCommand (matches Git)
+* **Logging**: Shows id, label, rootUri, contextValue, acceptInputCommand object
+* **File**: src/repository.ts:241-261
+
 ## [2.17.174] (2025-11-17)
 
 ### Fix: File decorations now refresh properly after revert
