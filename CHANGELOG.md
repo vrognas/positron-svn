@@ -1,3 +1,12 @@
+## [2.17.192] (2025-11-18)
+
+### Fix: Expose blame() in Repository class
+
+* **Repository.blame()**: Added public method delegating to SvnRepository.blame()
+* **Operation.Blame**: Added to Operation enum
+* **Issue**: "e.blame is not a function" - Repository class missing blame delegation
+* **Pattern**: Follows getInfo/getChanges delegation pattern with this.run()
+
 ## [2.17.191] (2025-11-18)
 
 ### Build: Compile blame functionality

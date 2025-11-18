@@ -773,6 +773,12 @@ export class Repository implements IRemoteRepository {
     return this.run(Operation.Changes, () => this.repository.getChanges());
   }
 
+  public async blame(path: string, revision?: string) {
+    return this.run(Operation.Blame, () =>
+      this.repository.blame(path, revision)
+    );
+  }
+
   public async finishCheckout() {
     return this.run(Operation.SwitchBranch, () =>
       this.repository.finishCheckout()

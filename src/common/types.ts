@@ -104,6 +104,7 @@ export enum RepositoryState {
 export enum Operation {
   Add = "Add",
   AddChangelist = "AddChangelist",
+  Blame = "Blame",
   Changes = "Changes",
   CleanUp = "CleanUp",
   Commit = "Commit",
