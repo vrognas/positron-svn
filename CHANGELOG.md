@@ -1,3 +1,12 @@
+## [2.17.185] (2025-11-18)
+
+### Cleanup: Remove debug logging
+
+* **Removed**: All console.log statements (14 total) from repoLogProvider
+* **Locations**: onDidChangeRepository, refresh(), getChildren()
+* **Reason**: Performance optimization complete, debugging no longer needed
+* **Files**: src/historyView/repoLogProvider.ts
+
 ## [2.17.184] (2025-11-18)
 
 ### UX: Explicit refresh clears cache

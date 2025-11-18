@@ -146,23 +146,17 @@ export class RepoLogProvider
       commands.registerCommand("svn.repolog.diffWithExternalTool", this.diffWithExternalToolCmd, this),
       this.sourceControlManager.onDidChangeRepository(
         async (_e: RepositoryChangeEvent) => {
-          console.log("[RepoLog] onDidChangeRepository fired, visible:", this.treeView?.visible);
-
           // Performance: Skip refresh when view is hidden
           if (!this.treeView?.visible) {
-            console.log("[RepoLog] Skipping refresh - view hidden");
             return;
           }
 
           // Performance: Debounce rapid events (2 second window)
           if (this.refreshTimeout) {
-            console.log("[RepoLog] Clearing previous timeout");
             clearTimeout(this.refreshTimeout);
           }
 
-          console.log("[RepoLog] Setting 2s timeout for refresh");
           this.refreshTimeout = setTimeout(() => {
-            console.log("[RepoLog] Timeout fired - calling refresh()");
             this.refresh();
           }, this.DEBOUNCE_MS);
         }
@@ -399,8 +393,6 @@ export class RepoLogProvider
   }
 
   public async refresh(element?: ILogTreeItem, fetchMoreClick?: boolean, explicitRefresh?: boolean) {
-    console.log("[RepoLog] refresh() called, element:", element?.kind, "fetchMore:", fetchMoreClick, "explicit:", explicitRefresh);
-
     if (fetchMoreClick) {
       // Fetch more commits for current repo
       const cached = this.getCached(element);
@@ -408,12 +400,6 @@ export class RepoLogProvider
     } else if (element === undefined) {
       // Determine if we should clear or preserve cache
       const shouldClearCache = explicitRefresh === true;
-
-      if (shouldClearCache) {
-        console.log("[RepoLog] Explicit refresh - clearing cache");
-      } else {
-        console.log("[RepoLog] Automatic refresh - preserving cache");
-      }
 
       // Save entries before modifying cache (if preserving)
       const savedEntries = new Map<string, ISvnLogEntry[]>();
@@ -451,10 +437,8 @@ export class RepoLogProvider
           persisted,
           order: this.logCache.size
         });
-        console.log("[RepoLog]", shouldClearCache ? "Cleared" : "Preserved", "cache for", repoUrl, "- entries:", entries.length);
       }
     }
-    console.log("[RepoLog] Firing _onDidChangeTreeData");
     this._onDidChangeTreeData.fire(element);
   }
 
@@ -511,17 +495,13 @@ export class RepoLogProvider
   public async getChildren(
     element: ILogTreeItem | undefined
   ): Promise<ILogTreeItem[]> {
-    console.log("[RepoLog] getChildren() called, element:", element?.kind);
-
     if (element === undefined) {
       // Show commits directly at root level (skip repo folder)
       const limit = getLimit();
       const cached = this.getCached();
       const logentries = cached.entries;
-      console.log("[RepoLog] Root level - cached entries count:", logentries.length);
 
       if (logentries.length === 0) {
-        console.log("[RepoLog] Cache empty - calling fetchMore() -> will trigger svn log");
         await fetchMore(cached);
       }
       const result = transform(logentries, LogTreeItemKind.Commit, undefined);
@@ -537,7 +517,6 @@ export class RepoLogProvider
         ti.iconPath = new ThemeIcon("unfold");
         result.push({ kind: LogTreeItemKind.TItem, data: ti });
       }
-      console.log("[RepoLog] Returning", result.length, "items");
       return result;
     } else if (element.kind === LogTreeItemKind.Commit) {
       const commit = element.data as ISvnLogEntry;
