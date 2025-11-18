@@ -1,11 +1,18 @@
+## [2.17.177] (2025-11-18)
+
+### Fix: Actually add Commit button to scm/title menu
+
+* **Fix**: svn.commitAll now actually added to scm/title (was missing in v2.17.176)
+* **Button**: Appears as first navigation button in SCM title bar
+* **File**: package.json:803-807
+
 ## [2.17.176] (2025-11-18)
 
-### Workaround: Add Commit button to scm/title menu
+### Workaround: Add Commit button to scm/title menu (incomplete)
 
-* **Workaround**: Added svn.commitAll to scm/title as first navigation button
-* **Reason**: Positron doesn't fully support acceptInputCommand for non-Git providers
-* **Result**: Commit button now appears in SCM title bar
-* **File**: package.json:798-802
+* **Intent**: Add svn.commitAll to scm/title as first navigation button
+* **Issue**: Change documented but not applied to package.json
+* **Note**: Fixed in v2.17.177
 
 ## [2.17.175] (2025-11-17)
 
