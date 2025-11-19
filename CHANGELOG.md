@@ -1,3 +1,13 @@
+## [2.17.206] (2025-11-19)
+
+### Add: Current-line-only inline blame (cursor tracking)
+
+* **Cursor tracking**: onDidChangeTextEditorSelection with 150ms debounce
+* **Filter logic**: Show inline only on cursor line when currentLineOnly enabled
+* **Performance**: Skip updates if cursor still on same line
+* **Property**: currentLineNumber tracks cursor position
+* **Integration**: Works with existing inline blame system
+
 ## [2.17.205] (2025-11-19)
 
 ### Add: Config for current-line-only inline blame

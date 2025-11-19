@@ -32,6 +32,7 @@ export class BlameProvider implements Disposable {
   private revisionColors = new Map<string, string>();  // revision → gradient color
   private svgCache = new Map<string, Uri>();  // color → SVG data URI
   private messageCache = new Map<string, string>();  // revision → commit message
+  private currentLineNumber?: number;  // Track cursor position for current-line-only mode
   private disposables: Disposable[] = [];
   private isActivated = false;
 
@@ -90,6 +91,9 @@ export class BlameProvider implements Disposable {
 
       // Visible range changes (for performance)
       window.onDidChangeTextEditorVisibleRanges(e => this.onVisibleRangeChange(e)),
+
+      // Cursor position changes (for current-line-only inline blame)
+      window.onDidChangeTextEditorSelection(e => this.onCursorPositionChange(e)),
 
       // State changes
       blameStateManager.onDidChangeState(uri => this.onBlameStateChange(uri)),
@@ -206,6 +210,8 @@ export class BlameProvider implements Disposable {
       return;
     }
 
+    // Update current line number for new editor
+    this.currentLineNumber = editor.selection.active.line;
     await this.updateDecorations(editor);
   }
 
@@ -236,6 +242,22 @@ export class BlameProvider implements Disposable {
   private async onVisibleRangeChange(event: { textEditor: TextEditor }): Promise<void> {
     // Update decorations when scrolling (for future optimization)
     // Currently updates all decorations, but can be optimized to only visible range
+    await this.updateDecorations(event.textEditor);
+  }
+
+  @debounce(150)
+  private async onCursorPositionChange(event: { textEditor: TextEditor }): Promise<void> {
+    // Update current line number and refresh inline decorations (debounced 150ms)
+    if (!blameConfiguration.isInlineCurrentLineOnly()) {
+      return;  // Skip if not in current-line-only mode
+    }
+
+    const newLine = event.textEditor.selection.active.line;
+    if (this.currentLineNumber === newLine) {
+      return;  // Skip if cursor still on same line
+    }
+
+    this.currentLineNumber = newLine;
     await this.updateDecorations(event.textEditor);
   }
 
@@ -399,26 +421,33 @@ export class BlameProvider implements Disposable {
 
       // 2. Inline annotation
       if (blameConfiguration.isInlineEnabled()) {
-        const message = blameConfiguration.shouldShowInlineMessage()
-          ? await this.getCommitMessage(blameLine.revision)
-          : "";
+        // Filter by current line if currentLineOnly mode enabled
+        const currentLineOnly = blameConfiguration.isInlineCurrentLineOnly();
+        const isCurrentLine = lineIndex === editor.selection.active.line;
 
-        const inlineText = this.formatInlineText(blameLine, message);
+        if (!currentLineOnly || isCurrentLine) {
+          const message = blameConfiguration.shouldShowInlineMessage()
+            ? await this.getCommitMessage(blameLine.revision)
+            : "";
 
-        const line = editor.document.lineAt(lineIndex);
-        inlineDecorations.push({
-          range: new Range(
-            lineIndex,
-            line.range.end.character,
-            lineIndex,
-            line.range.end.character
-          ),
-          renderOptions: {
-            after: {
-              contentText: inlineText
-            }
-          }
-        });
+          const inlineText = this.formatInlineText(blameLine, message);
+
+          const line = editor.document.lineAt(lineIndex);
+          inlineDecorations.push({
+            range: new Range(
+              lineIndex,
+              line.range.end.character,
+              lineIndex,
+              line.range.end.character
+            ),
+            renderOptions: {
+              after: {
+                contentText: inlineText
+              }
+            },
+            hoverMessage: `SVN: r${blameLine.revision} by ${blameLine.author}`
+          });
+        }
       }
     }
 
