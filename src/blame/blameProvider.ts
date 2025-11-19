@@ -160,14 +160,21 @@ export class BlameProvider implements Disposable {
       // Apply icon decorations (separate method using multiple decoration types)
       this.applyIconDecorations(target, blameData, revisionRange);
 
-      target.setDecorations(
-        this.decorationTypes.inline,
-        blameConfiguration.isInlineEnabled() ? decorations.inline : []
-      );
+      // OPTIMIZATION: Skip first inline render if progressive message fetch will happen
+      // Prevents duplicate setDecorations() call (first without messages, second with messages)
+      const willFetchMessages = blameConfiguration.isInlineEnabled() && blameConfiguration.shouldShowInlineMessage();
+
+      if (!willFetchMessages) {
+        // Render inline immediately (no progressive update will happen)
+        target.setDecorations(
+          this.decorationTypes.inline,
+          blameConfiguration.isInlineEnabled() ? decorations.inline : []
+        );
+      }
 
       // PHASE 2: Fetch messages asynchronously and update inline decorations
       // (Fire-and-forget - don't block UI)
-      if (blameConfiguration.isInlineEnabled() && blameConfiguration.shouldShowInlineMessage()) {
+      if (willFetchMessages) {
         this.prefetchMessagesProgressively(target.document.uri, blameData, target).catch(err => {
           console.error("BlameProvider: Progressive message fetch failed", err);
         });

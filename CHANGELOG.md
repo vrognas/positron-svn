@@ -1,3 +1,13 @@
+## [2.17.213] (2025-11-19)
+
+### Fix: Document change flicker
+
+* **Issue**: Decorations cleared on every keystroke (after 500ms), causes visible flicker
+* **Fix**: onDocumentChange now only invalidates cache, keeps decorations visible
+* **Behavior**: Decorations stay during typing, refresh on save with latest data
+* **Impact**: Eliminates flicker, better UX (stale decorations acceptable until save)
+* **Code**: Lines 347-352 - removed clearDecorations, kept clearCache
+
 ## [2.17.212] (2025-11-19)
 
 ### Fix: Icon decoration type memory leak
