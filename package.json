@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.218",
+    "version": "2.17.219",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -1044,14 +1044,20 @@
                 {
                     "command": "svn.blame.toggleBlame",
                     "group": "navigation",
-                    "when": "config.svn.blame.enabled && svnOpenRepositoryCount != 0 && !isInDiffEditor && resourceScheme == file && svnBlameActiveForFile",
+                    "when": "config.svn.blame.enabled && svnOpenRepositoryCount != 0 && !isInDiffEditor && resourceScheme == file && svnBlameActiveForFile && !svnBlameUntrackedFile",
                     "icon": "$(eye)"
                 },
                 {
                     "command": "svn.blame.toggleBlame",
                     "group": "navigation",
-                    "when": "config.svn.blame.enabled && svnOpenRepositoryCount != 0 && !isInDiffEditor && resourceScheme == file && !svnBlameActiveForFile",
+                    "when": "config.svn.blame.enabled && svnOpenRepositoryCount != 0 && !isInDiffEditor && resourceScheme == file && !svnBlameActiveForFile && !svnBlameUntrackedFile",
                     "icon": "$(eye-closed)"
+                },
+                {
+                    "command": "svn.blame.toggleBlame",
+                    "group": "navigation",
+                    "when": "config.svn.blame.enabled && svnOpenRepositoryCount != 0 && !isInDiffEditor && resourceScheme == file && svnBlameUntrackedFile",
+                    "icon": "$(circle-slash)"
                 },
                 {
                     "command": "svn.openFile",
@@ -1113,7 +1119,7 @@
                 "svn.blame.autoBlame": {
                     "type": "boolean",
                     "description": "Automatically blame files when opened",
-                    "default": false
+                    "default": true
                 },
                 "svn.blame.dateFormat": {
                     "type": "string",
@@ -1132,7 +1138,7 @@
                 "svn.blame.largeFileLimit": {
                     "type": "number",
                     "description": "Maximum number of lines before warning about large file (0 to disable)",
-                    "default": 100000,
+                    "default": 3000,
                     "minimum": 0
                 },
                 "svn.blame.largeFileWarning": {

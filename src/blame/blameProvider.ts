@@ -78,7 +78,7 @@ export class BlameProvider implements Disposable {
           fontWeight: "normal"
         },
         isWholeLine: false,
-        opacity: String(blameConfiguration.getInlineOpacity())
+        rangeBehavior: 1  // ClosedClosed
       })
     };
   }
@@ -381,7 +381,8 @@ export class BlameProvider implements Disposable {
         ),
         renderOptions: {
           after: {
-            contentText: inlineText
+            contentText: inlineText,
+            color: `rgba(127, 127, 127, ${blameConfiguration.getInlineOpacity()})`
           }
         },
         hoverMessage: `SVN: r${blameLine.revision} by ${blameLine.author}`
@@ -446,7 +447,8 @@ export class BlameProvider implements Disposable {
         ),
         renderOptions: {
           after: {
-            contentText: inlineText
+            contentText: inlineText,
+            color: `rgba(127, 127, 127, ${blameConfiguration.getInlineOpacity()})`
           }
         },
         hoverMessage: `SVN: r${blameLine.revision} by ${blameLine.author}`
@@ -687,7 +689,7 @@ export class BlameProvider implements Disposable {
       const range = new Range(lineIndex, 0, lineIndex, 0);
 
       // 1. Gutter text decoration
-      if (blameConfiguration.isGutterTextEnabled()) {
+      if (blameConfiguration.isGutterEnabled() && blameConfiguration.isGutterTextEnabled()) {
         const text = this.formatBlameText(blameLine, template, dateFormat);
         gutterDecorations.push({
           range,
@@ -727,7 +729,8 @@ export class BlameProvider implements Disposable {
             ),
             renderOptions: {
               after: {
-                contentText: inlineText
+                contentText: inlineText,
+                color: `rgba(127, 127, 127, ${blameConfiguration.getInlineOpacity()})`
               }
             },
             hoverMessage: `SVN: r${blameLine.revision} by ${blameLine.author}`
@@ -926,7 +929,7 @@ export class BlameProvider implements Disposable {
     blameData: ISvnBlameLine[],
     revisionRange: { min: number; max: number }
   ): void {
-    if (!blameConfiguration.isGutterIconEnabled()) {
+    if (!blameConfiguration.isGutterEnabled() || !blameConfiguration.isGutterIconEnabled()) {
       this.clearIconDecorations(editor);
       return;
     }

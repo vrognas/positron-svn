@@ -1,3 +1,15 @@
+## [2.17.219] (2025-11-19)
+
+### Feat: Untracked file icon + opacity fix + config defaults
+
+* **Untracked icon**: circle-slash icon for untracked files (3rd menu state)
+* **Context**: svnBlameUntrackedFile context tracks UNVERSIONED/IGNORED/NONE
+* **Opacity fix**: Inline decorations use rgba color instead of decoration type opacity
+* **autoBlame default**: Changed from false to true
+* **largeFileLimit**: Changed default from 100000 to 3000 lines
+* **Gutter logic**: Both isGutterEnabled() AND feature flags now checked
+* **Code**: blameIconState.ts:28-65, blameProvider.ts:381-450,687-733, package.json:1047-1060,1122,1141
+
 ## [2.17.218] (2025-11-19)
 
 ### Fix: Skip blame for untracked files

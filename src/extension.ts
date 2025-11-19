@@ -66,7 +66,7 @@ async function init(
     new OpenRepositoryCount(sourceControlManager),
     new IsSvn18orGreater(info.version),
     new IsSvn19orGreater(info.version),
-    new BlameIconState()
+    new BlameIconState(sourceControlManager)
   );
 
   outputChannel.appendLine(`Using svn "${info.version}" from "${info.path}"`);

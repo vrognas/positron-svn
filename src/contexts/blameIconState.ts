@@ -1,11 +1,12 @@
 import { Disposable, window } from "vscode";
 import { blameStateManager } from "../blame/blameStateManager";
 import { IDisposable, setVscodeContext } from "../util";
+import { SourceControlManager } from "../source_control_manager";
 
 export class BlameIconState implements IDisposable {
   private disposables: Disposable[] = [];
 
-  constructor() {
+  constructor(private sourceControlManager: SourceControlManager) {
     // Listen to blame state changes
     blameStateManager.onDidChangeState(
       () => this.updateIconContext(),
@@ -20,6 +21,13 @@ export class BlameIconState implements IDisposable {
       this.disposables
     );
 
+    // Listen to repository changes (for file status updates)
+    sourceControlManager.onDidChangeStatusRepository(
+      () => this.updateIconContext(),
+      this,
+      this.disposables
+    );
+
     // Set initial state
     this.updateIconContext();
   }
@@ -28,11 +36,33 @@ export class BlameIconState implements IDisposable {
     const editor = window.activeTextEditor;
     if (!editor || editor.document.uri.scheme !== "file") {
       await setVscodeContext("svnBlameActiveForFile", false);
+      await setVscodeContext("svnBlameUntrackedFile", false);
       return;
     }
 
-    const isEnabled = blameStateManager.isBlameEnabled(editor.document.uri);
-    await setVscodeContext("svnBlameActiveForFile", isEnabled);
+    // Check if file is untracked in SVN
+    const repository = this.sourceControlManager.getRepository(editor.document.uri);
+    let isUntracked = false;
+
+    if (repository) {
+      const resource = repository.getResourceFromFile(editor.document.uri);
+      if (resource) {
+        const { Status } = await import("../common/types");
+        isUntracked = resource.type === Status.UNVERSIONED ||
+                      resource.type === Status.IGNORED ||
+                      resource.type === Status.NONE;
+      }
+    }
+
+    // Set context variables
+    if (isUntracked) {
+      await setVscodeContext("svnBlameActiveForFile", false);
+      await setVscodeContext("svnBlameUntrackedFile", true);
+    } else {
+      const isEnabled = blameStateManager.isBlameEnabled(editor.document.uri);
+      await setVscodeContext("svnBlameActiveForFile", isEnabled);
+      await setVscodeContext("svnBlameUntrackedFile", false);
+    }
   }
 
   public dispose(): void {
