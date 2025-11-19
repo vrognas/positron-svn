@@ -95,9 +95,6 @@ export class BlameProvider implements Disposable {
       workspace.onDidSaveTextDocument(d => this.onDocumentSave(d)),
       workspace.onDidCloseTextDocument(d => this.onDocumentClose(d)),
 
-      // Visible range changes (for performance)
-      window.onDidChangeTextEditorVisibleRanges(e => this.onVisibleRangeChange(e)),
-
       // Cursor position changes (for current-line-only inline blame)
       window.onDidChangeTextEditorSelection(e => this.onCursorPositionChange(e)),
 
@@ -364,12 +361,6 @@ export class BlameProvider implements Disposable {
   private onDocumentClose(document: { uri: Uri }): void {
     // Clear cache on close
     this.clearCache(document.uri);
-  }
-
-  private async onVisibleRangeChange(event: { textEditor: TextEditor }): Promise<void> {
-    // Update decorations when scrolling (for future optimization)
-    // Currently updates all decorations, but can be optimized to only visible range
-    await this.updateDecorations(event.textEditor);
   }
 
   @debounce(150)

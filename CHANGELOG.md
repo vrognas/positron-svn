@@ -1,3 +1,13 @@
+## [2.17.211] (2025-11-19)
+
+### Perf: Remove scroll handler (eliminate scroll lag)
+
+* **Removed**: Unnecessary `onVisibleRangeChange` event handler
+* **Issue**: Re-rendered all decorations on every scroll (wasteful)
+* **Fix**: VS Code handles visible range rendering automatically
+* **Impact**: Eliminates 100-200ms lag during scrolling
+* **All triggers covered**: File switch, content change, save, cursor, config
+
 ## [2.17.210] (2025-11-19)
 
 ### Perf: Batch SVN log fetching (50x faster commit messages)
