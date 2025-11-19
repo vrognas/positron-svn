@@ -32,6 +32,7 @@ export class BlameProvider implements Disposable {
   private revisionColors = new Map<string, string>();  // revision → gradient color
   private svgCache = new Map<string, Uri>();  // color → SVG data URI
   private messageCache = new Map<string, string>();  // revision → commit message
+  private inFlightMessageFetches = new Map<string, Promise<void>>();  // uri → fetch promise
   private currentLineNumber?: number;  // Track cursor position for current-line-only mode
   private disposables: Disposable[] = [];
   private isActivated = false;
@@ -140,13 +141,15 @@ export class BlameProvider implements Disposable {
         return;
       }
 
-      // Create gutter and inline decoration arrays
-      const decorations = await this.createAllDecorations(blameData, target);
+      // PROGRESSIVE RENDERING: Create decorations without waiting for messages
+      const decorations = await this.createAllDecorations(blameData, target, {
+        skipMessagePrefetch: true  // Don't block on message fetching
+      });
 
       // Calculate revision range for icon colors
       const revisionRange = this.getRevisionRange(blameData);
 
-      // Apply decorations based on config
+      // PHASE 1: Apply decorations immediately (gutter + icons + inline without messages)
       target.setDecorations(
         this.decorationTypes.gutter,
         blameConfiguration.isGutterTextEnabled() ? decorations.gutter : []
@@ -159,6 +162,14 @@ export class BlameProvider implements Disposable {
         this.decorationTypes.inline,
         blameConfiguration.isInlineEnabled() ? decorations.inline : []
       );
+
+      // PHASE 2: Fetch messages asynchronously and update inline decorations
+      // (Fire-and-forget - don't block UI)
+      if (blameConfiguration.isInlineEnabled() && blameConfiguration.shouldShowInlineMessage()) {
+        this.prefetchMessagesProgressively(target.document.uri, blameData, target).catch(err => {
+          console.error("BlameProvider: Progressive message fetch failed", err);
+        });
+      }
     } catch (err) {
       console.error("BlameProvider: Failed to update decorations", err);
       this.clearDecorations(target);
@@ -183,6 +194,116 @@ export class BlameProvider implements Disposable {
    */
   public clearCache(uri: Uri): void {
     this.blameCache.delete(uri.toString());
+    // Cancel any in-flight message fetches for this URI
+    this.inFlightMessageFetches.delete(uri.toString());
+  }
+
+  /**
+   * Prefetch commit messages progressively (non-blocking)
+   * Fetches messages in background and updates inline decorations when done
+   */
+  private async prefetchMessagesProgressively(
+    uri: Uri,
+    blameData: ISvnBlameLine[],
+    editor: TextEditor
+  ): Promise<void> {
+    const uriKey = uri.toString();
+
+    // Check if already fetching messages for this file
+    const existingFetch = this.inFlightMessageFetches.get(uriKey);
+    if (existingFetch) {
+      return existingFetch; // Reuse existing fetch
+    }
+
+    // Extract unique revisions
+    const uniqueRevisions = [...new Set(
+      blameData.map(b => b.revision).filter(Boolean)
+    )] as string[];
+
+    if (uniqueRevisions.length === 0 || uniqueRevisions.length > 100) {
+      return; // Skip if no revisions or too many
+    }
+
+    // Create fetch promise
+    const fetchPromise = (async () => {
+      try {
+        // Fetch all messages
+        await this.prefetchMessages(uniqueRevisions);
+
+        // Check if blame still enabled and editor still active
+        if (!blameStateManager.isBlameEnabled(uri)) {
+          return; // Blame was disabled, don't update
+        }
+
+        if (window.activeTextEditor?.document.uri.toString() !== uriKey) {
+          return; // User navigated away, don't update
+        }
+
+        // Re-create inline decorations with messages
+        await this.updateInlineDecorationsWithMessages(blameData, editor);
+      } finally {
+        // Remove from in-flight map when done
+        this.inFlightMessageFetches.delete(uriKey);
+      }
+    })();
+
+    // Track this fetch
+    this.inFlightMessageFetches.set(uriKey, fetchPromise);
+
+    return fetchPromise;
+  }
+
+  /**
+   * Update inline decorations with commit messages
+   * Called after messages are fetched asynchronously
+   */
+  private async updateInlineDecorationsWithMessages(
+    blameData: ISvnBlameLine[],
+    editor: TextEditor
+  ): Promise<void> {
+    const inlineDecorations: any[] = [];
+    const currentLineOnly = blameConfiguration.isInlineCurrentLineOnly();
+
+    for (const blameLine of blameData) {
+      const lineIndex = blameLine.lineNumber - 1;
+
+      // Skip invalid lines or uncommitted
+      if (lineIndex < 0 || lineIndex >= editor.document.lineCount) {
+        continue;
+      }
+      if (!blameLine.revision || !blameLine.author) {
+        continue;
+      }
+
+      // Filter by current line if needed
+      const isCurrentLine = lineIndex === editor.selection.active.line;
+      if (currentLineOnly && !isCurrentLine) {
+        continue;
+      }
+
+      // Get message from cache (should be available now)
+      const message = this.messageCache.get(blameLine.revision) || "";
+      const inlineText = this.formatInlineText(blameLine, message);
+
+      const line = editor.document.lineAt(lineIndex);
+      inlineDecorations.push({
+        range: new Range(
+          lineIndex,
+          line.range.end.character,
+          lineIndex,
+          line.range.end.character
+        ),
+        renderOptions: {
+          after: {
+            contentText: inlineText
+          }
+        },
+        hoverMessage: `SVN: r${blameLine.revision} by ${blameLine.author}`
+      });
+    }
+
+    // Apply updated inline decorations with messages
+    editor.setDecorations(this.decorationTypes.inline, inlineDecorations);
   }
 
   /**
@@ -198,6 +319,7 @@ export class BlameProvider implements Disposable {
     this.revisionColors.clear();
     this.svgCache.clear();
     this.messageCache.clear();
+    this.inFlightMessageFetches.clear(); // Cancel all in-flight fetches
     this.disposables.forEach(d => d.dispose());
     this.disposables = [];
     this.isActivated = false;
@@ -368,7 +490,8 @@ export class BlameProvider implements Disposable {
    */
   private async createAllDecorations(
     blameData: ISvnBlameLine[],
-    editor: TextEditor
+    editor: TextEditor,
+    options: { skipMessagePrefetch?: boolean } = {}
   ): Promise<{
     gutter: any[];
     icon: any[];
@@ -380,8 +503,10 @@ export class BlameProvider implements Disposable {
     const template = blameConfiguration.getGutterTemplate();
     const dateFormat = blameConfiguration.getDateFormat();
 
-    // Prefetch messages if inline enabled
-    if (blameConfiguration.isInlineEnabled() && blameConfiguration.shouldShowInlineMessage()) {
+    // Prefetch messages if inline enabled (unless skipped for progressive rendering)
+    if (!options.skipMessagePrefetch &&
+        blameConfiguration.isInlineEnabled() &&
+        blameConfiguration.shouldShowInlineMessage()) {
       const uniqueRevisions = [...new Set(
         blameData.map(b => b.revision).filter(Boolean)
       )] as string[];

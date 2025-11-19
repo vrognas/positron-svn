@@ -1,3 +1,14 @@
+## [2.17.208] (2025-11-19)
+
+### Perf: Progressive rendering (10-20x faster blame display)
+
+* **Progressive UI**: Show gutter + icons immediately without waiting for messages
+* **Async message fetch**: Fetch commit messages in background, update when ready
+* **Perceived perf**: Blame displays in <1s (was 5-25s with messages)
+* **Smart caching**: Prevents duplicate message fetches for same file
+* **Graceful cancel**: Cancels in-flight fetches when blame disabled or file closed
+* **User experience**: Blame feels instant, messages appear progressively
+
 ## [2.17.207] (2025-11-19)
 
 ### Improve: GitLens-style inline template + configurable opacity
