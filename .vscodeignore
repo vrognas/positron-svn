@@ -70,9 +70,7 @@ CLAUDE.md
 build.js
 eslint.config.js
 scripts/**
-CHANGELOG.md
-BLAME_*.md
-DECORATION_*.md
-PERFORMANCE_RECOMMENDATION.md
+*.md
+!readme.md
 docs/**
 

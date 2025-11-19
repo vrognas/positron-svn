@@ -1,3 +1,11 @@
+## [2.17.203] (2025-11-19)
+
+### Fix: Exclude all .md from VSIX (except readme.md)
+
+* **Pattern**: `*.md` + `!readme.md` - simpler blanket exclusion
+* **Keeps**: readme.md (marketplace documentation)
+* **Excludes**: All other .md files
+
 ## [2.17.202] (2025-11-19)
 
 ### Fix: VSIX optimization (exclude internal docs)
