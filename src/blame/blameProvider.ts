@@ -27,7 +27,7 @@ export class BlameProvider implements Disposable {
     inline: TextEditorDecorationType;
   };
   private blameCache = new Map<string, { data: ISvnBlameLine[]; version: number }>();
-  private authorColors = new Map<string, string>();  // author → HSL color
+  private revisionColors = new Map<string, string>();  // revision → gradient color
   private svgCache = new Map<string, Uri>();  // color → SVG data URI
   private messageCache = new Map<string, string>();  // revision → commit message
   private disposables: Disposable[] = [];
@@ -57,7 +57,7 @@ export class BlameProvider implements Disposable {
       }),
       icon: window.createTextEditorDecorationType({
         gutterIconPath: undefined,  // Set per decoration
-        gutterIconSize: "contain",
+        gutterIconSize: "auto",
         isWholeLine: false
       }),
       inline: window.createTextEditorDecorationType({
@@ -188,7 +188,7 @@ export class BlameProvider implements Disposable {
     this.decorationTypes.icon.dispose();
     this.decorationTypes.inline.dispose();
     this.blameCache.clear();
-    this.authorColors.clear();
+    this.revisionColors.clear();
     this.svgCache.clear();
     this.messageCache.clear();
     this.disposables.forEach(d => d.dispose());
@@ -264,7 +264,7 @@ export class BlameProvider implements Disposable {
     oldTypes.inline.dispose();
 
     // Clear caches (colors/templates may have changed)
-    this.authorColors.clear();
+    this.revisionColors.clear();
     this.svgCache.clear();
     // Keep messageCache (revision messages don't change)
 
@@ -360,6 +360,9 @@ export class BlameProvider implements Disposable {
       }
     }
 
+    // Calculate revision range for gradient coloring
+    const revisionRange = this.getRevisionRange(blameData);
+
     for (const blameLine of blameData) {
       const lineIndex = blameLine.lineNumber - 1; // 1-indexed to 0-indexed
 
@@ -390,7 +393,7 @@ export class BlameProvider implements Disposable {
 
       // 2. Gutter icon decoration
       if (blameConfiguration.isGutterIconEnabled()) {
-        const color = this.getAuthorColor(blameLine.author);
+        const color = this.getRevisionColor(blameLine.revision, revisionRange);
         const svgUri = this.generateColorBarSvg(color);
 
         iconDecorations.push({
@@ -492,36 +495,82 @@ export class BlameProvider implements Disposable {
     return `${Math.floor(seconds / 31536000)}y ago`;
   }
 
-  // ===== Phase 2.5: Color Hashing =====
+  // ===== Phase 2.5: Revision Gradient Coloring =====
 
   /**
-   * Get consistent color for author (cached)
+   * Calculate min/max revision range from blame data
    */
-  private getAuthorColor(author: string): string {
-    if (this.authorColors.has(author)) {
-      return this.authorColors.get(author)!;
+  private getRevisionRange(blameData: ISvnBlameLine[]): { min: number; max: number } {
+    const revisions = blameData
+      .map(b => b.revision)
+      .filter(Boolean)
+      .map(r => parseInt(r as string, 10))
+      .filter(r => !isNaN(r));
+
+    if (revisions.length === 0) {
+      return { min: 0, max: 0 };
     }
 
-    const color = this.hashToColor(author);
-    this.authorColors.set(author, color);
+    return {
+      min: Math.min(...revisions),
+      max: Math.max(...revisions)
+    };
+  }
+
+  /**
+   * Get gradient color for revision (red → yellow → green)
+   * Red (oldest) → Yellow (medium) → Green (newest)
+   * Formula: hue interpolates from 0 (red) to 120 (green)
+   */
+  private getRevisionColor(revision: string, range: { min: number; max: number }): string {
+    if (this.revisionColors.has(revision)) {
+      return this.revisionColors.get(revision)!;
+    }
+
+    const revNum = parseInt(revision, 10);
+    if (isNaN(revNum) || range.max === range.min) {
+      // Fallback for invalid or single revision
+      const color = this.hslToHex(60, 70, 50); // Yellow
+      this.revisionColors.set(revision, color);
+      return color;
+    }
+
+    // Normalize revision to 0-1 range
+    const normalized = (revNum - range.min) / (range.max - range.min);
+
+    // Interpolate hue: 0 (red) → 60 (yellow) → 120 (green)
+    const hue = Math.round(normalized * 120);
+    const saturation = 70;
+    const lightness = 50;
+
+    const color = this.hslToHex(hue, saturation, lightness);
+    this.revisionColors.set(revision, color);
     return color;
   }
 
   /**
-   * Hash string to HSL color using DJB2 algorithm
+   * Convert HSL to hex color for better SVG compatibility in data URIs
    */
-  private hashToColor(str: string): string {
-    let hash = 5381;
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) + hash) + str.charCodeAt(i);
-      hash = hash & 0xFFFFFFFF;
-    }
+  private hslToHex(h: number, s: number, l: number): string {
+    s /= 100;
+    l /= 100;
 
-    const hue = Math.abs(hash) % 360;
-    const saturation = 60 + (Math.abs(hash >> 8) % 21);  // 60-80%
-    const lightness = 50 + (Math.abs(hash >> 16) % 11);  // 50-60%
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
 
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    let r = 0, g = 0, b = 0;
+
+    if (h >= 0 && h < 60) { r = c; g = x; b = 0; }
+    else if (h >= 60 && h < 120) { r = x; g = c; b = 0; }
+    else if (h >= 120 && h < 180) { r = 0; g = c; b = x; }
+    else if (h >= 180 && h < 240) { r = 0; g = x; b = c; }
+    else if (h >= 240 && h < 300) { r = x; g = 0; b = c; }
+    else if (h >= 300 && h < 360) { r = c; g = 0; b = x; }
+
+    const toHex = (val: number) => Math.round((val + m) * 255).toString(16).padStart(2, '0');
+
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   }
 
   // ===== Phase 2.5: SVG Generation =====
@@ -534,7 +583,7 @@ export class BlameProvider implements Disposable {
       return this.svgCache.get(color)!;
     }
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="4" height="100%" viewBox="0 0 4 20"><rect width="4" height="20" fill="${color}"/></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="3" height="16" viewBox="0 0 3 16"><rect width="3" height="16" fill="${color}"/></svg>`;
     const base64 = Buffer.from(svg, "utf-8").toString("base64");
     const uri = Uri.parse(`data:image/svg+xml;base64,${base64}`);
 

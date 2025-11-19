@@ -1,3 +1,14 @@
+## [2.17.199] (2025-11-19)
+
+### Fix: Gutter icons + revision-based coloring
+
+* **Gutter icons enabled**: Default true (was false), appear left of line numbers
+* **SVG fixed**: 3x16px dimensions, proper viewBox (0 0 3 16), gutterIconSize auto
+* **Revision gradient**: Red (old) → yellow → green (new), temporal visualization
+* **Hex colors**: HSL→hex conversion for SVG compatibility
+* **Cache updated**: revisionColors Map (was authorColors)
+* **15 unit tests**: SVG generation, color format, caching, integration
+
 ## [2.17.198] (2025-11-19)
 
 ### Fix: BlameProvider Phase 2.5 critical bugs
