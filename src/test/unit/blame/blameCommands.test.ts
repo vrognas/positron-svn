@@ -1,8 +1,5 @@
 import * as assert from "assert";
 import { Uri } from "vscode";
-import { ToggleBlame } from "../../../commands/blame/toggleBlame";
-import { ShowBlame } from "../../../commands/blame/showBlame";
-import { ClearBlame } from "../../../commands/blame/clearBlame";
 import { BlameStateManager } from "../../../blame/blameStateManager";
 
 suite("Blame Commands Tests", () => {

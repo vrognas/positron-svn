@@ -237,6 +237,7 @@ export class Repository implements IRemoteRepository {
       Uri.file(repository.workspaceRoot)
     );
 
+    // @ts-expect-error - contextValue exists at runtime but not in types
     this.sourceControl.contextValue = "repository";
     this.sourceControl.inputBox.placeholder = "Commit message";
     this.sourceControl.inputBox.visible = true;

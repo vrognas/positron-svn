@@ -30,7 +30,6 @@ import {
   getCommitIcon,
   getCommitLabel,
   getCommitToolTip,
-  getIconObject,
   getLimit,
   ICachedLog,
   ILogTreeItem,
@@ -45,6 +44,8 @@ import {
 import { revealFileInOS, diffWithExternalTool } from "../util/fileOperations";
 import { logError } from "../util/errorLogger";
 
+// Reserved for future use - icon rendering in history view
+/*
 function getActionIcon(action: string) {
   let name: string | undefined;
   switch (action) {
@@ -66,6 +67,7 @@ function getActionIcon(action: string) {
   }
   return getIconObject(name);
 }
+*/
 
 export class RepoLogProvider
   implements TreeDataProvider<ILogTreeItem>, Disposable

@@ -1,5 +1,4 @@
 import * as assert from "assert";
-import { ConfigurationTarget } from "vscode";
 import { blameConfiguration } from "../../../blame/blameConfiguration";
 
 suite("BlameConfiguration Tests", () => {

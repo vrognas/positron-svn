@@ -4,8 +4,7 @@ import {
   FileDecoration,
   FileDecorationProvider,
   ThemeColor,
-  Uri,
-  window
+  Uri
 } from "vscode";
 import { Status } from "./common/types";
 import { Repository } from "./repository";
@@ -93,7 +92,8 @@ export class SvnFileDecorationProvider
    * Refresh decorations for changed files
    */
   refresh(uris?: Uri | Uri[]): void {
-    this._onDidChangeFileDecorations.fire(uris);
+    // Fire event with uris if provided, otherwise fire with empty array to refresh all
+    this._onDidChangeFileDecorations.fire(uris || []);
   }
 
   /**
