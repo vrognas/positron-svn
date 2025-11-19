@@ -1,3 +1,12 @@
+## [2.17.221] (2025-11-19)
+
+### Debug: Add logging to icon context updates
+
+* **Debug logging**: Console logs in updateIconContext to trace execution
+* **Void fix**: Explicit void for async constructor call
+* **Investigation**: Determine why icon not changing on toggle/untracked
+* **Code**: blameIconState.ts:32,37,40,62,67
+
 ## [2.17.220] (2025-11-19)
 
 ### Fix: Config defaults + shouldDecorate logic

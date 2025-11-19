@@ -29,12 +29,15 @@ export class BlameIconState implements IDisposable {
     );
 
     // Set initial state
-    this.updateIconContext();
+    void this.updateIconContext();
   }
 
   private async updateIconContext(): Promise<void> {
     const editor = window.activeTextEditor;
+    console.log("[BlameIconState] updateIconContext called, editor:", editor?.document.uri.fsPath);
+
     if (!editor || editor.document.uri.scheme !== "file") {
+      console.log("[BlameIconState] No editor or non-file scheme, setting both to false");
       await setVscodeContext("svnBlameActiveForFile", false);
       await setVscodeContext("svnBlameUntrackedFile", false);
       return;
@@ -56,10 +59,12 @@ export class BlameIconState implements IDisposable {
 
     // Set context variables
     if (isUntracked) {
+      console.log("[BlameIconState] File is UNTRACKED, setting svnBlameUntrackedFile=true");
       await setVscodeContext("svnBlameActiveForFile", false);
       await setVscodeContext("svnBlameUntrackedFile", true);
     } else {
       const isEnabled = blameStateManager.isBlameEnabled(editor.document.uri);
+      console.log("[BlameIconState] File is TRACKED, blame enabled:", isEnabled);
       await setVscodeContext("svnBlameActiveForFile", isEnabled);
       await setVscodeContext("svnBlameUntrackedFile", false);
     }
