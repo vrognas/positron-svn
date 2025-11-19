@@ -179,8 +179,15 @@ class BlameConfiguration {
   public getInlineTemplate(): string {
     return this.get<string>(
       "inline.template",
-      " ${author}, ${date} • ${message}"
+      " ${author}, ${date} (r${revision}) • ${message}"
     );
+  }
+
+  /**
+   * Get inline annotation opacity
+   */
+  public getInlineOpacity(): number {
+    return this.get<number>("inline.opacity", 0.2);
   }
 
   /**

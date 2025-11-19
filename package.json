@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.206",
+    "version": "2.17.207",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -1185,12 +1185,19 @@
                 "svn.blame.inline.template": {
                     "type": "string",
                     "description": "Inline annotation template. Variables: ${author}, ${revision}, ${date}, ${message}",
-                    "default": "  ${author}, ${date} • ${message}"
+                    "default": "  ${author}, ${date} (r${revision}) • ${message}"
                 },
                 "svn.blame.inline.showMessage": {
                     "type": "boolean",
                     "description": "Fetch and show commit messages in inline annotations (slower)",
                     "default": false
+                },
+                "svn.blame.inline.opacity": {
+                    "type": "number",
+                    "description": "Opacity of inline blame annotations (0.0 to 1.0, default: 0.2)",
+                    "default": 0.2,
+                    "minimum": 0.0,
+                    "maximum": 1.0
                 },
                 "svn.blame.inline.currentLineOnly": {
                     "type": "boolean",

@@ -67,7 +67,7 @@ export class BlameProvider implements Disposable {
           fontWeight: "normal"
         },
         isWholeLine: false,
-        opacity: "0.6"
+        opacity: String(blameConfiguration.getInlineOpacity())
       })
     };
   }
@@ -778,10 +778,17 @@ export class BlameProvider implements Disposable {
 
     const truncatedMessage = this.truncateMessage(message);
 
-    return template
+    let result = template
       .replace(/\$\{revision\}/g, revision)
       .replace(/\$\{author\}/g, author)
       .replace(/\$\{date\}/g, date)
       .replace(/\$\{message\}/g, truncatedMessage);
+
+    // Remove bullet and trailing whitespace if message is empty
+    if (!truncatedMessage) {
+      result = result.replace(/\s*[•·]\s*$/, "");
+    }
+
+    return result;
   }
 }

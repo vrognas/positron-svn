@@ -1,3 +1,12 @@
+## [2.17.207] (2025-11-19)
+
+### Improve: GitLens-style inline template + configurable opacity
+
+* **Template**: Default changed to `${author}, ${date} (r${revision}) • ${message}`
+* **Conditional bullet**: Bullet (•) removed when message is empty
+* **Opacity**: Configurable via `svn.blame.inline.opacity` (default: 0.2)
+* **More subtle**: 20% opacity (was 60%) for less intrusive annotations
+
 ## [2.17.206] (2025-11-19)
 
 ### Add: Current-line-only inline blame (cursor tracking)
