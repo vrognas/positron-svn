@@ -16,11 +16,15 @@ suite("BlameStateManager Tests", () => {
   });
 
   suite("Per-File State Tracking", () => {
-    test("should track blame enabled state for file", () => {
-      assert.strictEqual(stateManager.isBlameEnabled(testUri), false);
-
-      stateManager.setBlameEnabled(testUri, true);
+    test("should default to enabled for new files", () => {
       assert.strictEqual(stateManager.isBlameEnabled(testUri), true);
+    });
+
+    test("should track blame enabled state for file", () => {
+      assert.strictEqual(stateManager.isBlameEnabled(testUri), true);
+
+      stateManager.setBlameEnabled(testUri, false);
+      assert.strictEqual(stateManager.isBlameEnabled(testUri), false);
     });
 
     test("should toggle blame state for file", () => {
@@ -29,10 +33,10 @@ suite("BlameStateManager Tests", () => {
       assert.strictEqual(stateManager.isBlameEnabled(testUri), !initialState);
     });
 
-    test("should clear blame state for file", () => {
-      stateManager.setBlameEnabled(testUri, true);
+    test("should clear blame state for file (revert to default)", () => {
+      stateManager.setBlameEnabled(testUri, false);
       stateManager.clearBlame(testUri);
-      assert.strictEqual(stateManager.isBlameEnabled(testUri), false);
+      assert.strictEqual(stateManager.isBlameEnabled(testUri), true);
     });
   });
 
@@ -48,17 +52,17 @@ suite("BlameStateManager Tests", () => {
       assert.strictEqual(stateManager.isBlameEnabled(uri2), false);
     });
 
-    test("should clear all blame states", () => {
+    test("should clear all blame states (revert to default)", () => {
       const uri1 = Uri.file("/test/file1.ts");
       const uri2 = Uri.file("/test/file2.ts");
 
-      stateManager.setBlameEnabled(uri1, true);
-      stateManager.setBlameEnabled(uri2, true);
+      stateManager.setBlameEnabled(uri1, false);
+      stateManager.setBlameEnabled(uri2, false);
 
       stateManager.clearAll();
 
-      assert.strictEqual(stateManager.isBlameEnabled(uri1), false);
-      assert.strictEqual(stateManager.isBlameEnabled(uri2), false);
+      assert.strictEqual(stateManager.isBlameEnabled(uri1), true);
+      assert.strictEqual(stateManager.isBlameEnabled(uri2), true);
     });
 
     test("should get all enabled files", () => {
@@ -78,8 +82,9 @@ suite("BlameStateManager Tests", () => {
       stateManager.setGlobalEnabled(false);
       stateManager.setBlameEnabled(testUri, true);
 
-      // File is enabled, but global is disabled
+      // File is enabled, but global is disabled - shouldShowBlame accounts for both
       assert.strictEqual(stateManager.isBlameEnabled(testUri), true);
+      assert.strictEqual(stateManager.shouldShowBlame(testUri), false);
     });
 
     test("should toggle global enabled state", () => {

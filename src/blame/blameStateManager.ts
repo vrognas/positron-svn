@@ -24,7 +24,7 @@ export class BlameStateManager implements Disposable {
    */
   public isBlameEnabled(uri: Uri): boolean {
     const key = uri.toString();
-    return this.fileStates.get(key) ?? false;
+    return this.fileStates.get(key) ?? true;
   }
 
   /**

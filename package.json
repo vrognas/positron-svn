@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.215",
+    "version": "2.17.216",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -1044,7 +1044,14 @@
                 {
                     "command": "svn.blame.toggleBlame",
                     "group": "navigation",
-                    "when": "config.svn.blame.enabled && svnOpenRepositoryCount != 0 && !isInDiffEditor && resourceScheme == file"
+                    "when": "config.svn.blame.enabled && svnOpenRepositoryCount != 0 && !isInDiffEditor && resourceScheme == file && svnBlameActiveForFile",
+                    "icon": "$(eye)"
+                },
+                {
+                    "command": "svn.blame.toggleBlame",
+                    "group": "navigation",
+                    "when": "config.svn.blame.enabled && svnOpenRepositoryCount != 0 && !isInDiffEditor && resourceScheme == file && !svnBlameActiveForFile",
+                    "icon": "$(eye-closed)"
                 },
                 {
                     "command": "svn.openFile",

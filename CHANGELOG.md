@@ -1,3 +1,14 @@
+## [2.17.216] (2025-11-19)
+
+### Feature: Blame enabled by default + dynamic toggle icon
+
+* **Default enabled**: Per-file blame defaults to enabled (was disabled)
+* **Dynamic icon**: Toggle icon changes eye ↔ eye-closed based on state
+* **Context tracking**: New BlameIconState sets svnBlameActiveForFile context
+* **Clear fix**: Async operations now clear decorations when toggled off
+* **Auto-enable**: Open files auto-enabled on extension startup
+* **Code**: blameStateManager.ts:27, contexts/blameIconState.ts, blameProvider.ts:113-118,304-310
+
 ## [2.17.215] (2025-11-19)
 
 ### Perf: LRU cache eviction (prevent unbounded growth)

@@ -11,6 +11,7 @@ import { registerCommands } from "./commands";
 import { ConstructorPolicy } from "./common/types";
 import { CheckActiveEditor } from "./contexts/checkActiveEditor";
 import { OpenRepositoryCount } from "./contexts/openRepositoryCount";
+import { BlameIconState } from "./contexts/blameIconState";
 import { configuration } from "./helpers/configuration";
 import { ItemLogProvider } from "./historyView/itemLogProvider";
 import { RepoLogProvider } from "./historyView/repoLogProvider";
@@ -64,7 +65,8 @@ async function init(
     new CheckActiveEditor(sourceControlManager),
     new OpenRepositoryCount(sourceControlManager),
     new IsSvn18orGreater(info.version),
-    new IsSvn19orGreater(info.version)
+    new IsSvn19orGreater(info.version),
+    new BlameIconState()
   );
 
   outputChannel.appendLine(`Using svn "${info.version}" from "${info.path}"`);
