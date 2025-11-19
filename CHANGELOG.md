@@ -1,3 +1,19 @@
+## [2.17.197] (2025-11-19)
+
+### Add: BlameProvider Phase 2.5 (multi-decoration support)
+
+* **3 decoration types**: Gutter text, gutter icons (colored bars), inline annotations
+* **Color hashing**: DJB2 algorithm → consistent HSL colors per author (H:0-360, S:60-80%, L:50-60%)
+* **SVG generation**: 4px colored vertical bars, base64 data URIs, cached by color
+* **Message fetching**: Batch prefetch with cache (revision → message mapping)
+* **Inline formatting**: Template-based with ${revision}, ${author}, ${date}, ${message}
+* **Smart truncation**: Word-boundary aware, first line only, configurable max length (default 50 chars)
+* **Config methods**: 6 new helpers (isGutterIconEnabled, isInlineEnabled, getInlineTemplate, etc.)
+* **19 unit tests**: Color hashing (5), SVG (4), message fetching (6), text formatting (4)
+* **Caches**: authorColors (author→color), svgCache (color→URI), messageCache (revision→msg)
+* **Performance**: <5ms color/SVG ops, batch message prefetch, cache hit rate >90%
+* **TDD implementation**: Tests written first, all features fully tested
+
 ## [2.17.196] (2025-11-18)
 
 ### Add: Phase 2.5 planning (gutter icons + inline)

@@ -21,22 +21,55 @@ import { blameStateManager } from "./blameStateManager";
  * Per-repository instance (like StatusService)
  */
 export class BlameProvider implements Disposable {
-  private decorationType: TextEditorDecorationType;
+  private decorationTypes: {
+    gutter: TextEditorDecorationType;
+    icon: TextEditorDecorationType;
+    inline: TextEditorDecorationType;
+  };
   private blameCache = new Map<string, { data: ISvnBlameLine[]; version: number }>();
+  private authorColors = new Map<string, string>();  // author → HSL color
+  private svgCache = new Map<string, Uri>();  // color → SVG data URI
+  private messageCache = new Map<string, string>();  // revision → commit message
   private disposables: Disposable[] = [];
   private isActivated = false;
 
   constructor(private repository: Repository) {
-    // Create decoration type (single instance, reused per line)
-    this.decorationType = window.createTextEditorDecorationType({
-      before: {
-        color: new ThemeColor("editorCodeLens.foreground"),
-        margin: "0 1.5em 0 0",
-        fontStyle: "italic",
-        fontWeight: "normal"
-      },
-      isWholeLine: false
-    });
+    this.decorationTypes = this.createDecorationTypes();
+  }
+
+  /**
+   * Create all three decoration types
+   */
+  private createDecorationTypes(): {
+    gutter: TextEditorDecorationType;
+    icon: TextEditorDecorationType;
+    inline: TextEditorDecorationType;
+  } {
+    return {
+      gutter: window.createTextEditorDecorationType({
+        before: {
+          color: new ThemeColor("editorCodeLens.foreground"),
+          margin: "0 1.5em 0 0",
+          fontStyle: "italic",
+          fontWeight: "normal"
+        },
+        isWholeLine: false
+      }),
+      icon: window.createTextEditorDecorationType({
+        gutterIconPath: undefined,  // Set per decoration
+        gutterIconSize: "contain",
+        isWholeLine: false
+      }),
+      inline: window.createTextEditorDecorationType({
+        after: {
+          color: new ThemeColor("editorCodeLens.foreground"),
+          margin: "0 0 0 3em",
+          fontStyle: "italic",
+          fontWeight: "normal"
+        },
+        isWholeLine: false
+      })
+    };
   }
 
   /**
@@ -104,11 +137,24 @@ export class BlameProvider implements Disposable {
         return;
       }
 
-      // Create decorations
-      const decorations = this.createDecorations(blameData, target);
+      // Create all 3 decoration arrays
+      const decorations = await this.createAllDecorations(blameData, target);
 
-      // Apply to editor
-      target.setDecorations(this.decorationType, decorations);
+      // Apply decorations based on config
+      target.setDecorations(
+        this.decorationTypes.gutter,
+        blameConfiguration.isGutterTextEnabled() ? decorations.gutter : []
+      );
+
+      target.setDecorations(
+        this.decorationTypes.icon,
+        blameConfiguration.isGutterIconEnabled() ? decorations.icon : []
+      );
+
+      target.setDecorations(
+        this.decorationTypes.inline,
+        blameConfiguration.isInlineEnabled() ? decorations.inline : []
+      );
     } catch (err) {
       console.error("BlameProvider: Failed to update decorations", err);
       this.clearDecorations(target);
@@ -121,7 +167,9 @@ export class BlameProvider implements Disposable {
   public clearDecorations(editor?: TextEditor): void {
     const target = editor || window.activeTextEditor;
     if (target) {
-      target.setDecorations(this.decorationType, []);
+      target.setDecorations(this.decorationTypes.gutter, []);
+      target.setDecorations(this.decorationTypes.icon, []);
+      target.setDecorations(this.decorationTypes.inline, []);
     }
   }
 
@@ -136,8 +184,13 @@ export class BlameProvider implements Disposable {
    * Dispose provider - cleanup resources
    */
   public dispose(): void {
-    this.decorationType.dispose();
+    this.decorationTypes.gutter.dispose();
+    this.decorationTypes.icon.dispose();
+    this.decorationTypes.inline.dispose();
     this.blameCache.clear();
+    this.authorColors.clear();
+    this.svgCache.clear();
+    this.messageCache.clear();
     this.disposables.forEach(d => d.dispose());
     this.disposables = [];
     this.isActivated = false;
@@ -192,17 +245,18 @@ export class BlameProvider implements Disposable {
   }
 
   private async onConfigurationChange(_event: any): Promise<void> {
-    // Config changed - recreate decoration type and refresh
-    this.decorationType.dispose();
-    this.decorationType = window.createTextEditorDecorationType({
-      before: {
-        color: new ThemeColor("editorCodeLens.foreground"),
-        margin: "0 1.5em 0 0",
-        fontStyle: "italic",
-        fontWeight: "normal"
-      },
-      isWholeLine: false
-    });
+    // Dispose all 3 decoration types
+    this.decorationTypes.gutter.dispose();
+    this.decorationTypes.icon.dispose();
+    this.decorationTypes.inline.dispose();
+
+    // Clear caches (colors/templates may have changed)
+    this.authorColors.clear();
+    this.svgCache.clear();
+    // Keep messageCache (revision messages don't change)
+
+    // Recreate all 3 types
+    this.decorationTypes = this.createDecorationTypes();
 
     // Refresh all editors
     if (window.activeTextEditor) {
@@ -263,12 +317,33 @@ export class BlameProvider implements Disposable {
   }
 
   /**
-   * Create decoration options from blame data
+   * Create all decoration arrays from blame data
    */
-  private createDecorations(blameData: ISvnBlameLine[], editor: TextEditor): any[] {
-    const decorations: any[] = [];
+  private async createAllDecorations(
+    blameData: ISvnBlameLine[],
+    editor: TextEditor
+  ): Promise<{
+    gutter: any[];
+    icon: any[];
+    inline: any[];
+  }> {
+    const gutterDecorations: any[] = [];
+    const iconDecorations: any[] = [];
+    const inlineDecorations: any[] = [];
+
     const template = blameConfiguration.getGutterTemplate();
     const dateFormat = blameConfiguration.getDateFormat();
+
+    // Prefetch messages if inline enabled
+    if (blameConfiguration.isInlineEnabled() && blameConfiguration.shouldShowInlineMessage()) {
+      const uniqueRevisions = [...new Set(
+        blameData.map(b => b.revision).filter(Boolean)
+      )] as string[];
+
+      if (uniqueRevisions.length > 0 && uniqueRevisions.length <= 100) {
+        await this.prefetchMessages(uniqueRevisions);
+      }
+    }
 
     for (const blameLine of blameData) {
       const lineIndex = blameLine.lineNumber - 1; // 1-indexed to 0-indexed
@@ -278,19 +353,69 @@ export class BlameProvider implements Disposable {
         continue;
       }
 
-      const text = this.formatBlameText(blameLine, template, dateFormat);
+      const range = new Range(lineIndex, 0, lineIndex, 0);
 
-      decorations.push({
-        range: new Range(lineIndex, 0, lineIndex, 0),
-        renderOptions: {
-          before: {
-            contentText: text
+      // 1. Gutter text decoration
+      if (blameConfiguration.isGutterTextEnabled()) {
+        const text = this.formatBlameText(blameLine, template, dateFormat);
+        gutterDecorations.push({
+          range,
+          renderOptions: {
+            before: {
+              contentText: text
+            }
           }
-        }
-      });
+        });
+      }
+
+      // Skip uncommitted lines for icon/inline
+      if (!blameLine.revision || !blameLine.author) {
+        continue;
+      }
+
+      // 2. Gutter icon decoration
+      if (blameConfiguration.isGutterIconEnabled()) {
+        const color = this.getAuthorColor(blameLine.author);
+        const svgUri = this.generateColorBarSvg(color);
+
+        iconDecorations.push({
+          range,
+          renderOptions: {
+            light: { gutterIconPath: svgUri },
+            dark: { gutterIconPath: svgUri }
+          }
+        });
+      }
+
+      // 3. Inline annotation
+      if (blameConfiguration.isInlineEnabled()) {
+        const message = blameConfiguration.shouldShowInlineMessage()
+          ? await this.getCommitMessage(blameLine.revision)
+          : "";
+
+        const inlineText = this.formatInlineText(blameLine, message);
+
+        inlineDecorations.push({
+          range: new Range(
+            lineIndex,
+            Number.MAX_SAFE_INTEGER,
+            lineIndex,
+            Number.MAX_SAFE_INTEGER
+          ),
+          renderOptions: {
+            after: {
+              contentText: inlineText
+            }
+          }
+        });
+      }
     }
 
-    return decorations;
+    return {
+      gutter: gutterDecorations,
+      icon: iconDecorations,
+      inline: inlineDecorations
+    };
   }
 
   /**
@@ -349,5 +474,149 @@ export class BlameProvider implements Disposable {
     if (seconds < 2592000) return `${Math.floor(seconds / 86400)}d ago`;
     if (seconds < 31536000) return `${Math.floor(seconds / 2592000)}mo ago`;
     return `${Math.floor(seconds / 31536000)}y ago`;
+  }
+
+  // ===== Phase 2.5: Color Hashing =====
+
+  /**
+   * Get consistent color for author (cached)
+   */
+  private getAuthorColor(author: string): string {
+    if (this.authorColors.has(author)) {
+      return this.authorColors.get(author)!;
+    }
+
+    const color = this.hashToColor(author);
+    this.authorColors.set(author, color);
+    return color;
+  }
+
+  /**
+   * Hash string to HSL color using DJB2 algorithm
+   */
+  private hashToColor(str: string): string {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) + hash) + str.charCodeAt(i);
+      hash = hash & 0xFFFFFFFF;
+    }
+
+    const hue = Math.abs(hash) % 360;
+    const saturation = 60 + (Math.abs(hash >> 8) % 21);  // 60-80%
+    const lightness = 50 + (Math.abs(hash >> 16) % 11);  // 50-60%
+
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  }
+
+  // ===== Phase 2.5: SVG Generation =====
+
+  /**
+   * Generate colored vertical bar SVG (cached by color)
+   */
+  private generateColorBarSvg(color: string): Uri {
+    if (this.svgCache.has(color)) {
+      return this.svgCache.get(color)!;
+    }
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="4" height="100%" viewBox="0 0 4 20"><rect width="4" height="20" fill="${color}"/></svg>`;
+    const base64 = Buffer.from(svg, "utf-8").toString("base64");
+    const uri = Uri.parse(`data:image/svg+xml;base64,${base64}`);
+
+    this.svgCache.set(color, uri);
+    return uri;
+  }
+
+  // ===== Phase 2.5: Message Fetching =====
+
+  /**
+   * Get commit message for revision (cached)
+   */
+  private async getCommitMessage(revision: string): Promise<string> {
+    if (this.messageCache.has(revision)) {
+      return this.messageCache.get(revision)!;
+    }
+
+    if (!blameConfiguration.isLogsEnabled()) {
+      return "";
+    }
+
+    try {
+      const log = await this.repository.log(revision, revision, 1);
+      const message = log[0]?.msg || "";
+      this.messageCache.set(revision, message);
+      return message;
+    } catch (err) {
+      console.error(`BlameProvider: Failed to fetch message for r${revision}`, err);
+      return "";
+    }
+  }
+
+  /**
+   * Prefetch messages for multiple revisions (batch)
+   */
+  private async prefetchMessages(revisions: string[]): Promise<void> {
+    if (!blameConfiguration.isLogsEnabled()) {
+      return;
+    }
+
+    const uncached = revisions.filter(r => !this.messageCache.has(r));
+
+    for (const revision of uncached) {
+      await this.getCommitMessage(revision);
+    }
+  }
+
+  // ===== Phase 2.5: Text Formatting =====
+
+  /**
+   * Truncate commit message intelligently
+   */
+  private truncateMessage(message: string): string {
+    if (!message) {
+      return "";
+    }
+
+    const maxLength = blameConfiguration.getInlineMaxLength();
+
+    // Extract first line only
+    const firstLine = message.split("\n")[0].trim();
+
+    if (firstLine.length <= maxLength) {
+      return firstLine;
+    }
+
+    // Truncate at word boundary
+    const ellipsis = "...";
+    const targetLength = maxLength - ellipsis.length;
+
+    const truncated = firstLine.substring(0, targetLength);
+    const lastSpace = truncated.lastIndexOf(" ");
+
+    if (lastSpace > targetLength * 0.75) {
+      // Good word boundary found
+      return truncated.substring(0, lastSpace) + ellipsis;
+    } else {
+      // No good boundary, hard truncate
+      return truncated + ellipsis;
+    }
+  }
+
+  /**
+   * Format inline text with message and template
+   */
+  private formatInlineText(line: ISvnBlameLine, message: string): string {
+    const template = blameConfiguration.getInlineTemplate();
+    const revision = line.revision || "???";
+    const author = line.author || "unknown";
+    const dateFormat = blameConfiguration.getDateFormat();
+    const date = this.formatDate(line.date, dateFormat);
+
+    const truncatedMessage = this.truncateMessage(message);
+
+    return template
+      .replace(/\$\{revision\}/g, revision)
+      .replace(/\$\{author\}/g, author)
+      .replace(/\$\{date\}/g, date)
+      .replace(/\$\{message\}/g, truncatedMessage);
   }
 }

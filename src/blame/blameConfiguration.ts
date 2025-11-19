@@ -151,6 +151,51 @@ class BlameConfiguration {
   public shouldShowWorkingCopyChanges(): boolean {
     return this.get<boolean>("showWorkingCopyChanges", true);
   }
+
+  /**
+   * Check if gutter text annotations are enabled
+   */
+  public isGutterTextEnabled(): boolean {
+    return this.get<boolean>("gutter.showText", true);
+  }
+
+  /**
+   * Check if gutter icons (colored bars) are enabled
+   */
+  public isGutterIconEnabled(): boolean {
+    return this.get<boolean>("gutter.showIcons", false);
+  }
+
+  /**
+   * Check if inline annotations are enabled
+   */
+  public isInlineEnabled(): boolean {
+    return this.get<boolean>("inline.enabled", false);
+  }
+
+  /**
+   * Get inline annotation template
+   */
+  public getInlineTemplate(): string {
+    return this.get<string>(
+      "inline.template",
+      " ${author}, ${date} • ${message}"
+    );
+  }
+
+  /**
+   * Check if inline should show commit messages
+   */
+  public shouldShowInlineMessage(): boolean {
+    return this.get<boolean>("inline.showMessage", false);
+  }
+
+  /**
+   * Get maximum length for inline messages
+   */
+  public getInlineMaxLength(): number {
+    return this.get<number>("inline.maxLength", 50);
+  }
 }
 
 export const blameConfiguration = new BlameConfiguration();
