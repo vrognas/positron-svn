@@ -16,6 +16,7 @@ import { ISvnBlameLine } from "../common/types";
 import { Repository } from "../repository";
 import { blameConfiguration } from "./blameConfiguration";
 import { blameStateManager } from "./blameStateManager";
+import { compileTemplate, clearTemplateCache, CompiledTemplateFn } from "./templateCompiler";
 
 /**
  * BlameProvider manages gutter decorations for SVN blame
@@ -36,6 +37,10 @@ export class BlameProvider implements Disposable {
   private currentLineNumber?: number;  // Track cursor position for current-line-only mode
   private disposables: Disposable[] = [];
   private isActivated = false;
+
+  // Template compilation cache (performance optimization)
+  private compiledGutterTemplate?: { template: string; fn: CompiledTemplateFn };
+  private compiledInlineTemplate?: { template: string; fn: CompiledTemplateFn };
 
   constructor(private repository: Repository) {
     this.decorationTypes = this.createDecorationTypes();
@@ -421,6 +426,11 @@ export class BlameProvider implements Disposable {
     this.svgCache.clear();
     // Keep messageCache (revision messages don't change)
 
+    // Clear compiled template cache (templates may have changed)
+    this.compiledGutterTemplate = undefined;
+    this.compiledInlineTemplate = undefined;
+    clearTemplateCache();
+
     // Refresh all editors with new decoration types
     if (window.activeTextEditor) {
       await this.updateDecorations(window.activeTextEditor);
@@ -584,7 +594,7 @@ export class BlameProvider implements Disposable {
   }
 
   /**
-   * Format blame line using template
+   * Format blame line using template (optimized with compiled template)
    */
   private formatBlameText(
     line: ISvnBlameLine,
@@ -595,11 +605,16 @@ export class BlameProvider implements Disposable {
     const author = line.author || "unknown";
     const date = this.formatDate(line.date, dateFormat);
 
-    return template
-      .replace(/\$\{revision\}/g, revision)
-      .replace(/\$\{author\}/g, author)
-      .replace(/\$\{date\}/g, date)
-      .padEnd(30); // Ensure consistent spacing
+    // Compile template once, cache and reuse (eliminates 3 regex ops per line)
+    if (!this.compiledGutterTemplate || this.compiledGutterTemplate.template !== template) {
+      this.compiledGutterTemplate = {
+        template,
+        fn: compileTemplate(template)
+      };
+    }
+
+    const result = this.compiledGutterTemplate.fn({ revision, author, date });
+    return result.padEnd(30); // Ensure consistent spacing
   }
 
   /**
@@ -841,8 +856,9 @@ export class BlameProvider implements Disposable {
     }
   }
 
-  /**
+/**
    * Prefetch messages for multiple revisions (batch)
+   * Uses single SVN log command for all revisions instead of N sequential calls
    */
   private async prefetchMessages(revisions: string[]): Promise<void> {
     if (!blameConfiguration.isLogsEnabled()) {
@@ -851,8 +867,29 @@ export class BlameProvider implements Disposable {
 
     const uncached = revisions.filter(r => !this.messageCache.has(r));
 
-    for (const revision of uncached) {
-      await this.getCommitMessage(revision);
+    if (uncached.length === 0) {
+      return;
+    }
+
+    try {
+      // Batch fetch: single SVN command for all revisions
+      // Example: svn log -r 100:200 --xml -v
+      // This is ~50x faster than 50 sequential calls
+      const logEntries = await this.repository.logBatch(uncached);
+
+      // Cache all fetched messages
+      for (const entry of logEntries) {
+        if (entry.revision && entry.msg !== undefined) {
+          this.messageCache.set(entry.revision, entry.msg);
+        }
+      }
+    } catch (err) {
+      console.error("BlameProvider: Batch message fetch failed, falling back to sequential", err);
+
+      // Fallback to sequential fetching on error
+      for (const revision of uncached) {
+        await this.getCommitMessage(revision);
+      }
     }
   }
 
@@ -892,7 +929,7 @@ export class BlameProvider implements Disposable {
   }
 
   /**
-   * Format inline text with message and template
+   * Format inline text with message and template (optimized with compiled template)
    */
   private formatInlineText(line: ISvnBlameLine, message: string): string {
     const template = blameConfiguration.getInlineTemplate();
@@ -903,11 +940,20 @@ export class BlameProvider implements Disposable {
 
     const truncatedMessage = this.truncateMessage(message);
 
-    let result = template
-      .replace(/\$\{revision\}/g, revision)
-      .replace(/\$\{author\}/g, author)
-      .replace(/\$\{date\}/g, date)
-      .replace(/\$\{message\}/g, truncatedMessage);
+    // Compile template once, cache and reuse (eliminates 4 regex ops per line)
+    if (!this.compiledInlineTemplate || this.compiledInlineTemplate.template !== template) {
+      this.compiledInlineTemplate = {
+        template,
+        fn: compileTemplate(template)
+      };
+    }
+
+    let result = this.compiledInlineTemplate.fn({
+      revision,
+      author,
+      date,
+      message: truncatedMessage
+    });
 
     // Remove bullet and trailing whitespace if message is empty
     if (!truncatedMessage) {
