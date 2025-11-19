@@ -1,3 +1,13 @@
+## [2.17.217] (2025-11-19)
+
+### Fix: Icon toggle race + default inline current-line
+
+* **Icon fix**: setVscodeContext now returns promise, updateIconContext awaits
+* **Race fix**: Eliminated context update race - icon now toggles correctly
+* **Default inline**: Changed default from gutter to inline current-line only
+* **Removed auto-enable**: Unnecessary with default=true, caused timing issues
+* **Code**: util.ts:297, blameIconState.ts:27-36, package.json:1161,1190
+
 ## [2.17.216] (2025-11-19)
 
 ### Feature: Blame enabled by default + dynamic toggle icon

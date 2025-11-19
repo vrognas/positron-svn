@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.216",
+    "version": "2.17.217",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -1158,7 +1158,7 @@
                 "svn.blame.gutter.enabled": {
                     "type": "boolean",
                     "description": "Show blame annotations in editor gutter",
-                    "default": true
+                    "default": false
                 },
                 "svn.blame.gutter.dateFormat": {
                     "type": "string",
@@ -1187,7 +1187,7 @@
                 "svn.blame.inline.enabled": {
                     "type": "boolean",
                     "description": "Show inline blame annotations at end of each line (GitLens-style)",
-                    "default": false
+                    "default": true
                 },
                 "svn.blame.inline.template": {
                     "type": "string",

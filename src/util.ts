@@ -294,7 +294,7 @@ export async function isSvnFolder(
 }
 
 export function setVscodeContext(key: string, value: any) {
-  commands.executeCommand("setContext", key, value);
+  return commands.executeCommand("setContext", key, value);
 }
 
 function isWindowsPath(path: string): boolean {

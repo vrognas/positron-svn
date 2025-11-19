@@ -110,13 +110,6 @@ export class BlameProvider implements Disposable {
 
     this.isActivated = true;
 
-    // Auto-enable blame for all open file editors
-    for (const editor of window.visibleTextEditors) {
-      if (editor.document.uri.scheme === "file") {
-        blameStateManager.setBlameEnabled(editor.document.uri, true);
-      }
-    }
-
     // Apply to current active editor
     if (window.activeTextEditor) {
       this.onActiveEditorChange(window.activeTextEditor);

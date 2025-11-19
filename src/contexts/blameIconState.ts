@@ -8,7 +8,7 @@ export class BlameIconState implements IDisposable {
   constructor() {
     // Listen to blame state changes
     blameStateManager.onDidChangeState(
-      this.updateIconContext,
+      () => this.updateIconContext(),
       this,
       this.disposables
     );
@@ -24,15 +24,15 @@ export class BlameIconState implements IDisposable {
     this.updateIconContext();
   }
 
-  private updateIconContext(): void {
+  private async updateIconContext(): Promise<void> {
     const editor = window.activeTextEditor;
     if (!editor || editor.document.uri.scheme !== "file") {
-      setVscodeContext("svnBlameActiveForFile", false);
+      await setVscodeContext("svnBlameActiveForFile", false);
       return;
     }
 
     const isEnabled = blameStateManager.isBlameEnabled(editor.document.uri);
-    setVscodeContext("svnBlameActiveForFile", isEnabled);
+    await setVscodeContext("svnBlameActiveForFile", isEnabled);
   }
 
   public dispose(): void {
