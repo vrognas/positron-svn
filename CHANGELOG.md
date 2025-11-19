@@ -1,3 +1,13 @@
+## [2.17.196] (2025-11-18)
+
+### Add: Phase 2.5 planning (gutter icons + inline)
+
+* **5 subagents**: Analyzed gutter icons, inline, messages, config, integration
+* **Design docs**: 3 comprehensive implementation plans
+* **Configuration**: 5 new settings (gutter icons, inline annotations)
+* **Settings added**: showText, showIcons, inline.enabled, inline.template, inline.showMessage
+* **Plan**: Color-coded icons + GitLens-style inline (8-12h est)
+
 ## [2.17.195] (2025-11-18)
 
 ### Add: BlameStatusBar - Phase 2 (status bar integration)

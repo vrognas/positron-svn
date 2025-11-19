@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.195",
+    "version": "2.17.196",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -1166,6 +1166,31 @@
                     "type": "string",
                     "description": "Gutter template. Available: ${author}, ${revision}, ${date}, ${message}",
                     "default": "${author} (${revision}) ${date}"
+                },
+                "svn.blame.gutter.showText": {
+                    "type": "boolean",
+                    "description": "Show text annotations in gutter (author, revision, date)",
+                    "default": true
+                },
+                "svn.blame.gutter.showIcons": {
+                    "type": "boolean",
+                    "description": "Show colored revision indicators in gutter",
+                    "default": false
+                },
+                "svn.blame.inline.enabled": {
+                    "type": "boolean",
+                    "description": "Show inline blame annotations at end of each line (GitLens-style)",
+                    "default": false
+                },
+                "svn.blame.inline.template": {
+                    "type": "string",
+                    "description": "Inline annotation template. Variables: ${author}, ${revision}, ${date}, ${message}",
+                    "default": "  ${author}, ${date} • ${message}"
+                },
+                "svn.blame.inline.showMessage": {
+                    "type": "boolean",
+                    "description": "Fetch and show commit messages in inline annotations (slower)",
+                    "default": false
                 },
                 "svn.commit.changes.selectedAll": {
                     "type": "boolean",
