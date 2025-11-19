@@ -1,7 +1,7 @@
 # Lessons Learned
 
-**Version**: v2.17.137
-**Updated**: 2025-11-15
+**Version**: v2.17.210
+**Updated**: 2025-11-19
 
 ---
 
@@ -182,6 +182,30 @@ catch (err) {
 3. Incomplete interfaces: Missing config types
 
 **Rule**: Review for type safety, encapsulation, performance after extraction.
+
+---
+
+### 11. Batch Operations: Trade Bandwidth for Latency
+**Lesson**: Fetching extra data is faster than multiple network calls.
+
+**Example** (v2.17.210 - Batch SVN log):
+- Before: 50 sequential `svn log -r REV:REV` commands = 5-10s
+- After: 1 command `svn log -r MIN:MAX` = 0.1-0.2s
+- Trade-off: 2x bandwidth for 50x speed
+
+**Pattern**:
+1. Find min/max range of requested items
+2. Fetch entire range in single call
+3. Filter results to requested items
+4. Cache all fetched data for future use
+
+**When to use**:
+- ✅ High latency operations (network calls)
+- ✅ Cheap filtering on client side
+- ✅ Sparse data across small range
+- ❌ Huge ranges (>1000x requested items)
+
+**Rule**: For N network calls, consider single batch + filter if latency >> bandwidth.
 
 ---
 
