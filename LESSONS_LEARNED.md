@@ -1,6 +1,6 @@
 # Lessons Learned
 
-**Version**: v2.17.221
+**Version**: v2.17.222
 **Updated**: 2025-11-19
 
 ---
@@ -230,6 +230,42 @@ catch (err) {
 - ❌ Short-lived processes (startup scripts)
 
 **Rule**: Cache without eviction = eventual memory leak. Set explicit limits.
+
+---
+
+### 12. VS Code Dynamic Icons: No Static Icon in Command
+**Lesson**: For context-based dynamic icons, remove icon from command definition.
+
+**Issue**: Static icon in command definition overrides dynamic menu icons.
+
+**Example** (v2.17.222 - Blame toggle icon):
+- Before: `"command": "svn.blame.toggleBlame", "icon": "$(eye)"` (static)
+- After: Removed icon from command, only in menu contributions with `when` clauses
+- Result: Icon changes based on context (eye → eye-closed → circle-slash)
+
+**Pattern**:
+1. Command definition: NO icon property
+2. Menu contributions: Multiple entries with same command, different when clauses
+3. Each menu entry has different icon based on context variables
+
+**Anti-pattern**:
+```json
+"commands": [
+  {"command": "foo", "icon": "$(eye)"}  // ❌ Overrides dynamic icons
+]
+```
+
+**Best practice**:
+```json
+"menus": {
+  "editor/title": [
+    {"command": "foo", "when": "ctx == true", "icon": "$(eye)"},
+    {"command": "foo", "when": "ctx == false", "icon": "$(eye-closed)"}
+  ]
+}
+```
+
+**Rule**: Dynamic icons require context-based menu entries, no command icon.
 
 ---
 

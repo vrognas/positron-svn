@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.221",
+    "version": "2.17.222",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -182,8 +182,7 @@
             {
                 "command": "svn.blame.toggleBlame",
                 "title": "Toggle Blame",
-                "category": "SVN Blame",
-                "icon": "$(eye)"
+                "category": "SVN Blame"
             },
             {
                 "command": "svn.branchchanges.openDiff",

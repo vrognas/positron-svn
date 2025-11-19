@@ -1,3 +1,12 @@
+## [2.17.222] (2025-11-19)
+
+### Fix: Remove static icon from toggleBlame command
+
+* **Dynamic icons**: Removed static icon from command definition
+* **Why**: Static icon in command overrides dynamic menu icons
+* **Result**: Now eye/eye-closed/circle-slash icons change based on context
+* **Code**: package.json:183-186
+
 ## [2.17.221] (2025-11-19)
 
 ### Debug: Add logging to icon context updates
