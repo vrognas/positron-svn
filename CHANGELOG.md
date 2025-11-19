@@ -1,3 +1,12 @@
+## [2.17.223] (2025-11-19)
+
+### Fix: Add fallback icon for toggleBlame
+
+* **Fallback icon**: eye-closed as default in command definition
+* **Why**: VS Code needs base icon, menu contributions override it
+* **Result**: Icon visible with dynamic changes (eye/eye-closed/circle-slash)
+* **Code**: package.json:186
+
 ## [2.17.222] (2025-11-19)
 
 ### Fix: Remove static icon from toggleBlame command
