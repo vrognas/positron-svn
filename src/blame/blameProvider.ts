@@ -64,10 +64,10 @@ export class BlameProvider implements Disposable {
           color: new ThemeColor("editorCodeLens.foreground"),
           margin: "0 0 0 3em",
           fontStyle: "normal",
-          fontWeight: "normal",
-          opacity: "0.6"
+          fontWeight: "normal"
         },
-        isWholeLine: false
+        isWholeLine: false,
+        opacity: "0.6"
       })
     };
   }
