@@ -1,3 +1,14 @@
+## [2.17.200] (2025-11-19)
+
+### Fix: Gutter icons (multi-decoration-type pattern)
+
+* **API fix**: gutterIconPath at TYPE level (not renderOptions)
+* **Multi-type pattern**: One decoration type per color (Error Lens pattern)
+* **Config fix**: isGutterIconEnabled() default true (was false)
+* **New methods**: getIconDecorationType, applyIconDecorations, clearIconDecorations
+* **iconTypes Map**: Tracks decoration types per color
+* **Memory safe**: Dispose all icon types on cleanup
+
 ## [2.17.199] (2025-11-19)
 
 ### Fix: Gutter icons + revision-based coloring

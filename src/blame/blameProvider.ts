@@ -26,6 +26,7 @@ export class BlameProvider implements Disposable {
     icon: TextEditorDecorationType;
     inline: TextEditorDecorationType;
   };
+  private iconTypes = new Map<string, TextEditorDecorationType>();  // color → decoration type
   private blameCache = new Map<string, { data: ISvnBlameLine[]; version: number }>();
   private revisionColors = new Map<string, string>();  // revision → gradient color
   private svgCache = new Map<string, Uri>();  // color → SVG data URI
@@ -38,7 +39,7 @@ export class BlameProvider implements Disposable {
   }
 
   /**
-   * Create all three decoration types
+   * Create gutter and inline decoration types (icons use separate types per color)
    */
   private createDecorationTypes(): {
     gutter: TextEditorDecorationType;
@@ -55,11 +56,7 @@ export class BlameProvider implements Disposable {
         },
         isWholeLine: false
       }),
-      icon: window.createTextEditorDecorationType({
-        gutterIconPath: undefined,  // Set per decoration
-        gutterIconSize: "auto",
-        isWholeLine: false
-      }),
+      icon: window.createTextEditorDecorationType({}),  // Placeholder, not used
       inline: window.createTextEditorDecorationType({
         after: {
           color: new ThemeColor("editorCodeLens.foreground"),
@@ -137,8 +134,11 @@ export class BlameProvider implements Disposable {
         return;
       }
 
-      // Create all 3 decoration arrays
+      // Create gutter and inline decoration arrays
       const decorations = await this.createAllDecorations(blameData, target);
+
+      // Calculate revision range for icon colors
+      const revisionRange = this.getRevisionRange(blameData);
 
       // Apply decorations based on config
       target.setDecorations(
@@ -146,10 +146,8 @@ export class BlameProvider implements Disposable {
         blameConfiguration.isGutterTextEnabled() ? decorations.gutter : []
       );
 
-      target.setDecorations(
-        this.decorationTypes.icon,
-        blameConfiguration.isGutterIconEnabled() ? decorations.icon : []
-      );
+      // Apply icon decorations (separate method using multiple decoration types)
+      this.applyIconDecorations(target, blameData, revisionRange);
 
       target.setDecorations(
         this.decorationTypes.inline,
@@ -170,6 +168,7 @@ export class BlameProvider implements Disposable {
       target.setDecorations(this.decorationTypes.gutter, []);
       target.setDecorations(this.decorationTypes.icon, []);
       target.setDecorations(this.decorationTypes.inline, []);
+      this.clearIconDecorations(target);
     }
   }
 
@@ -187,6 +186,8 @@ export class BlameProvider implements Disposable {
     this.decorationTypes.gutter.dispose();
     this.decorationTypes.icon.dispose();
     this.decorationTypes.inline.dispose();
+    this.iconTypes.forEach(type => type.dispose());
+    this.iconTypes.clear();
     this.blameCache.clear();
     this.revisionColors.clear();
     this.svgCache.clear();
@@ -247,21 +248,27 @@ export class BlameProvider implements Disposable {
   private async onConfigurationChange(_event: any): Promise<void> {
     // Save old decoration types
     const oldTypes = this.decorationTypes;
+    const oldIconTypes = this.iconTypes;
 
     // Create new decoration types first
     this.decorationTypes = this.createDecorationTypes();
+    this.iconTypes = new Map<string, TextEditorDecorationType>();
 
     // Clear decorations using old types before disposing
     if (window.activeTextEditor) {
       window.activeTextEditor.setDecorations(oldTypes.gutter, []);
       window.activeTextEditor.setDecorations(oldTypes.icon, []);
       window.activeTextEditor.setDecorations(oldTypes.inline, []);
+      oldIconTypes.forEach(type => {
+        window.activeTextEditor!.setDecorations(type, []);
+      });
     }
 
     // Now safe to dispose old types
     oldTypes.gutter.dispose();
     oldTypes.icon.dispose();
     oldTypes.inline.dispose();
+    oldIconTypes.forEach(type => type.dispose());
 
     // Clear caches (colors/templates may have changed)
     this.revisionColors.clear();
@@ -332,7 +339,8 @@ export class BlameProvider implements Disposable {
   }
 
   /**
-   * Create all decoration arrays from blame data
+   * Create gutter and inline decoration arrays from blame data
+   * (icons handled separately via applyIconDecorations)
    */
   private async createAllDecorations(
     blameData: ISvnBlameLine[],
@@ -343,7 +351,6 @@ export class BlameProvider implements Disposable {
     inline: any[];
   }> {
     const gutterDecorations: any[] = [];
-    const iconDecorations: any[] = [];
     const inlineDecorations: any[] = [];
 
     const template = blameConfiguration.getGutterTemplate();
@@ -359,9 +366,6 @@ export class BlameProvider implements Disposable {
         await this.prefetchMessages(uniqueRevisions);
       }
     }
-
-    // Calculate revision range for gradient coloring
-    const revisionRange = this.getRevisionRange(blameData);
 
     for (const blameLine of blameData) {
       const lineIndex = blameLine.lineNumber - 1; // 1-indexed to 0-indexed
@@ -386,26 +390,12 @@ export class BlameProvider implements Disposable {
         });
       }
 
-      // Skip uncommitted lines for icon/inline
+      // Skip uncommitted lines for inline
       if (!blameLine.revision || !blameLine.author) {
         continue;
       }
 
-      // 2. Gutter icon decoration
-      if (blameConfiguration.isGutterIconEnabled()) {
-        const color = this.getRevisionColor(blameLine.revision, revisionRange);
-        const svgUri = this.generateColorBarSvg(color);
-
-        iconDecorations.push({
-          range,
-          renderOptions: {
-            light: { gutterIconPath: svgUri },
-            dark: { gutterIconPath: svgUri }
-          }
-        });
-      }
-
-      // 3. Inline annotation
+      // 2. Inline annotation
       if (blameConfiguration.isInlineEnabled()) {
         const message = blameConfiguration.shouldShowInlineMessage()
           ? await this.getCommitMessage(blameLine.revision)
@@ -432,7 +422,7 @@ export class BlameProvider implements Disposable {
 
     return {
       gutter: gutterDecorations,
-      icon: iconDecorations,
+      icon: [],  // Not used, handled by applyIconDecorations
       inline: inlineDecorations
     };
   }
@@ -571,6 +561,72 @@ export class BlameProvider implements Disposable {
     const toHex = (val: number) => Math.round((val + m) * 255).toString(16).padStart(2, '0');
 
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+
+  /**
+   * Get or create decoration type for specific color
+   * Uses multiple decoration types (one per color) for correct VS Code API usage
+   */
+  private getIconDecorationType(color: string): TextEditorDecorationType {
+    if (this.iconTypes.has(color)) {
+      return this.iconTypes.get(color)!;
+    }
+
+    const svgUri = this.generateColorBarSvg(color);
+    const type = window.createTextEditorDecorationType({
+      gutterIconPath: svgUri,  // Set at TYPE level (correct API usage)
+      gutterIconSize: "auto",
+      isWholeLine: false
+    });
+
+    this.iconTypes.set(color, type);
+    return type;
+  }
+
+  /**
+   * Apply icon decorations using multiple decoration types (one per color)
+   * This is the correct VS Code API pattern for gutter icons
+   */
+  private applyIconDecorations(
+    editor: TextEditor,
+    blameData: ISvnBlameLine[],
+    revisionRange: { min: number; max: number }
+  ): void {
+    if (!blameConfiguration.isGutterIconEnabled()) {
+      this.clearIconDecorations(editor);
+      return;
+    }
+
+    // Group lines by color
+    const decorationsByColor = new Map<string, Range[]>();
+
+    for (const blameLine of blameData) {
+      if (!blameLine.revision) continue;
+
+      const lineIndex = blameLine.lineNumber - 1;
+      if (lineIndex < 0 || lineIndex >= editor.document.lineCount) continue;
+
+      const color = this.getRevisionColor(blameLine.revision, revisionRange);
+      if (!decorationsByColor.has(color)) {
+        decorationsByColor.set(color, []);
+      }
+      decorationsByColor.get(color)!.push(new Range(lineIndex, 0, lineIndex, 0));
+    }
+
+    // Apply each color's decoration type
+    for (const [color, ranges] of decorationsByColor) {
+      const type = this.getIconDecorationType(color);
+      editor.setDecorations(type, ranges.map(r => ({ range: r })));
+    }
+  }
+
+  /**
+   * Clear all icon decorations
+   */
+  private clearIconDecorations(editor: TextEditor): void {
+    this.iconTypes.forEach(type => {
+      editor.setDecorations(type, []);
+    });
   }
 
   // ===== Phase 2.5: SVG Generation =====

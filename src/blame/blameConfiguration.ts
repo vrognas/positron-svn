@@ -163,7 +163,7 @@ class BlameConfiguration {
    * Check if gutter icons (colored bars) are enabled
    */
   public isGutterIconEnabled(): boolean {
-    return this.get<boolean>("gutter.showIcons", false);
+    return this.get<boolean>("gutter.showIcons", true);
   }
 
   /**
