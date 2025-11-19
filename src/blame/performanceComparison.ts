@@ -132,7 +132,7 @@ function singlePassApproach(blameData: ISvnBlameLine[]): {
   }
 
   // Post-processing: Group icon data by color
-  for (const _data of iconData) {
+  for (let i = 0; i < iconData.length; i++) {
     iterationCount++;
     // Simulate color grouping
   }
