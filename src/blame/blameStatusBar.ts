@@ -239,6 +239,17 @@ export class BlameStatusBar implements Disposable {
       return undefined;
     }
 
+    // Skip untracked files (prevents SVN errors for UNVERSIONED/IGNORED files)
+    const resource = repository.getResourceFromFile(uri);
+    if (resource) {
+      const { Status } = await import("../common/types");
+      if (resource.type === Status.UNVERSIONED ||
+          resource.type === Status.IGNORED ||
+          resource.type === Status.NONE) {
+        return undefined;
+      }
+    }
+
     // Fetch from repository
     try {
       const data = await repository.blame(uri.fsPath);

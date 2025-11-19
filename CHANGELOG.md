@@ -1,3 +1,12 @@
+## [2.17.218] (2025-11-19)
+
+### Fix: Skip blame for untracked files
+
+* **Fix**: Skip UNVERSIONED/IGNORED/NONE files before SVN blame call
+* **Impact**: Eliminates console error spam for untracked files
+* **Check**: Both BlameProvider and BlameStatusBar skip untracked files
+* **Code**: blameProvider.ts:135-145, blameStatusBar.ts:242-251
+
 ## [2.17.217] (2025-11-19)
 
 ### Fix: Icon toggle race + default inline current-line
