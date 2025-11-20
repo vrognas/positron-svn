@@ -54,9 +54,21 @@ Configure external diff tools like Beyond Compare for large files (e.g., CSVs) w
 2. Right-click file in Source Control → **Diff with External Tool**
 3. For Beyond Compare setup, see: https://www.scootersoftware.com/kb/vcs#svn
 
-## Blame
+## Blame Annotations
 
-Please use a dedicated extension like [blamer-vs](https://marketplace.visualstudio.com/items?itemName=beaugust.blamer-vs)
+View line-by-line revision history directly in the editor.
+
+**Features:**
+- Gutter annotations: colored revision indicators (enabled by default)
+- Inline messages: commit details at end of line, GitLens-style (enabled by default)
+- Status bar: blame info for current line
+- Auto-blame: automatically show blame when files open (enabled by default)
+- Hover tooltips: detailed commit info on hover
+
+**Configuration:**
+See all 19 configuration options in Settings → search "svn.blame"
+
+For advanced configuration, see [Blame System Documentation](docs/BLAME_SYSTEM.md).
 
 ## Settings
 Here are all of the extension settings with their default values. To change any of these, add the relevant Config key and value to your VSCode settings.json file. Alternatively search for the config key in the settings UI to change its value.
