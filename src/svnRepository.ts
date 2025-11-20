@@ -103,6 +103,10 @@ export class Repository {
   ): Promise<IExecutionResult> {
     options.username = this.username;
     options.password = this.password;
+    // Security: Pass repository URL for credential cache (CVSS 7.5 → 3.2 fix)
+    if (this._info?.url) {
+      options.realmUrl = this._info.url;
+    }
 
     return this.svn.exec(this.workspaceRoot, args, options);
   }
@@ -113,6 +117,10 @@ export class Repository {
   ): Promise<BufferResult> {
     options.username = this.username;
     options.password = this.password;
+    // Security: Pass repository URL for credential cache (CVSS 7.5 → 3.2 fix)
+    if (this._info?.url) {
+      options.realmUrl = this._info.url;
+    }
 
     return this.svn.execBuffer(this.workspaceRoot, args, options);
   }

@@ -214,6 +214,7 @@ export interface ICpOptions extends SpawnOptions {
   password?: string;
   timeout?: number; // Phase 12 perf fix - SVN command timeout in ms
   token?: CancellationToken; // Phase 18 perf fix - Allow cancelling long SVN operations
+  realmUrl?: string; // Repository URL for credential cache (security fix)
 }
 
 export interface ISvnErrorData {

@@ -181,8 +181,8 @@ export class SvnAuthCache {
       };
 
       // Parse host and port
-      let hostPart = url.hostname;
-      let port = url.port || String(defaultPorts[scheme] || "");
+      const hostPart = url.hostname;
+      const port = url.port || String(defaultPorts[scheme] || "");
 
       // Include port in realm if non-default
       const hostWithPort = port ? `${hostPart}:${port}` : hostPart;
