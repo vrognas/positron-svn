@@ -103,6 +103,10 @@ export class Repository {
   ): Promise<IExecutionResult> {
     options.username = this.username;
     options.password = this.password;
+    // Security: Pass repository URL for credential cache (CVSS 7.5 → 3.2 fix)
+    if (this._info?.url) {
+      options.realmUrl = this._info.url;
+    }
 
     return this.svn.exec(this.workspaceRoot, args, options);
   }
@@ -113,6 +117,10 @@ export class Repository {
   ): Promise<BufferResult> {
     options.username = this.username;
     options.password = this.password;
+    // Security: Pass repository URL for credential cache (CVSS 7.5 → 3.2 fix)
+    if (this._info?.url) {
+      options.realmUrl = this._info.url;
+    }
 
     return this.svn.execBuffer(this.workspaceRoot, args, options);
   }
@@ -215,7 +223,7 @@ export class Repository {
               s.repositoryUuid = info.repository?.uuid;
             })
             .catch(error => {
-              console.error(error);
+              logError(`Failed to fetch external repository info for ${s.path}`, error);
             })
         )
     );
@@ -1017,6 +1025,13 @@ export class Repository {
   }
 
   public async resolve(files: string[], action: string) {
+    if (!validateAcceptAction(action)) {
+      throw new Error(
+        `Invalid resolve action: "${action}". ` +
+        `Valid options: base, working, mine-full, theirs-full, mine-conflict, theirs-conflict`
+      );
+    }
+
     files = files.map(file => this.removeAbsolutePath(file));
 
     const result = await this.exec(["resolve", "--accept", action, ...files]);

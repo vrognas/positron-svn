@@ -3,6 +3,7 @@ import { IBranchItem, ISvnErrorData } from "../common/types";
 import { isTrunk, selectBranch } from "../helpers/branch";
 import { Repository } from "../repository";
 import { Command } from "./command";
+import { logError } from "../util/errorLogger";
 
 export class Merge extends Command {
   constructor() {
@@ -47,7 +48,7 @@ export class Merge extends Command {
           );
         }
       } else {
-        console.log(error);
+        logError("Merge operation failed", error);
         window.showErrorMessage("Unable to merge branch");
       }
     }

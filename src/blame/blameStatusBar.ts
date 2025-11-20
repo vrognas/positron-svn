@@ -16,6 +16,7 @@ import { ISvnBlameLine } from "../common/types";
 import { SourceControlManager } from "../source_control_manager";
 import { blameConfiguration } from "./blameConfiguration";
 import { blameStateManager } from "./blameStateManager";
+import { logError } from "../util/errorLogger";
 
 /**
  * BlameStatusBar manages the status bar item showing blame info for current line
@@ -259,7 +260,7 @@ export class BlameStatusBar implements Disposable {
 
       return data;
     } catch (err) {
-      console.error("BlameStatusBar: Failed to fetch blame data", err);
+      logError("BlameStatusBar: Failed to fetch blame data", err);
       return undefined;
     }
   }

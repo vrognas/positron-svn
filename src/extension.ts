@@ -27,6 +27,7 @@ import { IsSvn18orGreater } from "./contexts/isSvn18orGreater";
 import { tempSvnFs } from "./temp_svn_fs";
 import { SvnFileSystemProvider } from "./svnFileSystemProvider";
 import { isPositron, getEnvironmentName } from "./positron/runtime";
+import { logError } from "./util/errorLogger";
 import { registerSvnConnectionsProvider } from "./positron/connectionsProvider";
 import { BlameStatusBar } from "./blame/blameStatusBar";
 
@@ -44,6 +45,23 @@ async function init(
   console.log(`SVN Extension: Found SVN ${info.version} at ${info.path}`);
 
   const svn = new Svn({ svnPath: info.path, version: info.version });
+
+  // Register process exit handlers for credential cleanup
+  const cleanup = () => {
+    console.log("SVN Extension: Cleaning up credentials on process exit");
+    svn.getAuthCache().dispose();
+  };
+
+  process.on("exit", cleanup);
+  process.on("SIGINT", () => {
+    cleanup();
+    process.exit();
+  });
+  process.on("SIGTERM", () => {
+    cleanup();
+    process.exit();
+  });
+
   const sourceControlManager = await new SourceControlManager(
     svn,
     ConstructorPolicy.Async,
@@ -202,7 +220,7 @@ export async function activate(context: ExtensionContext) {
   );
 
   await _activate(context, disposables).catch(err => {
-    console.error("SVN Extension: Activation failed", err);
+    logError("SVN Extension: Activation failed", err);
     window.showErrorMessage(`SVN Extension activation failed: ${err.message || err}`);
   });
   console.log("SVN Extension: activation complete");

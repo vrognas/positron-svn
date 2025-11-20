@@ -19,11 +19,11 @@ jobs:
       run: git fetch --tags -f || true
 
     - name: Install dependencies
-      run: yarn install --frozen-lockfile || yarn install --frozen-lockfile
+      run: npm ci
 
     - name: Release Open VSX
       run: |
-        yarn add iconv-lite jschardet
+        npm install iconv-lite jschardet
         npx vsce package -o svn-scm-ovsx.vsix
         npx ovsx publish svn-scm-ovsx.vsix -p ${{ secrets.ovsxToken }}
 

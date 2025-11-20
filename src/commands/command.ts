@@ -75,14 +75,10 @@ export abstract class Command implements Disposable {
       return;
     }
 
-    if (!options.repository) {
-      this._disposable = commands.registerCommand(
-        commandName,
-        (...args: unknown[]) => this.execute(...args)
-      );
-
-      return;
-    }
+    this._disposable = commands.registerCommand(
+      commandName,
+      (...args: unknown[]) => this.execute(...args)
+    );
   }
 
   public abstract execute(...args: unknown[]): CommandResult;
@@ -121,7 +117,7 @@ export abstract class Command implements Disposable {
       });
 
       return result.catch(err => {
-        console.error(err);
+        logError("Command execution failed", err);
       });
     };
 

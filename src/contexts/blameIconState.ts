@@ -36,7 +36,12 @@ export class BlameIconState implements IDisposable {
     );
 
     // Set initial state
-    void this.updateIconContext();
+    void this.updateIconContext().catch(err => {
+      console.error('[BlameIconState] Initial context update failed:', err);
+      // Set safe defaults
+      void setVscodeContext("svnBlameActiveForFile", false);
+      void setVscodeContext("svnBlameUntrackedFile", false);
+    });
   }
 
   private async updateIconContext(): Promise<void> {

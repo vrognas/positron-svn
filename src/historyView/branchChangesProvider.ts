@@ -80,9 +80,13 @@ export class BranchChangesProvider
       changes.push(repo.getChanges());
     }
 
-    return Promise.all(changes).then(value =>
-      value.reduce((prev, curr) => prev.concat(curr), [])
-    );
+    return Promise.all(changes)
+      .then(value => value.reduce((prev, curr) => prev.concat(curr), []))
+      .catch(err => {
+        console.error('[BranchChangesProvider] Failed to load changes:', err);
+        // Return empty array as fallback
+        return [];
+      });
   }
 
   public async openDiffCmd(element: ISvnPathChange) {

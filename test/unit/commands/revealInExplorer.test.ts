@@ -28,7 +28,7 @@ describe("Reveal In Explorer Command", () => {
     const command = new RevealInExplorer();
     const mockResource = {
       resourceUri: undefined
-    } as any;
+    } as unknown;
 
     // Should not throw when resourceUri is undefined
     await command.execute(mockResource);
@@ -47,13 +47,13 @@ describe("Reveal In Explorer Command", () => {
     const mockResources = [
       { resourceUri: uri1 },
       { resourceUri: uri2 }
-    ] as any[];
+    ] as unknown[];
 
     // Should process first resource (validation: no throw)
     try {
       await command.execute(...mockResources);
       assert.ok(true, "Command should process first resource");
-    } catch (error) {
+    } catch {
       // Expected: revealFileInOS might not exist in test env
       assert.ok(true, "Command attempted to reveal first file");
     }

@@ -22,6 +22,19 @@ If you use [TortoiseSVN](https://tortoisesvn.net/), make sure the option
 * Feel free to submit
   [pull requests](https://github.com/vrognas/positron-svn/pulls)
 
+## Contributing as a Developer
+
+Want to contribute? Great! See our [CONTRIBUTING.md](./CONTRIBUTING.md) for:
+- Development environment setup
+- Testing & TDD workflow
+- Code style guidelines
+- Pull request process
+
+For comprehensive guides, see:
+- [Developer Setup Guide](./docs/DEVELOPER_SETUP.md) - Environment configuration
+- [Documentation Priority Matrix](./docs/DOCUMENTATION_PRIORITY_MATRIX.md) - For maintainers
+- [Lessons Learned](./docs/LESSONS_LEARNED.md) - Architecture insights
+
 # Features
 
 ### Checkout
@@ -54,9 +67,246 @@ Configure external diff tools like Beyond Compare for large files (e.g., CSVs) w
 2. Right-click file in Source Control → **Diff with External Tool**
 3. For Beyond Compare setup, see: https://www.scootersoftware.com/kb/vcs#svn
 
-## Blame
+## Blame Annotations
 
-Please use a dedicated extension like [blamer-vs](https://marketplace.visualstudio.com/items?itemName=beaugust.blamer-vs)
+View line-by-line revision history directly in the editor.
+
+**Features:**
+- Gutter annotations: colored revision indicators (enabled by default)
+- Inline messages: commit details at end of line, GitLens-style (enabled by default)
+- Status bar: blame info for current line
+- Auto-blame: automatically show blame when files open (enabled by default)
+- Hover tooltips: detailed commit info on hover
+
+**Configuration:**
+See all 19 configuration options in Settings → search "svn.blame"
+
+For advanced configuration, see [Blame System Documentation](docs/BLAME_SYSTEM.md).
+
+## Authentication & Security
+
+The extension provides secure authentication with multiple methods and comprehensive credential protection.
+
+### Security Warning: Upgrade from v2.17.229 or Earlier
+
+> **⚠️ CRITICAL:** Versions prior to v2.17.230 expose passwords in process listings. **Upgrade immediately** to v2.17.230+ to eliminate this security risk.
+
+### Authentication Methods
+
+**Recommended (in priority order):**
+
+1. **SSH Key Authentication** ⭐ BEST PRACTICE
+   - **Repository URL:** `svn+ssh://user@svn.example.com/repo`
+   - **Security:** Public key cryptography, zero credential exposure
+   - **Setup:**
+     ```bash
+     ssh-keygen -t ed25519 -C "your_email@example.com"
+     ssh-copy-id user@svn.example.com
+     ```
+   - **When to use:** Production environments, shared servers, automated systems
+
+2. **Password Authentication** (Secure with Credential Cache)
+   - **Repository URL:** `https://svn.example.com/repo`
+   - **Security:** Credentials stored in SVN cache (`~/.subversion/auth/`, mode 600)
+   - **Setup:** Extension prompts for password, automatically caches securely
+   - **When to use:** Quick testing, HTTPS-only repositories, personal projects
+
+3. **Public Repository** (No Authentication)
+   - **Repository URL:** `http://svn.example.com/public-repo`
+   - **Security:** No credentials needed
+   - **When to use:** Open-source projects, publicly accessible repositories
+
+### How Credential Caching Works
+
+**v2.17.230+** uses SVN's native credential cache for maximum security:
+
+1. You enter username/password in VS Code UI prompt
+2. Extension writes credentials to `~/.subversion/auth/svn.simple/<uuid>` (file mode 600)
+3. SVN commands executed **without** `--password` flag
+4. SVN reads credentials from cache automatically
+5. ✅ **Result:** No password exposure in process list, container logs, or CI/CD logs
+
+**Before v2.17.230:**
+```bash
+$ ps aux | grep svn
+user 12345 svn update --password "MyPassword123"  # ❌ EXPOSED
+```
+
+**After v2.17.230:**
+```bash
+$ ps aux | grep svn
+user 12345 svn update --username alice  # ✅ SECURE (no password)
+```
+
+### Authentication Method Indicators
+
+Extension shows which auth method is active in the Output panel:
+
+- `[auth: SSH key]` - SSH key authentication (most secure)
+- `[auth: password via credential cache]` - Cached password (secure)
+- `[auth: none - public repository]` - No authentication required
+
+**Example output:**
+```
+[my-project]$ svn update --username alice [auth: password via credential cache]
+At revision 1234.
+```
+
+This helps verify your authentication is configured correctly.
+
+### Debugging Authentication Issues
+
+#### Enable Verbose Output
+
+1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. Run: `SVN: Show Output`
+3. Check authentication method indicators in logs
+
+#### Common Issues
+
+**Problem:** "Authentication failed" but credentials are correct
+```
+[repo]$ svn update --username alice [auth: password via credential cache]
+svn: E170001: Authentication failed
+```
+
+**Solutions:**
+1. Clear credential cache: `rm -rf ~/.subversion/auth/`
+2. Re-enter credentials when prompted
+3. Verify repository URL is correct
+4. Check SVN server is accessible: `svn info <repo-url>`
+
+**Problem:** Extension prompts for password repeatedly
+```
+ℹ No credentials configured - will prompt if needed
+```
+
+**Solutions:**
+1. Ensure credentials are being cached (check `~/.subversion/auth/`)
+2. Verify file permissions: `ls -la ~/.subversion/auth/svn.simple/` (should be 600)
+3. Try manual SVN command: `svn update` (should not prompt if cache works)
+
+**Problem:** Want to see raw error messages for debugging
+
+**Solution:** Enable debug mode (⚠️ **TEMPORARY ONLY**):
+```json
+{
+  "svn.debug.disableSanitization": true
+}
+```
+
+**⚠️ WARNING:**
+- Debug mode exposes credentials in logs
+- Extension shows prominent warning when enabled
+- Only enable temporarily for troubleshooting
+- **Disable immediately after debugging**
+
+When enabled, you'll see:
+```
+⚠️⚠️⚠️ SECURITY WARNING ⚠️⚠️⚠️
+Error sanitization is DISABLED
+Credentials WILL BE VISIBLE in logs
+Disable: svn.debug.disableSanitization = false
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+```
+
+Plus a dialog with **[Disable Now]** button.
+
+#### Verify Authentication Setup
+
+**Check credential cache:**
+```bash
+# List cached credentials
+ls -la ~/.subversion/auth/svn.simple/
+
+# Should show files with permissions: -rw------- (600)
+```
+
+**Check SVN version:**
+```bash
+svn --version
+# Requires SVN 1.6+ for credential cache
+```
+
+**Test repository access:**
+```bash
+svn info <your-repo-url>
+# Should show repository information without prompting
+```
+
+### Best Practices
+
+#### Production Environments
+- ✅ Use SSH keys (`svn+ssh://`)
+- ✅ Enable MFA on SVN server
+- ✅ Keep SVN client updated
+- ❌ Never use `svn.debug.disableSanitization` in production
+- ❌ Avoid HTTP URLs (use HTTPS or svn+ssh://)
+
+#### Development Workstations
+- ✅ Use HTTPS with credential cache for personal projects
+- ✅ Use SSH keys for shared/company repositories
+- ✅ Protect `~/.subversion/auth/` directory (mode 700)
+- ✅ Regularly update extension and SVN client
+
+#### CI/CD Pipelines
+- ✅ Use SSH keys stored in CI/CD secrets
+- ✅ Use repository access tokens (if supported by SVN server)
+- ❌ Never pass passwords via environment variables
+- ❌ Never commit credentials to `.vscode/settings.json`
+
+**Example GitHub Actions:**
+```yaml
+- name: Setup SSH key
+  run: |
+    mkdir -p ~/.ssh
+    echo "${{ secrets.SVN_SSH_KEY }}" > ~/.ssh/id_rsa
+    chmod 600 ~/.ssh/id_rsa
+- run: svn checkout svn+ssh://svn.example.com/repo
+```
+
+### Security Features
+
+1. **Error Sanitization**
+   - Automatic redaction of passwords, tokens, paths, URLs
+   - Active by default in all logs and error messages
+   - Protects against accidental credential exposure
+
+2. **SecretStorage Integration**
+   - Passwords stored in OS keychain (encrypted)
+     - **macOS:** Keychain Access
+     - **Windows:** Credential Manager
+     - **Linux:** Secret Service (gnome-keyring, KWallet)
+   - Never stored in plaintext in extension settings
+
+3. **Credential Cache Protection**
+   - Files stored with mode 600 (user-only access)
+   - Automatic cleanup of old credentials
+   - Isolated per repository/realm
+
+4. **Audit Trail**
+   - All auth operations logged (credentials redacted)
+   - Authentication method always visible
+   - Debug mode warnings prevent accidental exposure
+
+### Troubleshooting Checklist
+
+- [ ] Check authentication method indicator in Output panel
+- [ ] Verify repository URL is correct (HTTPS vs svn+ssh://)
+- [ ] Test SVN access outside VS Code: `svn info <repo-url>`
+- [ ] Check credential cache: `ls ~/.subversion/auth/svn.simple/`
+- [ ] Verify SVN version: `svn --version` (requires 1.6+)
+- [ ] Review error messages in Output panel
+- [ ] Try clearing cache: `rm -rf ~/.subversion/auth/` and re-enter credentials
+- [ ] For persistent issues, enable debug mode temporarily (see above)
+
+### Security Resources
+
+- [SECURITY.md](./SECURITY.md) - Security policy and vulnerability reporting
+- [SVN Security Best Practices](https://subversion.apache.org/docs/community-guide/conventions.html#security)
+- [Issue Tracker](https://github.com/vrognas/positron-svn/issues) - Report bugs (not security vulnerabilities)
+
+For security vulnerabilities, use [GitHub Security Advisories](https://github.com/vrognas/positron-svn/security/advisories).
 
 ## Settings
 Here are all of the extension settings with their default values. To change any of these, add the relevant Config key and value to your VSCode settings.json file. Alternatively search for the config key in the settings UI to change its value.

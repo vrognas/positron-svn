@@ -12,7 +12,7 @@ describe("Performance - Commit parent traversal (Phase 21.A)", () => {
    */
   it("resource map lookup is O(1) constant time", () => {
     // Simulate flat resource map
-    const resourceMap = new Map<string, any>();
+    const resourceMap = new Map<string, unknown>();
     resourceMap.set("/repo/dir1", { type: "ADDED" });
     resourceMap.set("/repo/dir1/dir2", { type: "ADDED" });
     resourceMap.set("/repo/dir1/dir2/file.txt", { type: "MODIFIED" });
@@ -58,7 +58,7 @@ describe("Performance - Commit parent traversal (Phase 21.A)", () => {
 
     // Build flat map once
     const buildStart = Date.now();
-    const resourceMap = new Map<string, any>();
+    const resourceMap = new Map<string, unknown>();
     resources.forEach(r => resourceMap.set(r.fsPath, r));
     const buildTime = Date.now() - buildStart;
 

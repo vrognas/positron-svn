@@ -17,6 +17,7 @@ import { Repository } from "../repository";
 import { blameConfiguration } from "./blameConfiguration";
 import { blameStateManager } from "./blameStateManager";
 import { compileTemplate, clearTemplateCache, CompiledTemplateFn } from "./templateCompiler";
+import { logError } from "../util/errorLogger";
 
 /**
  * BlameProvider manages gutter decorations for SVN blame
@@ -241,11 +242,11 @@ export class BlameProvider implements Disposable {
       // (Fire-and-forget - don't block UI)
       if (willFetchMessages) {
         this.prefetchMessagesProgressively(target.document.uri, blameData, target).catch(err => {
-          console.error("BlameProvider: Progressive message fetch failed", err);
+          logError("BlameProvider: Progressive message fetch failed", err);
         });
       }
     } catch (err) {
-      console.error("BlameProvider: Failed to update decorations", err);
+      logError("BlameProvider: Failed to update decorations", err);
       this.clearDecorations(target);
     }
   }
@@ -695,7 +696,7 @@ export class BlameProvider implements Disposable {
 
       return data;
     } catch (err) {
-      console.error("BlameProvider: Failed to fetch blame data", err);
+      logError("BlameProvider: Failed to fetch blame data", err);
       return undefined;
     }
   }
@@ -1016,7 +1017,7 @@ export class BlameProvider implements Disposable {
   private applyIconDecorations(
     editor: TextEditor,
     blameData: ISvnBlameLine[],
-    revisionRange: { min: number; max: number }
+    revisionRange: { min: number; max: number; uniqueRevisions: number[] }
   ): void {
     const gutterEnabled = blameConfiguration.isGutterEnabled();
     const iconsEnabled = blameConfiguration.isGutterIconEnabled();
@@ -1113,7 +1114,7 @@ export class BlameProvider implements Disposable {
 
       return message;
     } catch (err) {
-      console.error(`BlameProvider: Failed to fetch message for r${revision}`, err);
+      logError(`BlameProvider: Failed to fetch message for r${revision}`, err);
       return "";
     }
   }
@@ -1149,7 +1150,7 @@ export class BlameProvider implements Disposable {
       // Evict message cache if exceeding limit
       this.evictMessageCache();
     } catch (err) {
-      console.error("BlameProvider: Batch message fetch failed, falling back to sequential", err);
+      logError("BlameProvider: Batch message fetch failed, falling back to sequential", err);
 
       // Fallback to sequential fetching on error
       for (const revision of uncached) {

@@ -12,6 +12,7 @@ import {
   fixPathSeparator,
   getSvnDir
 } from "../util";
+import { logError } from "../util/errorLogger";
 
 export class RepositoryFilesWatcher implements IDisposable {
   private disposables: IDisposable[] = [];
@@ -59,10 +60,7 @@ export class RepositoryFilesWatcher implements IDisposable {
       repoWatcher.on("error", error => {
         // Phase 20.A fix: Log error gracefully instead of crashing extension
         // Common errors: ENOENT (.svn deleted), EACCES (permission denied)
-        console.error(
-          `SVN repository watcher error for ${root}:`,
-          error instanceof Error ? error.message : String(error)
-        );
+        logError(`SVN repository watcher error for ${root}`, error);
         // Extension continues functioning - watcher may degrade but won't crash
       });
 
@@ -130,13 +128,17 @@ export class RepositoryFilesWatcher implements IDisposable {
     if (event === "change") {
       this._onRepoChange.fire(Uri.parse(filename));
     } else if (event === "rename") {
-      exists(filename).then(doesExist => {
-        if (doesExist) {
-          this._onRepoCreate.fire(Uri.parse(filename));
-        } else {
-          this._onRepoDelete.fire(Uri.parse(filename));
-        }
-      });
+      exists(filename)
+        .then(doesExist => {
+          if (doesExist) {
+            this._onRepoCreate.fire(Uri.parse(filename));
+          } else {
+            this._onRepoDelete.fire(Uri.parse(filename));
+          }
+        })
+        .catch(err => {
+          console.error(`[RepositoryFilesWatcher] Rename detection failed for ${filename}:`, err);
+        });
     }
   }
 

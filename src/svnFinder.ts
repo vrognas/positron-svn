@@ -53,7 +53,7 @@ export class SvnFinder {
 
   public findSvnDarwin(): Promise<ISvn> {
     return new Promise<ISvn>((c, e) => {
-      cp.exec("which svn", (err, svnPathBuffer) => {
+      cp.execFile("which", ["svn"], (err, svnPathBuffer) => {
         if (err) {
           return e("svn not found");
         }
@@ -62,7 +62,7 @@ export class SvnFinder {
 
         function getVersion(path: string) {
           // make sure svn executes
-          cp.exec("svn --version --quiet", (err, stdout) => {
+          cp.execFile("svn", ["--version", "--quiet"], (err, stdout) => {
             if (err) {
               return e("svn not found");
             }
@@ -76,7 +76,7 @@ export class SvnFinder {
         }
 
         // must check if XCode is installed
-        cp.exec("xcode-select -p", (err: any) => {
+        cp.execFile("xcode-select", ["-p"], (err: any) => {
           if (err && err.code === 2) {
             // svn is not installed, and launching /usr/bin/svn
             // will prompt the user to install it

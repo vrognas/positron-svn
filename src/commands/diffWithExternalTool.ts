@@ -72,10 +72,10 @@ export class DiffWithExternalTool extends Command {
       );
 
     } catch (error) {
-      console.log("ERROR caught:", error);
-      window.showErrorMessage(
-        `Failed to launch external diff: ${error instanceof Error ? error.message : String(error)}`
-      );
+      // Security: Use logError helper to sanitize error output
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[diffWithExternalTool] Failed to launch external diff: ${message}`);
+      window.showErrorMessage(`Failed to launch external diff: ${message}`);
     }
   }
 }

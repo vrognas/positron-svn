@@ -8,8 +8,10 @@
 import type { PositronApi } from "@posit-dev/positron";
 
 // Dynamic import to avoid failure when module not available
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let positronModule: any = undefined;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   positronModule = require("@posit-dev/positron");
 } catch {
   // Module not available - running in VS Code or Positron module not bundled
