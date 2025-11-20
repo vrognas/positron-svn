@@ -1017,6 +1017,13 @@ export class Repository {
   }
 
   public async resolve(files: string[], action: string) {
+    if (!validateAcceptAction(action)) {
+      throw new Error(
+        `Invalid resolve action: "${action}". ` +
+        `Valid options: base, working, mine-full, theirs-full, mine-conflict, theirs-conflict`
+      );
+    }
+
     files = files.map(file => this.removeAbsolutePath(file));
 
     const result = await this.exec(["resolve", "--accept", action, ...files]);
