@@ -23,7 +23,7 @@ describe("Security - Safe JSON.parse (Phase 20.C)", () => {
     ];
 
     // Mock loadStoredAuths behavior with safe parsing
-    const safeParseCredentials = (secret: string): any[] => {
+    const safeParseCredentials = (secret: string): unknown[] => {
       try {
         return JSON.parse(secret);
       } catch {
@@ -47,7 +47,7 @@ describe("Security - Safe JSON.parse (Phase 20.C)", () => {
       { account: "user2", password: "pass2" }
     ]);
 
-    const safeParseCredentials = (secret: string): any[] => {
+    const safeParseCredentials = (secret: string): unknown[] => {
       try {
         return JSON.parse(secret);
       } catch {
@@ -58,7 +58,7 @@ describe("Security - Safe JSON.parse (Phase 20.C)", () => {
     const result = safeParseCredentials(validJson);
     assert.ok(Array.isArray(result));
     assert.strictEqual(result.length, 2);
-    assert.strictEqual(result[0].account, "user1");
+    assert.strictEqual((result[0] as Record<string, unknown>).account, "user1");
   });
 
   /**
@@ -73,7 +73,7 @@ describe("Security - Safe JSON.parse (Phase 20.C)", () => {
     ];
 
     // Mock fromSvnUri behavior with safe parsing
-    const safeParseUri = (query: string): any => {
+    const safeParseUri = (query: string): unknown => {
       try {
         return JSON.parse(query);
       } catch {
@@ -84,7 +84,7 @@ describe("Security - Safe JSON.parse (Phase 20.C)", () => {
     malformedQueries.forEach((query) => {
       const result = safeParseUri(query);
       assert.ok(typeof result === "object", `Should return object for: ${query}`);
-      assert.ok(result.action !== undefined, `Should have action field for: ${query}`);
+      assert.ok((result as Record<string, unknown>).action !== undefined, `Should have action field for: ${query}`);
     });
   });
 });

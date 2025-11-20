@@ -27,7 +27,7 @@ describe("Positron Runtime Detection - Phase 23.P0", () => {
     // Mock VS Code environment
     const mockGlobal = {};
 
-    const inPositron = typeof (mockGlobal as any).acquirePositronApi !== "undefined";
+    const inPositron = typeof (mockGlobal as unknown as Record<string, unknown>).acquirePositronApi !== "undefined";
     assert.strictEqual(inPositron, false, "Should detect VS Code");
   });
 

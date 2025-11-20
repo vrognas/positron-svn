@@ -1,5 +1,4 @@
 import * as assert from "assert";
-import { Repository } from "../../../src/svnRepository";
 
 suite("Repository Blame", () => {
   suite("Blame Execution", () => {
@@ -25,8 +24,6 @@ suite("Repository Blame", () => {
     test("handles relative path conversion", () => {
       // Repository.removeAbsolutePath() converts absolute to relative
       // Blame should use this for file paths
-      const absolutePath = "/home/user/project/src/file.ts";
-      const workspaceRoot = "/home/user/project";
       const expected = "src/file.ts";
 
       // This validates the removeAbsolutePath pattern works
@@ -124,7 +121,7 @@ suite("Repository Blame", () => {
     });
 
     test("empty file returns empty array", () => {
-      const emptyResult: any[] = [];
+      const emptyResult: unknown[] = [];
       assert.strictEqual(emptyResult.length, 0);
     });
   });

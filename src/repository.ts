@@ -272,6 +272,7 @@ export class Repository implements IRemoteRepository {
     );
 
     // Initialize FileDecorationProvider for Explorer view decorations
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { SvnFileDecorationProvider } = require("./fileDecorationProvider");
     this.fileDecorationProvider = new SvnFileDecorationProvider(this);
     this.disposables.push(
