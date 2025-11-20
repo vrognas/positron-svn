@@ -1,3 +1,14 @@
+## [2.17.228] (2025-11-20)
+
+### Improve: Hybrid color scheme (categorical + gradient)
+
+* **Recent 5 revisions**: Distinct categorical colors (red, orange, yellow, green, blue)
+* **Older revisions**: Blue→purple gradient heatmap (8 buckets)
+* **Saturation**: Increased 35%→45% for better visibility
+* **Why**: Similar colors in 16-bucket gradient were hard to distinguish
+* **Result**: Recent changes highly visible, older history contextual
+* **Code**: blameProvider.ts:888-943
+
 ## [2.17.227] (2025-11-20)
 
 ### Fix: Clean file handling + toggle (root cause)

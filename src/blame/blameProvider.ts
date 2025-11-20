@@ -886,10 +886,10 @@ export class BlameProvider implements Disposable {
   }
 
   /**
-   * Get gradient color for revision (blue → purple)
-   * Blue (oldest) → Purple (newest)
-   * Formula: hue 200→280, saturation 35%, lightness theme-aware
-   * Quantized to 16 discrete buckets for performance
+   * Get color for revision (hybrid: categorical for recent, gradient for older)
+   * Recent 5 revisions: Distinct categorical colors (red→orange→yellow→green→blue)
+   * Older revisions: Blue→purple gradient heatmap
+   * Formula: Categorical hues [0,30,60,120,200], gradient 200→280, saturation 45%, lightness theme-aware
    */
   private getRevisionColor(revision: string, range: { min: number; max: number }): string {
     if (this.revisionColors.has(revision)) {
@@ -899,26 +899,47 @@ export class BlameProvider implements Disposable {
     const revNum = parseInt(revision, 10);
     if (isNaN(revNum) || range.max === range.min) {
       // Fallback for invalid or single revision: mid-point blue-purple
-      const color = this.hslToHex(240, 35, this.getThemeAwareLightness());
+      const color = this.hslToHex(240, 45, this.getThemeAwareLightness());
       this.revisionColors.set(revision, color);
       return color;
     }
 
-    // Normalize revision to 0-1 range
-    const normalized = (revNum - range.min) / (range.max - range.min);
-
-    // Quantize to 16 discrete buckets (reduces decoration types for performance)
-    const bucket = Math.floor(normalized * 15.99); // 0-15 inclusive
-    const quantizedNormalized = bucket / 15;
-
-    // Interpolate hue: 200 (cyan-blue) → 280 (violet)
-    const hue = Math.round(200 + (quantizedNormalized * 80));
-    const saturation = 35;  // Low saturation for subtlety
+    const saturation = 45;  // Increased for better distinction
     const lightness = this.getThemeAwareLightness();
 
-    const color = this.hslToHex(hue, saturation, lightness);
-    this.revisionColors.set(revision, color);
-    return color;
+    // Hybrid approach: categorical for recent 5, gradient for older
+    const recentThreshold = range.max - 4; // Last 5 revisions (max-4 to max)
+
+    if (revNum >= recentThreshold) {
+      // Recent revisions: categorical colors (newest=red, oldest of recent=blue)
+      const recentIndex = revNum - recentThreshold; // 0-4
+      const categoricalHues = [200, 120, 60, 30, 0]; // Blue→green→yellow→orange→red
+      const hue = categoricalHues[recentIndex] || 0;
+      const color = this.hslToHex(hue, saturation, lightness);
+      this.revisionColors.set(revision, color);
+      return color;
+    } else {
+      // Older revisions: gradient heatmap (blue → purple)
+      const oldRange = { min: range.min, max: recentThreshold - 1 };
+      if (oldRange.max < oldRange.min) {
+        // Edge case: all revisions are recent
+        const color = this.hslToHex(200, saturation, lightness);
+        this.revisionColors.set(revision, color);
+        return color;
+      }
+
+      const normalized = (revNum - oldRange.min) / (oldRange.max - oldRange.min);
+
+      // Quantize to 8 discrete buckets for gradient
+      const bucket = Math.floor(normalized * 7.99); // 0-7 inclusive
+      const quantizedNormalized = bucket / 7;
+
+      // Interpolate hue: 200 (blue) → 280 (purple)
+      const hue = Math.round(200 + (quantizedNormalized * 80));
+      const color = this.hslToHex(hue, saturation, lightness);
+      this.revisionColors.set(revision, color);
+      return color;
+    }
   }
 
   /**
