@@ -22,6 +22,19 @@ If you use [TortoiseSVN](https://tortoisesvn.net/), make sure the option
 * Feel free to submit
   [pull requests](https://github.com/vrognas/positron-svn/pulls)
 
+## Contributing as a Developer
+
+Want to contribute? Great! See our [CONTRIBUTING.md](./CONTRIBUTING.md) for:
+- Development environment setup
+- Testing & TDD workflow
+- Code style guidelines
+- Pull request process
+
+For comprehensive guides, see:
+- [Developer Setup Guide](./docs/DEVELOPER_SETUP.md) - Environment configuration
+- [Documentation Priority Matrix](./docs/DOCUMENTATION_PRIORITY_MATRIX.md) - For maintainers
+- [Lessons Learned](./docs/LESSONS_LEARNED.md) - Architecture insights
+
 # Features
 
 ### Checkout
