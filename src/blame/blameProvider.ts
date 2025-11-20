@@ -866,9 +866,9 @@ export class BlameProvider implements Disposable {
   // ===== Phase 2.5: Revision Gradient Coloring =====
 
   /**
-   * Calculate min/max revision range from blame data
+   * Calculate min/max revision range and unique revisions from blame data
    */
-  private getRevisionRange(blameData: ISvnBlameLine[]): { min: number; max: number } {
+  private getRevisionRange(blameData: ISvnBlameLine[]): { min: number; max: number; uniqueRevisions: number[] } {
     const revisions = blameData
       .map(b => b.revision)
       .filter(Boolean)
@@ -876,29 +876,33 @@ export class BlameProvider implements Disposable {
       .filter(r => !isNaN(r));
 
     if (revisions.length === 0) {
-      return { min: 0, max: 0 };
+      return { min: 0, max: 0, uniqueRevisions: [] };
     }
+
+    // Get unique revisions sorted descending (newest first)
+    const uniqueRevisions = [...new Set(revisions)].sort((a, b) => b - a);
 
     return {
       min: Math.min(...revisions),
-      max: Math.max(...revisions)
+      max: Math.max(...revisions),
+      uniqueRevisions
     };
   }
 
   /**
    * Get color for revision (hybrid: categorical for recent, gradient for older)
-   * Recent 5 revisions: Distinct categorical colors (red→orange→yellow→green→blue)
+   * Recent 5 unique revisions in file: Distinct categorical colors (red→orange→yellow→green→blue)
    * Older revisions: Blue→purple gradient heatmap
    * Formula: Categorical hues [0,30,60,120,200], gradient 200→280, saturation 45%, lightness theme-aware
    */
-  private getRevisionColor(revision: string, range: { min: number; max: number }): string {
+  private getRevisionColor(revision: string, range: { min: number; max: number; uniqueRevisions: number[] }): string {
     if (this.revisionColors.has(revision)) {
       return this.revisionColors.get(revision)!;
     }
 
     const revNum = parseInt(revision, 10);
-    if (isNaN(revNum) || range.max === range.min) {
-      // Fallback for invalid or single revision: mid-point blue-purple
+    if (isNaN(revNum) || range.uniqueRevisions.length === 0) {
+      // Fallback for invalid or empty: mid-point blue-purple
       const color = this.hslToHex(240, 45, this.getThemeAwareLightness());
       this.revisionColors.set(revision, color);
       return color;
@@ -907,28 +911,38 @@ export class BlameProvider implements Disposable {
     const saturation = 45;  // Increased for better distinction
     const lightness = this.getThemeAwareLightness();
 
-    // Hybrid approach: categorical for recent 5, gradient for older
-    const recentThreshold = range.max - 4; // Last 5 revisions (max-4 to max)
+    // Find index of this revision in the file's unique revisions (sorted newest first)
+    const revisionIndex = range.uniqueRevisions.indexOf(revNum);
 
-    if (revNum >= recentThreshold) {
-      // Recent revisions: categorical colors (newest=red, oldest of recent=blue)
-      const recentIndex = revNum - recentThreshold; // 0-4
-      const categoricalHues = [200, 120, 60, 30, 0]; // Blue→green→yellow→orange→red
-      const hue = categoricalHues[recentIndex] || 0;
+    if (revisionIndex === -1) {
+      // Not found (shouldn't happen), fallback
+      const color = this.hslToHex(240, saturation, lightness);
+      this.revisionColors.set(revision, color);
+      return color;
+    }
+
+    // Hybrid approach: categorical for top 5 unique revisions, gradient for rest
+    if (revisionIndex < 5) {
+      // Recent revisions: categorical colors (index 0=newest=red, 4=5th newest=blue)
+      const categoricalHues = [0, 30, 60, 120, 200]; // Red→orange→yellow→green→blue
+      const hue = categoricalHues[revisionIndex];
       const color = this.hslToHex(hue, saturation, lightness);
       this.revisionColors.set(revision, color);
       return color;
     } else {
       // Older revisions: gradient heatmap (blue → purple)
-      const oldRange = { min: range.min, max: recentThreshold - 1 };
-      if (oldRange.max < oldRange.min) {
-        // Edge case: all revisions are recent
+      const olderRevisions = range.uniqueRevisions.slice(5); // Skip first 5
+      const olderIndex = revisionIndex - 5; // Position within older revisions
+
+      if (olderRevisions.length === 1) {
+        // Only one older revision, use blue
         const color = this.hslToHex(200, saturation, lightness);
         this.revisionColors.set(revision, color);
         return color;
       }
 
-      const normalized = (revNum - oldRange.min) / (oldRange.max - oldRange.min);
+      // Normalize position within older revisions (0=newest of older, 1=oldest)
+      const normalized = olderIndex / (olderRevisions.length - 1);
 
       // Quantize to 8 discrete buckets for gradient
       const bucket = Math.floor(normalized * 7.99); // 0-7 inclusive

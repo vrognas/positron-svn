@@ -1,3 +1,14 @@
+## [2.17.229] (2025-11-20)
+
+### Fix: Per-file revision coloring
+
+* **Hybrid colors**: Based on file's unique revisions, not global revision numbers
+* **Example**: pkpd_1201.qmd with r1314, r1315, r1338 → Red (r1338), Orange (r1315), Yellow (r1314)
+* **Top 5 unique revisions**: Categorical colors (newest→oldest in file)
+* **Rest**: Gradient heatmap based on position in file's revision history
+* **Why**: Previous used global revision range, not file-specific context
+* **Code**: blameProvider.ts:871-957
+
 ## [2.17.228] (2025-11-20)
 
 ### Improve: Hybrid color scheme (categorical + gradient)
