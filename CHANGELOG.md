@@ -1,3 +1,25 @@
+## [2.17.232] (2025-11-20)
+
+### ADDED: Debug Authentication Indicators
+
+* **Auth method logging in Output panel** (Step 6)
+  - `[auth: credential cache]` - Username and password provided
+  - `[auth: password (insecure - no realmUrl)]` - Password without username
+  - `[auth: username only]` - Username without password
+  - `[auth: none - will prompt if needed]` - No credentials provided
+  - Helps debug auth configuration without exposing password values
+  - Logged to Output panel, never in process list or logs
+
+---
+
+## [2.17.231] (2025-11-20)
+
+### ADDED: Process Exit Handlers
+
+* **Credential cleanup on shutdown**: Added process exit handlers (exit, SIGINT, SIGTERM) to ensure credentials are cleaned up when extension terminates
+* **Public getter for auth cache**: Added `getAuthCache()` method to Svn class for accessing credential cleanup
+* **Secure shutdown**: Credentials are disposed before process exit
+
 ## [2.17.230] (2025-11-20)
 
 ### SECURITY: Credential Protection Enhancement

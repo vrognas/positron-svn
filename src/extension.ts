@@ -45,6 +45,23 @@ async function init(
   console.log(`SVN Extension: Found SVN ${info.version} at ${info.path}`);
 
   const svn = new Svn({ svnPath: info.path, version: info.version });
+
+  // Register process exit handlers for credential cleanup
+  const cleanup = () => {
+    console.log("SVN Extension: Cleaning up credentials on process exit");
+    svn.getAuthCache().dispose();
+  };
+
+  process.on("exit", cleanup);
+  process.on("SIGINT", () => {
+    cleanup();
+    process.exit();
+  });
+  process.on("SIGTERM", () => {
+    cleanup();
+    process.exit();
+  });
+
   const sourceControlManager = await new SourceControlManager(
     svn,
     ConstructorPolicy.Async,
