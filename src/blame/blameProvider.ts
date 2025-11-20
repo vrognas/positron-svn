@@ -939,7 +939,18 @@ export class BlameProvider implements Disposable {
     blameData: ISvnBlameLine[],
     revisionRange: { min: number; max: number }
   ): void {
-    if (!blameConfiguration.isGutterEnabled() || !blameConfiguration.isGutterIconEnabled()) {
+    const gutterEnabled = blameConfiguration.isGutterEnabled();
+    const iconsEnabled = blameConfiguration.isGutterIconEnabled();
+
+    console.log("[BlameProvider] applyIconDecorations:", {
+      gutterEnabled,
+      iconsEnabled,
+      blameDataLines: blameData.length,
+      file: editor.document.fileName
+    });
+
+    if (!gutterEnabled || !iconsEnabled) {
+      console.log("[BlameProvider] Skipping icons - gutter or icons disabled");
       this.clearIconDecorations(editor);
       return;
     }
@@ -961,6 +972,11 @@ export class BlameProvider implements Disposable {
     }
 
     // Apply each color's decoration type
+    console.log("[BlameProvider] Applying icon decorations:", {
+      colorCount: decorationsByColor.size,
+      totalLines: Array.from(decorationsByColor.values()).reduce((sum, ranges) => sum + ranges.length, 0)
+    });
+
     for (const [color, ranges] of decorationsByColor) {
       const type = this.getIconDecorationType(color);
       editor.setDecorations(type, ranges.map(r => ({ range: r })));
