@@ -1,3 +1,13 @@
+## [2.17.225] (2025-11-19)
+
+### Fix: Gutter text default + untracked file errors
+
+* **Gutter text**: Default false (only colored icons shown)
+* **Untracked fix**: Skip blaming if resource undefined or untracked status
+* **Why**: getResourceFromFile() returns null for untracked, was causing SVN errors
+* **Result**: No console errors when viewing untracked files
+* **Code**: blameProvider.ts:137-149, blameConfiguration.ts:159, package.json:1200
+
 ## [2.17.224] (2025-11-19)
 
 ### Fix: Dynamic icons + inline blame state

@@ -134,14 +134,18 @@ export class BlameProvider implements Disposable {
 
     // Skip untracked files (prevents SVN errors for UNVERSIONED/IGNORED files)
     const resource = this.repository.getResourceFromFile(target.document.uri);
-    if (resource) {
-      const { Status } = await import("../common/types");
-      if (resource.type === Status.UNVERSIONED ||
-          resource.type === Status.IGNORED ||
-          resource.type === Status.NONE) {
-        this.clearDecorations(target);
-        return;
-      }
+    if (!resource) {
+      // No resource = file not tracked by SVN
+      this.clearDecorations(target);
+      return;
+    }
+
+    const { Status } = await import("../common/types");
+    if (resource.type === Status.UNVERSIONED ||
+        resource.type === Status.IGNORED ||
+        resource.type === Status.NONE) {
+      this.clearDecorations(target);
+      return;
     }
 
     // Large file check

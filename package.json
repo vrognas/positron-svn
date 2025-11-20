@@ -2,7 +2,7 @@
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
     "description": "Integrated Subversion source control - Positron fork with enhanced features",
-    "version": "2.17.224",
+    "version": "2.17.225",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
@@ -1197,7 +1197,7 @@
                 "svn.blame.gutter.showText": {
                     "type": "boolean",
                     "description": "Show text annotations in gutter (author, revision, date)",
-                    "default": true
+                    "default": false
                 },
                 "svn.blame.gutter.showIcons": {
                     "type": "boolean",

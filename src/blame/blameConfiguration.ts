@@ -156,7 +156,7 @@ class BlameConfiguration {
    * Check if gutter text annotations are enabled
    */
   public isGutterTextEnabled(): boolean {
-    return this.get<boolean>("gutter.showText", true);
+    return this.get<boolean>("gutter.showText", false);
   }
 
   /**
