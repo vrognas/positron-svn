@@ -30,6 +30,12 @@ export const svnErrorCodes: { [key: string]: string } = {
 // Path separator pattern for cross-platform path splitting
 const PATH_SEPARATOR_PATTERN = /[\\\/]+/;
 
+// Default timeout for SVN commands (30 seconds)
+const DEFAULT_TIMEOUT_MS = 30000;
+
+// Default locale for SVN command execution
+const DEFAULT_LOCALE = "en_US.UTF-8";
+
 function getSvnErrorCode(stderr: string): string | undefined {
   for (const name in svnErrorCodes) {
     if (svnErrorCodes.hasOwnProperty(name)) {
@@ -144,8 +150,8 @@ export class Svn {
     }
 
     defaults.env = Object.assign({}, proc.env, options.env || {}, {
-      LC_ALL: "en_US.UTF-8",
-      LANG: "en_US.UTF-8"
+      LC_ALL: DEFAULT_LOCALE,
+      LANG: DEFAULT_LOCALE
     });
 
     const process = cp.spawn(this.svnPath, args, defaults);
@@ -171,7 +177,7 @@ export class Svn {
     };
 
     // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
-    const timeoutMs = options.timeout || 30000; // 30s default
+    const timeoutMs = options.timeout || DEFAULT_TIMEOUT_MS;
     const timeoutPromise = new Promise<[number, Buffer, string]>((_, reject) => {
       setTimeout(() => {
         process.kill();
@@ -319,8 +325,8 @@ export class Svn {
     }
 
     defaults.env = Object.assign({}, proc.env, options.env || {}, {
-      LC_ALL: "en_US.UTF-8",
-      LANG: "en_US.UTF-8"
+      LC_ALL: DEFAULT_LOCALE,
+      LANG: DEFAULT_LOCALE
     });
 
     const process = cp.spawn(this.svnPath, args, defaults);
@@ -346,7 +352,7 @@ export class Svn {
     };
 
     // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
-    const timeoutMs = options.timeout || 30000; // 30s default
+    const timeoutMs = options.timeout || DEFAULT_TIMEOUT_MS;
     const timeoutPromise = new Promise<[number, Buffer, string]>((_, reject) => {
       setTimeout(() => {
         process.kill();
