@@ -15,19 +15,19 @@ Optimized GitHub Actions workflow from **enterprise-grade** to **industry-standa
 - ~20-25 min CI time per PR
 
 **After:**
-- 2 build jobs (Ubuntu/Windows × stable only)
+- 3 build jobs (Ubuntu/Windows/macOS × stable only)
 - 1 artifact job (master/tags only)
 - Consolidated lint + security into build
-- ~5-7 min CI time per PR
+- ~8-10 min CI time per PR
 
-**Savings:** 70% faster, 83% fewer job runs
+**Savings:** 60% faster, 75% fewer job runs
 
 ### 2. What Was Removed from PRs
 
-#### ❌ macOS Testing
-- **Reason:** Microsoft's vscode-python skips macOS "to conserve resources"
-- **Alternative:** Weekly smoke test in scheduled workflow
-- **Impact:** SVN is cross-platform CLI tool, minimal platform-specific code
+#### ✅ macOS Testing (Kept)
+- **Reason:** Developer uses macOS for development
+- **Note:** While Microsoft skips this to conserve resources, it's valuable when developer works on macOS
+- **Impact:** Ensures compatibility on developer's primary platform
 
 #### ❌ Insiders Testing
 - **Reason:** No major extension tests insiders on every PR, causes flaky builds
@@ -114,8 +114,8 @@ Runs every Monday at 9 AM UTC.
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| **Jobs per PR** | 12 | 2 | 83% fewer |
-| **CI Time** | 20-25 min | 5-7 min | 70% faster |
+| **Jobs per PR** | 12 | 3 | 75% fewer |
+| **CI Time** | 20-25 min | 8-10 min | 60% faster |
 | **Lines of config** | 217 | 140 | 35% simpler |
 | **npm ci calls** | 7 | 2 | 71% fewer |
 | **Cache hit rate** | 0% | ~80% | Fixed |
@@ -137,7 +137,6 @@ Runs every Monday at 9 AM UTC.
 ✅ **Weekly:**
 - CodeQL security analysis
 - Dependency vulnerability scan
-- macOS platform validation
 
 ## Migration Notes
 
