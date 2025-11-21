@@ -72,11 +72,6 @@ async function init(
     extensionContext
   );
 
-  // Register command for tests/upgrade/commit scenarios
-  disposables.push(
-    commands.registerCommand("svn.getSourceControlManager", () => sourceControlManager)
-  );
-
   console.log("SVN Extension: Registering commands...");
   registerCommands(sourceControlManager, disposables);
 
@@ -116,7 +111,8 @@ async function init(
   // Register Positron-specific providers
   if (isPositron()) {
     console.log("SVN Extension: Registering Positron connections provider");
-    const connectionsDisposable = registerSvnConnectionsProvider(sourceControlManager);
+    const connectionsDisposable =
+      registerSvnConnectionsProvider(sourceControlManager);
     if (connectionsDisposable) {
       disposables.push(connectionsDisposable);
       outputChannel.appendLine("Positron: SVN Connections provider registered");
@@ -230,11 +226,13 @@ export async function activate(context: ExtensionContext) {
 
   await _activate(context, disposables).catch(err => {
     logError("SVN Extension: Activation failed", err);
-    window.showErrorMessage(`SVN Extension activation failed: ${err.message || err}`);
+    window.showErrorMessage(
+      `SVN Extension activation failed: ${err.message || err}`
+    );
   });
   console.log("SVN Extension: activation complete");
 }
 
 // this method is called when your extension is deactivated
- 
+
 export function deactivate() {}
