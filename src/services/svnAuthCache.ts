@@ -296,6 +296,27 @@ export class SvnAuthCache {
   }
 
   /**
+   * Validate Windows username to prevent command injection (defense in depth)
+   * Blocks shell metacharacters: & | ; < > ( ) $ ` \ " ' and control characters
+   *
+   * @param username - Username from environment variable
+   * @returns true if username is safe for use in icacls command
+   */
+  private isValidWindowsUsername(username: string): boolean {
+    if (!username || username.length === 0 || username.length > 255) {
+      return false;
+    }
+
+    // Block shell metacharacters and control characters
+    const dangerousChars = /[&|;<>()$`\\"'\n\r\t\x00-\x1F\x7F]/;
+    if (dangerousChars.test(username)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Set secure file permissions
    * - Unix: mode 600 (owner read/write only)
    * - Windows: ACL restricted to current user
@@ -313,10 +334,21 @@ export class SvnAuthCache {
   /**
    * Set Windows ACL to restrict file to current user
    * Uses icacls command: /inheritance:r (remove inherited), /grant:r (grant replace)
+   *
+   * SECURITY: shell:false prevents command injection. icacls.exe is in System32 and
+   * available via PATH by default on all Windows systems. Args passed as array elements
+   * are not interpreted by shell, blocking injection attacks.
    */
   private async setWindowsACL(filePath: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const username = process.env.USERNAME || process.env.USER || "%USERNAME%";
+
+      // Validate username to block shell metacharacters (defense in depth)
+      if (!this.isValidWindowsUsername(username)) {
+        reject(new Error(`Invalid Windows username: ${username}`));
+        return;
+      }
+
       const args = [
         filePath,
         "/inheritance:r", // Remove inherited permissions
@@ -326,7 +358,7 @@ export class SvnAuthCache {
 
       const proc = spawn("icacls", args, {
         stdio: "pipe",
-        shell: true
+        shell: false  // SECURITY: Prevent command injection
       });
 
       let stderr = "";
@@ -345,11 +377,8 @@ export class SvnAuthCache {
       });
 
       proc.on("error", (err) => {
-        // icacls not available - fall back to default permissions
-        console.warn(
-          `[SvnAuthCache] Failed to set Windows ACL: ${err.message}`
-        );
-        resolve(); // Don't fail the operation
+        // icacls not available - reject to prevent creating file with insecure permissions
+        reject(new Error(`Failed to set Windows ACL: ${err.message}`));
       });
     });
   }
