@@ -2,6 +2,7 @@
 
 import {
   ColorThemeKind,
+  DecorationOptions,
   Disposable,
   Range,
   TextEditor,
@@ -396,7 +397,7 @@ export class BlameProvider implements Disposable {
     blameData: ISvnBlameLine[],
     editor: TextEditor
   ): Promise<void> {
-    const inlineDecorations: any[] = [];
+    const inlineDecorations: DecorationOptions[] = [];
     const currentLineOnly = blameConfiguration.isInlineCurrentLineOnly();
 
     for (const blameLine of blameData) {
@@ -469,7 +470,7 @@ export class BlameProvider implements Disposable {
     }
 
     const currentLine = editor.selection.active.line;
-    const inlineDecorations: any[] = [];
+    const inlineDecorations: DecorationOptions[] = [];
 
     // Find blame info for current line only
     for (const blameLine of blameData) {
@@ -710,12 +711,12 @@ export class BlameProvider implements Disposable {
     editor: TextEditor,
     options: { skipMessagePrefetch?: boolean } = {}
   ): Promise<{
-    gutter: any[];
-    icon: any[];
-    inline: any[];
+    gutter: DecorationOptions[];
+    icon: DecorationOptions[];
+    inline: DecorationOptions[];
   }> {
-    const gutterDecorations: any[] = [];
-    const inlineDecorations: any[] = [];
+    const gutterDecorations: DecorationOptions[] = [];
+    const inlineDecorations: DecorationOptions[] = [];
 
     const template = blameConfiguration.getGutterTemplate();
     const dateFormat = blameConfiguration.getDateFormat();

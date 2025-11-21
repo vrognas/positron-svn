@@ -58,7 +58,7 @@ class BlameConfiguration {
 
   public update(
     section: string,
-    value: any,
+    value: unknown,
     configurationTarget?: ConfigurationTarget | boolean
   ): Thenable<void> {
     return this.configuration.update(section, value, configurationTarget);

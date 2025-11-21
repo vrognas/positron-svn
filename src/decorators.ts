@@ -153,7 +153,7 @@ export function debounce(
   });
 }
 
-const _seqList: { [key: string]: any } = {};
+const _seqList: Record<string, Promise<unknown>> = {};
 
 /**
  * Global sequentialize decorator - serializes async operations across instances

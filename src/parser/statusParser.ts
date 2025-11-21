@@ -8,7 +8,7 @@ function processEntry(
 ): IFileStatus[] {
   if (Array.isArray(entry)) {
     const list: IFileStatus[] = [];
-    entry.forEach((e: any) => {
+    entry.forEach((e: IEntry) => {
       const r = processEntry(e, changelist);
       if (r) {
         list.push(...r);
@@ -61,7 +61,7 @@ function xmlToStatus(xml: any) {
       xml.changelist = [xml.changelist];
     }
 
-    xml.changelist.forEach((change: any) => {
+    xml.changelist.forEach((change: { entry: IEntry | IEntry[]; name: string }) => {
       statusList.push(...processEntry(change.entry, change.name));
     });
   }

@@ -107,10 +107,17 @@ export async function diffWithExternalTool(
 
     // Call svn diff with --diff-cmd pointing to external tool
     await svnExec(workspaceRoot, args);
-  } catch (error: any) {
+  } catch (error) {
     // External diff tools (like Beyond Compare) stay open, causing SVN to timeout
     // Exit code 124 = timeout, but tool launched successfully - treat as success
-    if (error.exitCode === 124 && error.svnCommand === "diff") {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "exitCode" in error &&
+      "svnCommand" in error &&
+      (error as { exitCode: number; svnCommand: string }).exitCode === 124 &&
+      (error as { exitCode: number; svnCommand: string }).svnCommand === "diff"
+    ) {
       // Tool launched successfully, just timed out waiting for close
       return;
     }

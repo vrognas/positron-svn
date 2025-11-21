@@ -265,7 +265,6 @@ export enum SvnUriAction {
 export interface ISvnUriExtraParams {
   ref?: string;
   limit?: string;
-  [key: string]: any;
   revision?: number;
   search?: string;
 }
