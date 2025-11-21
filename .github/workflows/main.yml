@@ -34,6 +34,18 @@ jobs:
         run: npm ci
         shell: bash
 
+      - name: Install Subversion
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y subversion
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            brew install subversion
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+            choco install svn -y
+          fi
+        shell: bash
+
       - name: Compile sources for tests
         run: npm run test-compile
 
@@ -49,16 +61,18 @@ jobs:
 
       - name: Run tests (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a npm test
+        run: xvfb-run -a node --max-old-space-size=6144 ./node_modules/.bin/vscode-test
         env:
           CODE_VERSION: ${{ matrix.version }}
+          NODE_OPTIONS: --max-old-space-size=6144
         continue-on-error: ${{ matrix.version == 'insiders' }}
 
       - name: Run tests (macOS/Windows)
         if: runner.os != 'Linux'
-        run: npm test
+        run: node --max-old-space-size=6144 ./node_modules/.bin/vscode-test
         env:
           CODE_VERSION: ${{ matrix.version }}
+          NODE_OPTIONS: --max-old-space-size=6144
         continue-on-error: ${{ matrix.version == 'insiders' }}
 
       - name: Release
