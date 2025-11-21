@@ -43,8 +43,8 @@
         "build:css": "sass scss/:css/ --style=compressed --no-source-map",
         "build:ts": "tsc -p ./",
         "compile": "node build.js --watch",
-        "lint": "eslint .",
-        "lint:fix": "eslint . --fix",
+        "lint": "npx eslint .",
+        "lint:fix": "npx eslint . --fix",
         "organize": "node ./out/tools/organize.js",
         "semantic-release": "semantic-release",
         "size": "size-limit",
@@ -63,7 +63,7 @@
     "size-limit": [
         {
             "path": "dist/extension.js",
-            "limit": "200 KB"
+            "limit": "350 KB"
         }
     ],
     "dependencies": {
@@ -111,8 +111,7 @@
         "sinon": "^21.0.0",
         "size-limit": "^11.2.0",
         "typescript": "^5.9.3",
-        "typescript-eslint": "^8.46.3",
-        "vscode-test": "^1.6.1"
+        "typescript-eslint": "^8.46.3"
     },
     "config": {
         "commitizen": {

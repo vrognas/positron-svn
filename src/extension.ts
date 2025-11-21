@@ -68,6 +68,11 @@ async function init(
     extensionContext
   );
 
+  // Register command for tests/upgrade/commit scenarios
+  disposables.push(
+    commands.registerCommand("svn.getSourceControlManager", () => sourceControlManager)
+  );
+
   console.log("SVN Extension: Registering commands...");
   registerCommands(sourceControlManager, disposables);
 
