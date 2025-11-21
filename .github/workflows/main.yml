@@ -200,6 +200,7 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+        shell: bash
 
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
@@ -224,8 +225,8 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: javascript-typescript
-          queries: security-and-quality
+          languages: javascript
+          queries: +security-and-quality
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
