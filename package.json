@@ -85,7 +85,7 @@
         "@types/node": "^24.10.0",
         "@types/picomatch": "^4.0.2",
         "@types/semver": "^7.5.8",
-        "@types/sinon": "^20.0.0",
+        "@types/sinon": "^21.0.0",
         "@types/tmp": "^0.2.6",
         "@types/vscode": "^1.74.0",
         "@typescript-eslint/eslint-plugin": "^8.46.3",
