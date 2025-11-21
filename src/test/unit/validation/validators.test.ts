@@ -211,6 +211,16 @@ suite('Validation Tests', () => {
       assert.strictEqual(validateFilePath('C:\\Windows'), false);
     });
 
+    test('rejects URL-encoded path traversal attempts', () => {
+      // URL-encoded dots: %2e = .
+      assert.strictEqual(validateFilePath('..%2fetc%2fpasswd'), false);
+      assert.strictEqual(validateFilePath('%2e%2e/etc/passwd'), false);
+      assert.strictEqual(validateFilePath('src/%2e%2e/%2e%2e/etc'), false);
+      // Mixed encoding
+      assert.strictEqual(validateFilePath('foo/bar/..%2f..%2fetc'), false);
+      assert.strictEqual(validateFilePath('%2e%2e%2f%2e%2e%2froot'), false);
+    });
+
     test('accepts paths with dots but not ..', () => {
       assert.strictEqual(validateFilePath('file.test.ts'), true);
       assert.strictEqual(validateFilePath('.gitignore'), true);

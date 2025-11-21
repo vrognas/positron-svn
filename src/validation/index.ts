@@ -2,6 +2,8 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
+import * as path from 'path';
+
 /**
  * Input validation framework to prevent command injection attacks
  */
@@ -93,15 +95,27 @@ export function validateRevision(revision: string): boolean {
 
 /**
  * Validates file paths to prevent path traversal attacks
- * Rejects paths containing '..' segments or starting with '/'
+ * Normalizes path and rejects '..' segments or absolute paths
+ * Protects against URL-encoded bypass attempts (e.g., %2e%2e, ..%2f)
  */
-export function validateFilePath(path: string): boolean {
-  if (!path || typeof path !== 'string') {
+export function validateFilePath(filePath: string): boolean {
+  if (!filePath || typeof filePath !== 'string') {
     return false;
   }
 
-  // Reject paths with .. segments or absolute paths
-  return !path.includes('..') && !path.startsWith('/') && !path.startsWith('\\');
+  // Normalize path to resolve encoded characters and standardize separators
+  // This catches bypasses like %2e%2e, ..%2f, etc.
+  const normalized = path.normalize(decodeURIComponent(filePath));
+
+  // Reject absolute paths
+  if (path.isAbsolute(normalized)) {
+    return false;
+  }
+
+  // Reject paths with parent directory references
+  // Split on separators to check for '..' as a discrete segment
+  const segments = normalized.split(path.sep);
+  return !segments.includes('..');
 }
 
 /**
