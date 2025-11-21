@@ -28,6 +28,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
@@ -46,10 +47,16 @@ jobs:
             vscode-${{ runner.os }}-${{ matrix.version }}-
             vscode-${{ runner.os }}-
 
-      - name: Run tests
-        uses: GabrielBB/xvfb-action@v1.0
-        with:
-          run: npm test
+      - name: Run tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm test
+        env:
+          CODE_VERSION: ${{ matrix.version }}
+        continue-on-error: ${{ matrix.version == 'insiders' }}
+
+      - name: Run tests (macOS/Windows)
+        if: runner.os != 'Linux'
+        run: npm test
         env:
           CODE_VERSION: ${{ matrix.version }}
         continue-on-error: ${{ matrix.version == 'insiders' }}
@@ -71,6 +78,7 @@ jobs:
   eslint:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'skip ci')"
+    timeout-minutes: 10
 
     steps:
       - name: Clone repository
@@ -80,6 +88,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
@@ -91,6 +100,7 @@ jobs:
   security-check:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'skip ci')"
+    timeout-minutes: 10
 
     steps:
       - name: Clone repository
@@ -100,6 +110,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
@@ -111,6 +122,7 @@ jobs:
   size-check:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'skip ci')"
+    timeout-minutes: 10
 
     steps:
       - name: Clone repository
@@ -120,6 +132,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
@@ -134,6 +147,7 @@ jobs:
   artifact:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'skip ci')"
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -143,6 +157,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
@@ -167,3 +182,50 @@ jobs:
         with:
           name: "svn-scm-ovsx-${{ github.sha }}.vsix"
           path: "svn-scm-ovsx.vsix"
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
+
+      - name: Check for outdated critical dependencies
+        run: npx npm-check-updates --target minor --filter "vscode,mocha,typescript,eslint" --errorLevel 2
+        continue-on-error: true
+
+  codeql:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
