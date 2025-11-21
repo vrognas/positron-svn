@@ -1,3 +1,7 @@
+// Copyright (c) 2017-2020 Christopher Johnston
+// Copyright (c) 2025-present Viktor Rognas
+// Licensed under MIT License
+
 import { ProgressLocation, window } from "vscode";
 import { IBranchItem, SvnKindType } from "../common/types";
 import FolderItem from "../quickPickItems/folderItem";

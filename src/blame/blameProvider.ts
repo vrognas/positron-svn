@@ -1,3 +1,7 @@
+// Copyright (c) 2017-2020 Christopher Johnston
+// Copyright (c) 2025-present Viktor Rognas
+// Licensed under MIT License
+
 "use strict";
 
 import {
@@ -1020,6 +1024,11 @@ export class BlameProvider implements Disposable {
     blameData: ISvnBlameLine[],
     revisionRange: { min: number; max: number; uniqueRevisions: number[] }
   ): void {
+    // Dispose previous file's icon types to prevent memory leak
+    // Each file creates ~16 color-based types; without this, types accumulate unbounded
+    this.iconTypes.forEach(type => type.dispose());
+    this.iconTypes.clear();
+
     const gutterEnabled = blameConfiguration.isGutterEnabled();
     const iconsEnabled = blameConfiguration.isGutterIconEnabled();
 

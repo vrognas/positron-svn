@@ -1,3 +1,7 @@
+// Copyright (c) 2017-2020 Christopher Johnston
+// Copyright (c) 2025-present Viktor Rognas
+// Licensed under MIT License
+
 import * as path from "path";
 import { commands, Uri, ViewColumn, WebviewPanel, window } from "vscode";
 import { SourceControlManager } from "./source_control_manager";

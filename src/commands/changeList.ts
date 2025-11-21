@@ -1,3 +1,7 @@
+// Copyright (c) 2017-2020 Christopher Johnston
+// Copyright (c) 2025-present Viktor Rognas
+// Licensed under MIT License
+
 import { commands, Uri, window } from "vscode";
 import { inputSwitchChangelist } from "../changelistItems";
 import { SourceControlManager } from "../source_control_manager";

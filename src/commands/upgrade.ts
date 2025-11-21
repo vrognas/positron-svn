@@ -1,3 +1,7 @@
+// Copyright (c) 2017-2020 Christopher Johnston
+// Copyright (c) 2025-present Viktor Rognas
+// Licensed under MIT License
+
 import { commands, window } from "vscode";
 import { configuration } from "../helpers/configuration";
 import { SourceControlManager } from "../source_control_manager";

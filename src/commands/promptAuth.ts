@@ -1,3 +1,7 @@
+// Copyright (c) 2017-2020 Christopher Johnston
+// Copyright (c) 2025-present Viktor Rognas
+// Licensed under MIT License
+
 import { window } from "vscode";
 import { IAuth } from "../common/types";
 import { Command } from "./command";
