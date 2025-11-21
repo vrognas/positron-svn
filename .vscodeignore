@@ -70,7 +70,21 @@ CLAUDE.md
 build.js
 eslint.config.js
 scripts/**
+
+# Exclude all markdown except user-facing docs
 *.md
 !readme.md
+!CHANGELOG.md
+!SECURITY.md
+!PRIVACY.md
+
+# Exclude internal dev documentation
+DELIVERY_SUMMARY.txt
+DOCUMENTATION_ASSESSMENT_COMPLETE.txt
+*_ANALYSIS.md
+*_SUMMARY.md
+*_PLAN.md
+POSITRON_RESEARCH_SUMMARY.md
+
 docs/**
 

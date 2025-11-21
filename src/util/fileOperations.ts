@@ -1,3 +1,7 @@
+// Copyright (c) 2017-2020 Christopher Johnston
+// Copyright (c) 2025-present Viktor Rognas
+// Licensed under MIT License
+
 /**
  * Shared file operation utilities for reveal and diff commands
  * Used by both SCM changes view and repository log tree view

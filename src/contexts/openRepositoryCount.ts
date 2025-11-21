@@ -1,3 +1,7 @@
+// Copyright (c) 2017-2020 Christopher Johnston
+// Copyright (c) 2025-present Viktor Rognas
+// Licensed under MIT License
+
 import { Disposable } from "vscode";
 import { debounce } from "../decorators";
 import { SourceControlManager } from "../source_control_manager";

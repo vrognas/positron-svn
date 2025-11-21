@@ -83,6 +83,25 @@ See all 19 configuration options in Settings → search "svn.blame"
 
 For advanced configuration, see [Blame System Documentation](docs/BLAME_SYSTEM.md).
 
+## Positron Integration
+
+Enhanced integration with Posit's Positron IDE for data science workflows.
+
+**Connections Pane**:
+- View SVN repositories alongside database connections
+- Quick checkout wizard with URL and directory inputs
+- Repository metadata display (branch, revision, remote URL)
+
+**Setup**: Automatically enabled when running in Positron. No configuration needed.
+
+**Privacy**: All operations are local. No data sent to Posit or external services. See [PRIVACY.md](./PRIVACY.md) for details.
+
+**What is Positron?** A next-generation IDE for data science by Posit PBC (creators of RStudio). Fork of VS Code optimized for R, Python, and Julia workflows.
+
+Learn more: https://posit.co/products/ide/positron/
+
+For technical details, see [docs/POSITRON_INTEGRATION.md](./docs/POSITRON_INTEGRATION.md).
+
 ## Authentication & Security
 
 The extension provides secure authentication with multiple methods and comprehensive credential protection.

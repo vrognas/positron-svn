@@ -1,3 +1,7 @@
+// Copyright (c) 2017-2020 Christopher Johnston
+// Copyright (c) 2025-present Viktor Rognas
+// Licensed under MIT License
+
 import { Disposable, Uri, workspace } from "vscode";
 import { IFileStatus, Status } from "../common/types";
 import { configuration } from "../helpers/configuration";

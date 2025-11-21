@@ -1,3 +1,7 @@
+// Copyright (c) 2017-2020 Christopher Johnston
+// Copyright (c) 2025-present Viktor Rognas
+// Licensed under MIT License
+
 import { commands, window } from "vscode";
 import { IBranchItem, ISvnErrorData } from "../common/types";
 import { isTrunk, selectBranch } from "../helpers/branch";
