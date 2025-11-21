@@ -1,14 +1,13 @@
 {
     "name": "positron-svn",
     "displayName": "SVN (Positron)",
-    "description": "Integrated Subversion source control - Positron fork with enhanced features",
+    "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
     "version": "2.17.236",
     "publisher": "vrognas",
     "engines": {
         "vscode": "^1.74.0",
         "positron": "^2025.6.x"
     },
-    "private": true,
     "enabledApiProposals": [],
     "icon": "images/subversion.png",
     "homepage": "https://github.com/viktor-rognas/svn-scm/blob/master/README.md",
@@ -27,7 +26,10 @@
         "multi-root ready",
         "scm",
         "svn",
-        "subversion"
+        "subversion",
+        "positron",
+        "data-science",
+        "privacy"
     ],
     "activationEvents": [
         "onStartupFinished"
