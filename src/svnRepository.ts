@@ -47,7 +47,10 @@ import {
 } from "./validation";
 
 export class Repository {
-  private _infoCache = new Map<string, { info: ISvnInfo; timeout: NodeJS.Timeout; lastAccessed: number }>();
+  private _infoCache = new Map<
+    string,
+    { info: ISvnInfo; timeout: NodeJS.Timeout; lastAccessed: number }
+  >();
   private _info?: ISvnInfo;
   private readonly MAX_CACHE_SIZE = 500;
   // Phase 10.3 perf fix - timestamp-based caching (5s)
@@ -55,7 +58,10 @@ export class Repository {
   private readonly INFO_CACHE_MS = 5000;
 
   // Blame cache - smaller than info cache (blame is heavier operation)
-  private _blameCache = new Map<string, { blame: ISvnBlameLine[]; timeout: NodeJS.Timeout; lastAccessed: number }>();
+  private _blameCache = new Map<
+    string,
+    { blame: ISvnBlameLine[]; timeout: NodeJS.Timeout; lastAccessed: number }
+  >();
   private readonly MAX_BLAME_CACHE_SIZE = 100;
   private readonly BLAME_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -96,8 +102,13 @@ export class Repository {
     try {
       this._info = await parseInfoXml(result.stdout);
     } catch (err) {
-      logError(`Failed to parse repository info for ${this.workspaceRoot}`, err);
-      throw new Error(`Repository info unavailable: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      logError(
+        `Failed to parse repository info for ${this.workspaceRoot}`,
+        err
+      );
+      throw new Error(
+        `Repository info unavailable: ${err instanceof Error ? err.message : "Unknown error"}`
+      );
     }
   }
 
@@ -144,7 +155,7 @@ export class Repository {
   /**
    * Check if there are new remote revisions without running full status.
    * Uses `svn log -r BASE:HEAD --limit 1` to detect if BASE < HEAD.
-   * 
+   *
    * @returns true if new revisions exist, false otherwise
    */
   public async hasRemoteChanges(): Promise<boolean> {
@@ -161,7 +172,7 @@ export class Repository {
       // Parse log XML to check if any entries exist
       // Empty log means BASE == HEAD (no new revisions)
       const hasEntries = result.stdout.includes("<logentry");
-      
+
       return hasEntries;
     } catch (err) {
       // If log fails, assume changes exist and fall back to full status
@@ -184,7 +195,6 @@ export class Repository {
       },
       params
     );
-
 
     // Optimization: Check for remote changes before expensive status call
     if (params.checkRemoteChanges) {
@@ -214,7 +224,9 @@ export class Repository {
       status = await parseStatusXml(result.stdout);
     } catch (err) {
       logError(`Failed to parse status XML for ${this.workspaceRoot}`, err);
-      throw new Error(`Status update failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      throw new Error(
+        `Status update failed: ${err instanceof Error ? err.message : "Unknown error"}`
+      );
     }
 
     // Phase 10 perf fix - parallel external info fetching (was N+1 sequential)
@@ -227,7 +239,10 @@ export class Repository {
               s.repositoryUuid = info.repository?.uuid;
             })
             .catch(error => {
-              logError(`Failed to fetch external repository info for ${s.path}`, error);
+              logError(
+                `Failed to fetch external repository info for ${s.path}`,
+                error
+              );
             })
         )
     );
@@ -321,7 +336,9 @@ export class Repository {
       info = await parseInfoXml(result.stdout);
     } catch (err) {
       logError(`Failed to parse info XML for ${file}`, err);
-      throw new Error(`File info unavailable for ${file}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      throw new Error(
+        `File info unavailable for ${file}: ${err instanceof Error ? err.message : "Unknown error"}`
+      );
     }
 
     // Evict LRU entry if cache is at max size
@@ -330,9 +347,12 @@ export class Repository {
     }
 
     // Cache for 2 minutes
-    const timer = setTimeout(() => {
-      this.resetInfoCache(file);
-    }, 2 * 60 * 1000);
+    const timer = setTimeout(
+      () => {
+        this.resetInfoCache(file);
+      },
+      2 * 60 * 1000
+    );
 
     this._infoCache.set(file, {
       info,
@@ -405,7 +425,9 @@ export class Repository {
         }
       }
       logError(`Failed to execute blame for ${relativePath}`, err);
-      throw new Error(`Blame failed for ${relativePath}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      throw new Error(
+        `Blame failed for ${relativePath}: ${err instanceof Error ? err.message : "Unknown error"}`
+      );
     }
 
     // Parse blame XML
@@ -414,7 +436,9 @@ export class Repository {
       blame = await parseSvnBlame(result.stdout);
     } catch (err) {
       logError(`Failed to parse blame XML for ${relativePath}`, err);
-      throw new Error(`Blame parse failed for ${relativePath}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      throw new Error(
+        `Blame parse failed for ${relativePath}: ${err instanceof Error ? err.message : "Unknown error"}`
+      );
     }
 
     // Evict LRU entry if cache is at max size
@@ -678,11 +702,14 @@ export class Repository {
     // Prevents commit the files inside the folder
     args.push("--depth", "empty");
 
-    const result = await this.exec(args);
-
-    // Remove temporary file if exists
-    if (tmpFile) {
-      tmpFile.removeCallback();
+    let result: IExecutionResult;
+    try {
+      result = await this.exec(args);
+    } finally {
+      // Remove temporary file if exists - cleanup on success or error
+      if (tmpFile) {
+        tmpFile.removeCallback();
+      }
     }
 
     const matches = result.stdout.match(/Committed revision (.*)\./i);
@@ -706,9 +733,7 @@ export class Repository {
       if ((await stat(file)).isDirectory()) {
         return (
           await Promise.all(
-            (
-              await readdir(file)
-            ).map(subfile => {
+            (await readdir(file)).map(subfile => {
               const abspath = path.resolve(file + path.sep + subfile);
               const relpath = this.removeAbsolutePath(abspath);
               if (
@@ -740,7 +765,7 @@ export class Repository {
 
     // Phase 21.D: Adaptive batching for large file sets
     const { executeBatched } = await import("./util/batchOperations");
-    const results = await executeBatched(files, async (chunk) => {
+    const results = await executeBatched(files, async chunk => {
       return this.exec(["add", ...chunk]);
     });
 
@@ -923,7 +948,7 @@ export class Repository {
 
     // Phase 21.D: Adaptive batching for large file sets
     const { executeBatched } = await import("./util/batchOperations");
-    const results = await executeBatched(files, async (chunk) => {
+    const results = await executeBatched(files, async chunk => {
       return this.exec(["revert", "--depth", depth, ...chunk]);
     });
 
@@ -1009,7 +1034,7 @@ export class Repository {
     if (!validateAcceptAction(action)) {
       throw new Error(
         `Invalid resolve action: "${action}". ` +
-        `Valid options: base, working, mine-full, theirs-full, mine-conflict, theirs-conflict`
+          `Valid options: base, working, mine-full, theirs-full, mine-conflict, theirs-conflict`
       );
     }
 
@@ -1138,13 +1163,7 @@ export class Repository {
     const maxRev = Math.max(...revNums);
 
     // Fetch entire range (trade bandwidth for speed)
-    const args = [
-      "log",
-      "-r",
-      `${minRev}:${maxRev}`,
-      "--xml",
-      "-v"
-    ];
+    const args = ["log", "-r", `${minRev}:${maxRev}`, "--xml", "-v"];
 
     if (target !== undefined) {
       args.push(

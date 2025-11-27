@@ -254,7 +254,10 @@ suite("Svn Repository Tests", () => {
     await repository.getInfo("file0.txt");
     const afterCount = execCount;
 
-    assert.ok(afterCount > beforeCount, "First entry should have been evicted and require re-fetch");
+    assert.ok(
+      afterCount > beforeCount,
+      "First entry should have been evicted and require re-fetch"
+    );
   });
 
   test("Test getInfo LRU cache updates access time on hit", async () => {
@@ -298,7 +301,11 @@ suite("Svn Repository Tests", () => {
     // first.txt should still be cached
     const beforeCount2 = execCount;
     await repository.getInfo("first.txt");
-    assert.equal(execCount, beforeCount2, "first.txt should still be cached after being accessed");
+    assert.equal(
+      execCount,
+      beforeCount2,
+      "first.txt should still be cached after being accessed"
+    );
   });
 
   test("Test getInfo LRU cache respects 500 entry limit", async () => {
@@ -344,7 +351,7 @@ suite("Svn Repository Tests", () => {
       "/tmp",
       ConstructorPolicy.LateInit
     );
-    
+
     // Mock log output when BASE == HEAD (no new revisions)
     repository.exec = async (args: string[]) => {
       assert.equal(args[0], "log");
@@ -353,7 +360,7 @@ suite("Svn Repository Tests", () => {
       assert.equal(args[3], "--limit");
       assert.equal(args[4], "1");
       assert.equal(args[5], "--xml");
-      
+
       return {
         exitCode: 0,
         stderr: "",
@@ -364,7 +371,11 @@ suite("Svn Repository Tests", () => {
     };
 
     const hasChanges = await repository.hasRemoteChanges();
-    assert.strictEqual(hasChanges, false, "Should return false when no new revisions");
+    assert.strictEqual(
+      hasChanges,
+      false,
+      "Should return false when no new revisions"
+    );
   });
 
   test("hasRemoteChanges: Returns true when BASE < HEAD (new revisions)", async () => {
@@ -375,7 +386,7 @@ suite("Svn Repository Tests", () => {
       "/tmp",
       ConstructorPolicy.LateInit
     );
-    
+
     // Mock log output when BASE < HEAD (new revisions exist)
     repository.exec = async (args: string[]) => {
       assert.equal(args[0], "log");
@@ -394,7 +405,11 @@ suite("Svn Repository Tests", () => {
     };
 
     const hasChanges = await repository.hasRemoteChanges();
-    assert.strictEqual(hasChanges, true, "Should return true when new revisions exist");
+    assert.strictEqual(
+      hasChanges,
+      true,
+      "Should return true when new revisions exist"
+    );
   });
 
   test("getStatus: Skips status check when no remote changes", async () => {
@@ -405,10 +420,10 @@ suite("Svn Repository Tests", () => {
       "/tmp",
       ConstructorPolicy.LateInit
     );
-    
+
     let logCalled = false;
     let statusCalled = false;
-    
+
     repository.exec = async (args: string[]) => {
       if (args[0] === "log") {
         logCalled = true;
@@ -432,6 +447,103 @@ suite("Svn Repository Tests", () => {
     await repository.getStatus({ checkRemoteChanges: true });
 
     assert.strictEqual(logCalled, true, "Should call log to check for changes");
-    assert.strictEqual(statusCalled, false, "Should NOT call status when no changes");
+    assert.strictEqual(
+      statusCalled,
+      false,
+      "Should NOT call status when no changes"
+    );
+  });
+
+  test("commitFiles: Cleans up temp file even when exec throws", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tmp",
+      ConstructorPolicy.LateInit
+    );
+
+    let tempFileRemoved = false;
+    const originalFileSync = require("tmp").fileSync;
+
+    // Mock tmp.fileSync to track cleanup
+    require("tmp").fileSync = () => ({
+      name: "/tmp/svn-commit-message-test",
+      removeCallback: () => {
+        tempFileRemoved = true;
+      }
+    });
+
+    repository.exec = async () => {
+      throw new Error("SVN commit failed");
+    };
+
+    try {
+      // Message with newline triggers temp file usage
+      await repository.commitFiles("Line1\nLine2", ["test.txt"]);
+      assert.fail("Should throw error");
+    } catch (e: unknown) {
+      assert.match((e as Error).message, /SVN commit failed/);
+    }
+
+    // Restore original
+    require("tmp").fileSync = originalFileSync;
+
+    assert.strictEqual(
+      tempFileRemoved,
+      true,
+      "Temp file should be cleaned up on error"
+    );
+  });
+
+  test("commitFiles: Returns commit message on success", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tmp",
+      ConstructorPolicy.LateInit
+    );
+
+    repository.exec = async (args: string[]) => {
+      assert.equal(args[0], "commit");
+      return {
+        exitCode: 0,
+        stderr: "",
+        stdout: "Sending        test.txt\nCommitted revision 42."
+      };
+    };
+
+    const result = await repository.commitFiles("test message", ["test.txt"]);
+    assert.match(result, /revision 42/);
+  });
+
+  test("commitFiles: Uses temp file for multiline messages", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tmp",
+      ConstructorPolicy.LateInit
+    );
+
+    let usedTempFile = false;
+    repository.exec = async (args: string[]) => {
+      if (args.includes("-F")) {
+        usedTempFile = true;
+      }
+      return {
+        exitCode: 0,
+        stderr: "",
+        stdout: "Committed revision 42."
+      };
+    };
+
+    await repository.commitFiles("Line1\nLine2", ["test.txt"]);
+    assert.strictEqual(
+      usedTempFile,
+      true,
+      "Should use -F flag for multiline message"
+    );
   });
 });

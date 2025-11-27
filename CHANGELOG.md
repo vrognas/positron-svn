@@ -1,3 +1,23 @@
+## [2.17.241] (2025-11-27)
+
+### FIX: Blame Errors on Newly Added Files
+
+- **Fix**: Skip blame for files with ADDED status (never committed)
+  - Before: Blame tried on `svn add`ed files, causing E195002 error spam
+  - After: BlameProvider/BlameStatusBar/BlameIconState check for ADDED status
+  - Affected: blameProvider.ts, blameStatusBar.ts, blameIconState.ts
+- **Tests**: Added 3 tests for unblameable file handling (ADDED, UNVERSIONED, MODIFIED)
+
+## [2.17.240] (2025-11-27)
+
+### FIX: Resource Leak in commitFiles
+
+- **Fix**: Temp file cleanup on error in `commitFiles()`
+  - Before: If `exec()` threw, temp file was never deleted (resource leak)
+  - After: try-finally ensures `tmpFile.removeCallback()` always called
+  - Affected: Commit with multiline/unicode messages that fail
+- **Tests**: Added 3 commitFiles tests (cleanup on error, success, temp file usage)
+
 ## [2.17.239] (2025-11-27)
 
 ### FIX: Auth Retry Logic Bugs

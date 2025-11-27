@@ -1,7 +1,7 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.225
-**Updated**: 2025-11-19
+**Version**: 2.17.241
+**Updated**: 2025-11-27
 
 ---
 
@@ -10,6 +10,7 @@
 Mature VS Code extension for SVN integration. Event-driven architecture, decorator-based commands, multi-repository management.
 
 **Stats**:
+
 - **Source lines**: ~13,200 (+550 blame config system)
 - **Repository**: 923 lines (22% reduction via 3 extracted services)
 - **Commands**: 54 (+3 blame commands)
@@ -27,35 +28,44 @@ Mature VS Code extension for SVN integration. Event-driven architecture, decorat
 ## Architecture Layers
 
 ### Extension Entry
+
 **File**: `src/extension.ts` (164 lines)
 Flow: activate() → SvnFinder → Svn → SourceControlManager → registerCommands()
 
 ### Repository Management
+
 **SourceControlManager** (527 lines):
+
 - Multi-repository coordinator
 - Workspace folder detection
 - Event emission for lifecycle
 
 **Repository** (923 lines):
+
 - Single repository state
 - SVN operations coordination
 - File watcher coordination
 - Delegates to services
 
 **Services** (4 extracted):
+
 - **StatusService** (355 lines): Model state updates
 - **ResourceGroupManager** (298 lines): VS Code resource groups
 - **RemoteChangeService** (107 lines): Polling timers
 - **Blame System** (286 lines config + state): Per-file blame tracking
 
 ### SVN Execution
+
 **Svn** (369 lines):
+
 - Process spawning, error handling
 - Encoding detection/conversion
 - Auth credential management
 
 ### Command Pattern
+
 **Command base** (492 lines):
+
 - 50+ subclasses for SVN operations
 - Repository resolution
 - Diff/show infrastructure
@@ -65,23 +75,29 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 ## Critical Issues (P0) 🔴
 
 ### Stability Bugs
+
 **A. Watcher crash** ✅ FIXED (v2.17.114)
+
 - Changed: `throw error` → graceful logging
 - 1-5% users protected
 - +3 tests
 
 **B. Global state data race** ✅ FIXED (v2.17.117)
+
 - Per-repo keys implemented (`decorators.ts:128`)
 - 30-40% users protected from multi-repo corruption
 - Each repo now has independent operation queue
 
 **C. Unsafe JSON.parse** ✅ FIXED (v2.17.118)
+
 - Safe try-catch wrappers implemented (`repository.ts:809,826`, `uri.ts:12`)
 - 5-10% users protected from crashes on malformed storage
 - Returns safe defaults, logs errors
 
 ### Security Bugs
+
 **D. Sanitization gaps** ✅ COMPLETE (v2.17.129)
+
 - Safe logging utility created (`util/errorLogger.ts`)
 - All 47 catch blocks migrated to logError()
 - CI validator enforces sanitization (v2.17.127)
@@ -92,24 +108,30 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 ## Performance Analysis
 
 ### P0 Issues - Resolved ✅
+
 - ✅ **UI blocking**: FIXED (v2.17.108-109)
 - ✅ **Memory leak**: FIXED (v2.17.107)
 - ✅ **Remote polling**: FIXED (v2.17.107)
 
 ### P1 Issues
+
 **A. Commit traversal** ✅ FIXED (v2.17.120)
+
 - Flat resource map for O(1) parent lookups (`commit.ts:47-64`)
 - 80-100% users, 20-100ms → 5-20ms (4-5x faster)
 
 **B. Descendant resolution** ✅ FIXED (v2.17.121)
+
 - Single-pass O(n) algorithm (`StatusService.ts:214-235`)
 - 50-70% users, 100-500ms → 20-100ms (3-5x faster)
 
 **C. Glob matching** ✅ FIXED (v2.17.122)
+
 - Two-tier matching: simple patterns → complex (`globMatch.ts:35-67`)
 - 30-40% users, 10-50ms → 3-15ms (3x faster)
 
 **D. Batch operations** ✅ FIXED (v2.17.123)
+
 - Adaptive chunking (`batchOperations.ts`, `svnRepository.ts:621-636,808-819`)
 - 20-30% users, 50-200ms → 20-80ms (2-3x faster)
 
@@ -118,15 +140,18 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 ## Code Quality Analysis
 
 ### Bloat (P2)
+
 - show/showBuffer: 139L duplicate
 - util.ts: 336L dumping ground
 - Error handling: 70 catch blocks, inconsistent
 
 ### Type Safety (P2)
+
 - 248 `any` types (25 files)
 - Unsafe casts, missing guards
 
 ### Security (P2)
+
 - Password CLI exposure (`svn.ts:110-113`)
 - ✅ esbuild vuln: FIXED (v2.17.106)
 - ✅ stderr leaks: FIXED (v2.17.102)
@@ -136,21 +161,25 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 ## Completed Improvements ✅
 
 ### Performance (Phases 8-19)
+
 - **Phase 18**: UI non-blocking (ProgressLocation.Notification, cancellation tokens)
 - **Phase 19**: Memory leak fix (LRU cache), remote polling (95% faster)
 - **Phases 8-16**: Config cache, decorator removal, conditional index rebuild
 - **Result**: All P0 bottlenecks resolved, UI responsive, memory stable
 
 ### Code Quality
+
 - 162 lines removed (150 helpers/factory + 12 dead code)
 - 3 services extracted (760 lines)
 - Repository.ts: 1,179 → 923 lines (22% reduction)
 - Encapsulation: 2 internal methods made private
 
 ### Security
+
 - Stderr sanitization (M-1 critical fix, credential disclosure prevented)
 
 ### Testing
+
 - 138 → 856 → 930+ tests (+792, +574%)
 - 21-23% → 50-55% → 60-65% coverage ✅ EXCEEDED TARGET
 - Phase 18-19: +12 tests (UI blocking, memory, polling)
@@ -179,8 +208,8 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 **Entry**: extension.ts, source_control_manager.ts, commands.ts
 **Core**: repository.ts, svnRepository.ts, svn.ts
 **Services**: statusService.ts, resourceGroupManager.ts, remoteChangeService.ts
-**Blame**: blameConfiguration.ts, blameStateManager.ts, commands/blame/*.ts
-**Commands**: command.ts (base), commands/*.ts (54 total, 3 blame)
+**Blame**: blameConfiguration.ts, blameStateManager.ts, commands/blame/_.ts
+**Commands**: command.ts (base), commands/_.ts (54 total, 3 blame)
 **Parsing**: statusParser.ts, logParser.ts, infoParser.ts
 **Utils**: types.ts (323 lines), util.ts, decorators.ts
 
@@ -210,6 +239,7 @@ See IMPLEMENTATION_PLAN.md for details.
 ## Recent Additions (v2.17.215)
 
 ### Blame Performance Optimizations
+
 - **Progressive rendering**: 10-20x faster (v2.17.208)
 - **Template compilation**: 10-20x faster (v2.17.209)
 - **Batch log fetching**: 50x faster (v2.17.210)
@@ -220,6 +250,7 @@ See IMPLEMENTATION_PLAN.md for details.
 - **LRU cache eviction**: MAX_CACHE_SIZE=20, MAX_MESSAGE_CACHE_SIZE=500 (v2.17.215)
 
 ### Blame Configuration System (v2.17.186)
+
 - **Complete**: 13 settings, 3 commands, 5 menu integrations
 - **Architecture**: BlameConfiguration (singleton), BlameStateManager (per-file tracking)
 - **State Management**: 3-level toggles (extension-wide, global, per-file)

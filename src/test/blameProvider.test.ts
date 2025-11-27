@@ -5,7 +5,7 @@ import { BlameProvider } from "../blame/blameProvider";
 import { blameConfiguration } from "../blame/blameConfiguration";
 import { blameStateManager } from "../blame/blameStateManager";
 import { Repository } from "../repository";
-import { ISvnBlameLine } from "../common/types";
+import { ISvnBlameLine, Status } from "../common/types";
 
 suite("BlameProvider E2E Tests", () => {
   let provider: BlameProvider;
@@ -28,8 +28,18 @@ suite("BlameProvider E2E Tests", () => {
     // Arrange
     const testUri = Uri.file("/test/file.txt");
     const blameData: ISvnBlameLine[] = [
-      { lineNumber: 1, revision: "1234", author: "john", date: "2025-11-18T10:00:00Z" },
-      { lineNumber: 2, revision: "1235", author: "jane", date: "2025-11-18T11:00:00Z" }
+      {
+        lineNumber: 1,
+        revision: "1234",
+        author: "john",
+        date: "2025-11-18T10:00:00Z"
+      },
+      {
+        lineNumber: 2,
+        revision: "1235",
+        author: "jane",
+        date: "2025-11-18T11:00:00Z"
+      }
     ];
 
     mockRepository.blame.resolves(blameData);
@@ -54,8 +64,14 @@ suite("BlameProvider E2E Tests", () => {
     await provider.updateDecorations(mockEditor);
 
     // Assert
-    assert.ok(mockRepository.blame.calledOnce, "Repository.blame() should be called");
-    assert.ok(mockEditor.setDecorations.calledOnce, "Editor decorations should be set");
+    assert.ok(
+      mockRepository.blame.calledOnce,
+      "Repository.blame() should be called"
+    );
+    assert.ok(
+      mockEditor.setDecorations.calledOnce,
+      "Editor decorations should be set"
+    );
     const decorations = mockEditor.setDecorations.firstCall.args[1];
     assert.strictEqual(decorations.length, 2, "Should have 2 decorations");
   });
@@ -82,25 +98,44 @@ suite("BlameProvider E2E Tests", () => {
     await provider.updateDecorations(mockEditor);
 
     // Assert
-    assert.ok(mockRepository.blame.notCalled, "Repository.blame() should not be called");
+    assert.ok(
+      mockRepository.blame.notCalled,
+      "Repository.blame() should not be called"
+    );
     assert.ok(mockEditor.setDecorations.calledOnce, "Should clear decorations");
     const decorations = mockEditor.setDecorations.firstCall.args[1];
-    assert.strictEqual(decorations.length, 0, "Should have 0 decorations (cleared)");
+    assert.strictEqual(
+      decorations.length,
+      0,
+      "Should have 0 decorations (cleared)"
+    );
   });
 
   test("updates decorations on file save", async () => {
     // Arrange
     const testUri = Uri.file("/test/file.txt");
     const initialBlame: ISvnBlameLine[] = [
-      { lineNumber: 1, revision: "1234", author: "john", date: "2025-11-18T10:00:00Z" }
+      {
+        lineNumber: 1,
+        revision: "1234",
+        author: "john",
+        date: "2025-11-18T10:00:00Z"
+      }
     ];
     const updatedBlame: ISvnBlameLine[] = [
-      { lineNumber: 1, revision: "1236", author: "jane", date: "2025-11-18T12:00:00Z" }
+      {
+        lineNumber: 1,
+        revision: "1236",
+        author: "jane",
+        date: "2025-11-18T12:00:00Z"
+      }
     ];
 
     mockRepository.blame
-      .onFirstCall().resolves(initialBlame)
-      .onSecondCall().resolves(updatedBlame);
+      .onFirstCall()
+      .resolves(initialBlame)
+      .onSecondCall()
+      .resolves(updatedBlame);
 
     provider = new BlameProvider(mockRepository as any);
     provider.activate();
@@ -123,8 +158,16 @@ suite("BlameProvider E2E Tests", () => {
     await provider.updateDecorations(mockEditor);
 
     // Assert
-    assert.strictEqual(mockRepository.blame.callCount, 2, "Should fetch blame twice (initial + after save)");
-    assert.strictEqual(mockEditor.setDecorations.callCount, 2, "Should update decorations twice");
+    assert.strictEqual(
+      mockRepository.blame.callCount,
+      2,
+      "Should fetch blame twice (initial + after save)"
+    );
+    assert.strictEqual(
+      mockEditor.setDecorations.callCount,
+      2,
+      "Should update decorations twice"
+    );
   });
 });
 
@@ -149,7 +192,12 @@ suite("BlameProvider - Inline Decoration Optimization", () => {
     // Arrange
     const testUri = Uri.file("/test/file.txt");
     const blameData: ISvnBlameLine[] = [
-      { lineNumber: 1, revision: "1234", author: "john", date: "2025-11-18T10:00:00Z" }
+      {
+        lineNumber: 1,
+        revision: "1234",
+        author: "john",
+        date: "2025-11-18T10:00:00Z"
+      }
     ];
 
     mockRepository.blame.resolves(blameData);
@@ -179,23 +227,45 @@ suite("BlameProvider - Inline Decoration Optimization", () => {
     await new Promise(resolve => setTimeout(resolve, 50)); // Wait for async operations
 
     // Assert
-    const inlineDecorationCalls = mockEditor.setDecorations.getCalls()
-      .filter((call: any) => call.args[0] === (provider as any).decorationTypes.inline);
+    const inlineDecorationCalls = mockEditor.setDecorations
+      .getCalls()
+      .filter(
+        (call: any) => call.args[0] === (provider as any).decorationTypes.inline
+      );
 
-    assert.strictEqual(inlineDecorationCalls.length, 1, "Inline should render once (immediately, no progressive update)");
-    assert.strictEqual(inlineDecorationCalls[0].args[1].length, 1, "Should have 1 decoration");
+    assert.strictEqual(
+      inlineDecorationCalls.length,
+      1,
+      "Inline should render once (immediately, no progressive update)"
+    );
+    assert.strictEqual(
+      inlineDecorationCalls[0].args[1].length,
+      1,
+      "Should have 1 decoration"
+    );
   });
 
   test("inline skips first render when messages will be fetched", async () => {
     // Arrange
     const testUri = Uri.file("/test/file.txt");
     const blameData: ISvnBlameLine[] = [
-      { lineNumber: 1, revision: "1234", author: "john", date: "2025-11-18T10:00:00Z" }
+      {
+        lineNumber: 1,
+        revision: "1234",
+        author: "john",
+        date: "2025-11-18T10:00:00Z"
+      }
     ];
 
     mockRepository.blame.resolves(blameData);
     mockRepository.logBatch.resolves([
-      { revision: "1234", author: "john", date: "2025-11-18T10:00:00Z", msg: "Test commit", paths: [] }
+      {
+        revision: "1234",
+        author: "john",
+        date: "2025-11-18T10:00:00Z",
+        msg: "Test commit",
+        paths: []
+      }
     ]);
 
     provider = new BlameProvider(mockRepository as any);
@@ -223,18 +293,34 @@ suite("BlameProvider - Inline Decoration Optimization", () => {
     await new Promise(resolve => setTimeout(resolve, 100)); // Wait for progressive fetch
 
     // Assert
-    const inlineDecorationCalls = mockEditor.setDecorations.getCalls()
-      .filter((call: any) => call.args[0] === (provider as any).decorationTypes.inline);
+    const inlineDecorationCalls = mockEditor.setDecorations
+      .getCalls()
+      .filter(
+        (call: any) => call.args[0] === (provider as any).decorationTypes.inline
+      );
 
-    assert.strictEqual(inlineDecorationCalls.length, 1, "Inline should render ONCE (skip initial, only after message fetch)");
-    assert.strictEqual(inlineDecorationCalls[0].args[1].length, 1, "Should have 1 decoration with message");
+    assert.strictEqual(
+      inlineDecorationCalls.length,
+      1,
+      "Inline should render ONCE (skip initial, only after message fetch)"
+    );
+    assert.strictEqual(
+      inlineDecorationCalls[0].args[1].length,
+      1,
+      "Should have 1 decoration with message"
+    );
   });
 
   test("inline not rendered when disabled", async () => {
     // Arrange
     const testUri = Uri.file("/test/file.txt");
     const blameData: ISvnBlameLine[] = [
-      { lineNumber: 1, revision: "1234", author: "john", date: "2025-11-18T10:00:00Z" }
+      {
+        lineNumber: 1,
+        revision: "1234",
+        author: "john",
+        date: "2025-11-18T10:00:00Z"
+      }
     ];
 
     mockRepository.blame.resolves(blameData);
@@ -262,11 +348,22 @@ suite("BlameProvider - Inline Decoration Optimization", () => {
     await new Promise(resolve => setTimeout(resolve, 50));
 
     // Assert
-    const inlineDecorationCalls = mockEditor.setDecorations.getCalls()
-      .filter((call: any) => call.args[0] === (provider as any).decorationTypes.inline);
+    const inlineDecorationCalls = mockEditor.setDecorations
+      .getCalls()
+      .filter(
+        (call: any) => call.args[0] === (provider as any).decorationTypes.inline
+      );
 
-    assert.strictEqual(inlineDecorationCalls.length, 1, "Should call setDecorations once (to clear)");
-    assert.strictEqual(inlineDecorationCalls[0].args[1].length, 0, "Should have 0 decorations (cleared)");
+    assert.strictEqual(
+      inlineDecorationCalls.length,
+      1,
+      "Should call setDecorations once (to clear)"
+    );
+    assert.strictEqual(
+      inlineDecorationCalls[0].args[1].length,
+      0,
+      "Should have 0 decorations (cleared)"
+    );
   });
 });
 
@@ -291,9 +388,24 @@ suite("BlameProvider Cursor Tracking Optimization", () => {
     // Arrange
     const testUri = Uri.file("/test/file.txt");
     const blameData: ISvnBlameLine[] = [
-      { lineNumber: 1, revision: "1234", author: "john", date: "2025-11-18T10:00:00Z" },
-      { lineNumber: 2, revision: "1235", author: "jane", date: "2025-11-18T11:00:00Z" },
-      { lineNumber: 3, revision: "1236", author: "alice", date: "2025-11-18T12:00:00Z" }
+      {
+        lineNumber: 1,
+        revision: "1234",
+        author: "john",
+        date: "2025-11-18T10:00:00Z"
+      },
+      {
+        lineNumber: 2,
+        revision: "1235",
+        author: "jane",
+        date: "2025-11-18T11:00:00Z"
+      },
+      {
+        lineNumber: 3,
+        revision: "1236",
+        author: "alice",
+        date: "2025-11-18T12:00:00Z"
+      }
     ];
 
     mockRepository.blame.resolves(blameData);
@@ -334,20 +446,37 @@ suite("BlameProvider Cursor Tracking Optimization", () => {
       initialCallCount + 1,
       "Should only call setDecorations once for inline (not gutter+icon+inline)"
     );
-    
+
     // Verify it's the inline decoration type
     const lastCall = mockEditor.setDecorations.lastCall;
     const decorations = lastCall.args[1];
-    assert.strictEqual(decorations.length, 1, "Should only show current line decoration");
-    assert.ok(decorations[0].renderOptions?.after, "Should be inline decoration (after)");
+    assert.strictEqual(
+      decorations.length,
+      1,
+      "Should only show current line decoration"
+    );
+    assert.ok(
+      decorations[0].renderOptions?.after,
+      "Should be inline decoration (after)"
+    );
   });
 
   test("cursor update reuses cached blame data without re-fetch", async () => {
     // Arrange
     const testUri = Uri.file("/test/file.txt");
     const blameData: ISvnBlameLine[] = [
-      { lineNumber: 1, revision: "1234", author: "john", date: "2025-11-18T10:00:00Z" },
-      { lineNumber: 2, revision: "1235", author: "jane", date: "2025-11-18T11:00:00Z" }
+      {
+        lineNumber: 1,
+        revision: "1234",
+        author: "john",
+        date: "2025-11-18T10:00:00Z"
+      },
+      {
+        lineNumber: 2,
+        revision: "1235",
+        author: "jane",
+        date: "2025-11-18T11:00:00Z"
+      }
     ];
 
     mockRepository.blame.resolves(blameData);
@@ -374,7 +503,11 @@ suite("BlameProvider Cursor Tracking Optimization", () => {
 
     // Act - Initial load (fetches blame)
     await provider.updateDecorations(mockEditor);
-    assert.strictEqual(mockRepository.blame.callCount, 1, "Should fetch blame on initial load");
+    assert.strictEqual(
+      mockRepository.blame.callCount,
+      1,
+      "Should fetch blame on initial load"
+    );
 
     // Cursor movement (should NOT re-fetch)
     mockEditor.selection = { active: { line: 1 } };
@@ -392,8 +525,18 @@ suite("BlameProvider Cursor Tracking Optimization", () => {
     // Arrange
     const testUri = Uri.file("/test/file.txt");
     const blameData: ISvnBlameLine[] = [
-      { lineNumber: 1, revision: "1234", author: "john", date: "2025-11-18T10:00:00Z" },
-      { lineNumber: 2, revision: "1235", author: "jane", date: "2025-11-18T11:00:00Z" }
+      {
+        lineNumber: 1,
+        revision: "1234",
+        author: "john",
+        date: "2025-11-18T10:00:00Z"
+      },
+      {
+        lineNumber: 2,
+        revision: "1235",
+        author: "jane",
+        date: "2025-11-18T11:00:00Z"
+      }
     ];
 
     mockRepository.blame.resolves(blameData);
@@ -429,7 +572,11 @@ suite("BlameProvider Cursor Tracking Optimization", () => {
     // Assert - Should still show inline decoration (without message)
     const lastCall = mockEditor.setDecorations.lastCall;
     const decorations = lastCall.args[1];
-    assert.strictEqual(decorations.length, 1, "Should show decoration even without message");
+    assert.strictEqual(
+      decorations.length,
+      1,
+      "Should show decoration even without message"
+    );
     const contentText = decorations[0].renderOptions?.after?.contentText || "";
     assert.ok(contentText.includes("jane"), "Should show author");
     assert.ok(contentText.includes("1235"), "Should show revision");
@@ -439,8 +586,18 @@ suite("BlameProvider Cursor Tracking Optimization", () => {
     // Arrange
     const testUri = Uri.file("/test/file.txt");
     const blameData: ISvnBlameLine[] = [
-      { lineNumber: 1, revision: "1234", author: "john", date: "2025-11-18T10:00:00Z" },
-      { lineNumber: 2, revision: "1235", author: "jane", date: "2025-11-18T11:00:00Z" }
+      {
+        lineNumber: 1,
+        revision: "1234",
+        author: "john",
+        date: "2025-11-18T10:00:00Z"
+      },
+      {
+        lineNumber: 2,
+        revision: "1235",
+        author: "jane",
+        date: "2025-11-18T11:00:00Z"
+      }
     ];
 
     mockRepository.blame.resolves(blameData);
@@ -493,6 +650,131 @@ suite("BlameProvider Cursor Tracking Optimization", () => {
       decorations.length,
       0,
       "Should have 0 decorations when blame disabled for file"
+    );
+  });
+});
+
+suite("BlameProvider - Skip Unblameable Files", () => {
+  let provider: BlameProvider;
+  let mockRepository: sinon.SinonStubbedInstance<Repository>;
+  let sandbox: sinon.SinonSandbox;
+
+  setup(() => {
+    sandbox = sinon.createSandbox();
+    mockRepository = sandbox.createStubInstance(Repository);
+  });
+
+  teardown(() => {
+    if (provider) {
+      provider.dispose();
+    }
+    sandbox.restore();
+  });
+
+  test("skips blame for ADDED files (never committed)", async () => {
+    // Arrange - File is scheduled for addition but never committed
+    const testUri = Uri.file("/test/new-file.txt");
+
+    // Mock resource with ADDED status
+    mockRepository.getResourceFromFile.returns({
+      type: Status.ADDED,
+      resourceUri: testUri
+    } as any);
+
+    provider = new BlameProvider(mockRepository as any);
+    provider.activate();
+
+    blameStateManager.setBlameEnabled(testUri, true);
+    sandbox.stub(blameConfiguration, "isEnabled").returns(true);
+    sandbox.stub(blameConfiguration, "isGutterEnabled").returns(true);
+
+    const mockEditor = {
+      document: { uri: testUri, lineCount: 10, fileName: "/test/new-file.txt" },
+      setDecorations: sandbox.stub(),
+      visibleRanges: [{ start: { line: 0 }, end: { line: 10 } }]
+    } as any;
+
+    // Act
+    await provider.updateDecorations(mockEditor);
+
+    // Assert - blame() should NOT be called for ADDED files
+    assert.ok(
+      mockRepository.blame.notCalled,
+      "Should NOT call blame for ADDED files"
+    );
+    assert.ok(mockEditor.setDecorations.calledOnce, "Should clear decorations");
+    const decorations = mockEditor.setDecorations.firstCall.args[1];
+    assert.strictEqual(
+      decorations.length,
+      0,
+      "Should have 0 decorations for ADDED file"
+    );
+  });
+
+  test("skips blame for UNVERSIONED files", async () => {
+    const testUri = Uri.file("/test/untracked.txt");
+
+    mockRepository.getResourceFromFile.returns({
+      type: Status.UNVERSIONED,
+      resourceUri: testUri
+    } as any);
+
+    provider = new BlameProvider(mockRepository as any);
+    provider.activate();
+
+    blameStateManager.setBlameEnabled(testUri, true);
+    sandbox.stub(blameConfiguration, "isEnabled").returns(true);
+    sandbox.stub(blameConfiguration, "isGutterEnabled").returns(true);
+
+    const mockEditor = {
+      document: { uri: testUri, lineCount: 5, fileName: "/test/untracked.txt" },
+      setDecorations: sandbox.stub(),
+      visibleRanges: [{ start: { line: 0 }, end: { line: 5 } }]
+    } as any;
+
+    await provider.updateDecorations(mockEditor);
+
+    assert.ok(
+      mockRepository.blame.notCalled,
+      "Should NOT call blame for UNVERSIONED files"
+    );
+  });
+
+  test("fetches blame for MODIFIED files (committed before)", async () => {
+    const testUri = Uri.file("/test/modified.txt");
+    const blameData: ISvnBlameLine[] = [
+      {
+        lineNumber: 1,
+        revision: "100",
+        author: "dev",
+        date: "2025-11-27T10:00:00Z"
+      }
+    ];
+
+    mockRepository.getResourceFromFile.returns({
+      type: Status.MODIFIED,
+      resourceUri: testUri
+    } as any);
+    mockRepository.blame.resolves(blameData);
+
+    provider = new BlameProvider(mockRepository as any);
+    provider.activate();
+
+    blameStateManager.setBlameEnabled(testUri, true);
+    sandbox.stub(blameConfiguration, "isEnabled").returns(true);
+    sandbox.stub(blameConfiguration, "isGutterEnabled").returns(true);
+
+    const mockEditor = {
+      document: { uri: testUri, lineCount: 1, fileName: "/test/modified.txt" },
+      setDecorations: sandbox.stub(),
+      visibleRanges: [{ start: { line: 0 }, end: { line: 1 } }]
+    } as any;
+
+    await provider.updateDecorations(mockEditor);
+
+    assert.ok(
+      mockRepository.blame.calledOnce,
+      "Should call blame for MODIFIED files"
     );
   });
 });

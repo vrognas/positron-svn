@@ -21,7 +21,11 @@ import { ISvnBlameLine } from "../common/types";
 import { Repository } from "../repository";
 import { blameConfiguration } from "./blameConfiguration";
 import { blameStateManager } from "./blameStateManager";
-import { compileTemplate, clearTemplateCache, CompiledTemplateFn } from "./templateCompiler";
+import {
+  compileTemplate,
+  clearTemplateCache,
+  CompiledTemplateFn
+} from "./templateCompiler";
 import { logError } from "../util/errorLogger";
 
 /**
@@ -34,20 +38,23 @@ export class BlameProvider implements Disposable {
     icon: TextEditorDecorationType;
     inline: TextEditorDecorationType;
   };
-  private iconTypes = new Map<string, TextEditorDecorationType>();  // color → decoration type
-  private blameCache = new Map<string, { data: ISvnBlameLine[]; version: number }>();
-  private revisionColors = new Map<string, string>();  // revision → gradient color
-  private svgCache = new Map<string, Uri>();  // color → SVG data URI
-  private messageCache = new Map<string, string>();  // revision → commit message
-  private inFlightMessageFetches = new Map<string, Promise<void>>();  // uri → fetch promise
-  private cacheAccessOrder = new Map<string, number>();  // uri → timestamp for LRU
-  private currentLineNumber?: number;  // Track cursor position for current-line-only mode
+  private iconTypes = new Map<string, TextEditorDecorationType>(); // color → decoration type
+  private blameCache = new Map<
+    string,
+    { data: ISvnBlameLine[]; version: number }
+  >();
+  private revisionColors = new Map<string, string>(); // revision → gradient color
+  private svgCache = new Map<string, Uri>(); // color → SVG data URI
+  private messageCache = new Map<string, string>(); // revision → commit message
+  private inFlightMessageFetches = new Map<string, Promise<void>>(); // uri → fetch promise
+  private cacheAccessOrder = new Map<string, number>(); // uri → timestamp for LRU
+  private currentLineNumber?: number; // Track cursor position for current-line-only mode
   private disposables: Disposable[] = [];
   private isActivated = false;
 
   // LRU cache limits
-  private readonly MAX_CACHE_SIZE = 20;  // Keep last 20 files (prevents unbounded growth)
-  private readonly MAX_MESSAGE_CACHE_SIZE = 500;  // Keep last 500 revision messages
+  private readonly MAX_CACHE_SIZE = 20; // Keep last 20 files (prevents unbounded growth)
+  private readonly MAX_MESSAGE_CACHE_SIZE = 500; // Keep last 500 revision messages
 
   // Template compilation cache (performance optimization)
   private compiledGutterTemplate?: { template: string; fn: CompiledTemplateFn };
@@ -75,7 +82,7 @@ export class BlameProvider implements Disposable {
         },
         isWholeLine: false
       }),
-      icon: window.createTextEditorDecorationType({}),  // Placeholder, not used
+      icon: window.createTextEditorDecorationType({}), // Placeholder, not used
       inline: window.createTextEditorDecorationType({
         after: {
           color: new ThemeColor("editorCodeLens.foreground"),
@@ -84,7 +91,7 @@ export class BlameProvider implements Disposable {
           fontWeight: "normal"
         },
         isWholeLine: false,
-        rangeBehavior: 1  // ClosedClosed
+        rangeBehavior: 1 // ClosedClosed
       })
     };
   }
@@ -107,7 +114,9 @@ export class BlameProvider implements Disposable {
       workspace.onDidCloseTextDocument(d => this.onDocumentClose(d)),
 
       // Cursor position changes (for current-line-only inline blame)
-      window.onDidChangeTextEditorSelection(e => this.onCursorPositionChange(e)),
+      window.onDidChangeTextEditorSelection(e =>
+        this.onCursorPositionChange(e)
+      ),
 
       // State changes
       blameStateManager.onDidChangeState(uri => this.onBlameStateChange(uri)),
@@ -165,11 +174,19 @@ export class BlameProvider implements Disposable {
     // Only check status if resource exists (null means clean file, not untracked)
     if (resource) {
       const { Status } = await import("../common/types");
-      if (resource.type === Status.UNVERSIONED ||
-          resource.type === Status.IGNORED ||
-          resource.type === Status.NONE) {
-        console.log("[BlameProvider] Early return: Untracked file", {
+      // Skip files that can't be blamed:
+      // - UNVERSIONED/IGNORED/NONE: not under version control
+      // - ADDED: scheduled for addition but never committed (E195002)
+      if (
+        resource.type === Status.UNVERSIONED ||
+        resource.type === Status.IGNORED ||
+        resource.type === Status.NONE ||
+        resource.type === Status.ADDED
+      ) {
+        console.log("[BlameProvider] Early return: Cannot blame file", {
           status: resource.type,
+          reason:
+            resource.type === Status.ADDED ? "never committed" : "untracked",
           file: target.document.fileName
         });
         this.clearDecorations(target);
@@ -180,7 +197,10 @@ export class BlameProvider implements Disposable {
     // Continue to blame fetch (works for both clean and changed files)
 
     // Large file check
-    if (blameConfiguration.isFileTooLarge(target.document.lineCount) && blameConfiguration.shouldWarnLargeFile()) {
+    if (
+      blameConfiguration.isFileTooLarge(target.document.lineCount) &&
+      blameConfiguration.shouldWarnLargeFile()
+    ) {
       console.log("[BlameProvider] Early return: File too large", {
         lineCount: target.document.lineCount,
         file: target.document.fileName
@@ -208,7 +228,7 @@ export class BlameProvider implements Disposable {
 
       // PROGRESSIVE RENDERING: Create decorations without waiting for messages
       const decorations = await this.createAllDecorations(blameData, target, {
-        skipMessagePrefetch: true  // Don't block on message fetching
+        skipMessagePrefetch: true // Don't block on message fetching
       });
 
       // Calculate revision range for icon colors
@@ -233,7 +253,9 @@ export class BlameProvider implements Disposable {
 
       // OPTIMIZATION: Skip first inline render if progressive message fetch will happen
       // Prevents duplicate setDecorations() call (first without messages, second with messages)
-      const willFetchMessages = blameConfiguration.isInlineEnabled() && blameConfiguration.shouldShowInlineMessage();
+      const willFetchMessages =
+        blameConfiguration.isInlineEnabled() &&
+        blameConfiguration.shouldShowInlineMessage();
 
       if (!willFetchMessages) {
         // Render inline immediately (no progressive update will happen)
@@ -246,7 +268,11 @@ export class BlameProvider implements Disposable {
       // PHASE 2: Fetch messages asynchronously and update inline decorations
       // (Fire-and-forget - don't block UI)
       if (willFetchMessages) {
-        this.prefetchMessagesProgressively(target.document.uri, blameData, target).catch(err => {
+        this.prefetchMessagesProgressively(
+          target.document.uri,
+          blameData,
+          target
+        ).catch(err => {
           logError("BlameProvider: Progressive message fetch failed", err);
         });
       }
@@ -280,7 +306,7 @@ export class BlameProvider implements Disposable {
   public clearCache(uri: Uri): void {
     const key = uri.toString();
     this.blameCache.delete(key);
-    this.cacheAccessOrder.delete(key);  // Clean up access tracking
+    this.cacheAccessOrder.delete(key); // Clean up access tracking
     // Cancel any in-flight message fetches for this URI
     this.inFlightMessageFetches.delete(key);
   }
@@ -291,7 +317,7 @@ export class BlameProvider implements Disposable {
    */
   private evictOldestCache(): void {
     if (this.blameCache.size <= this.MAX_CACHE_SIZE) {
-      return;  // Within limit, no eviction needed
+      return; // Within limit, no eviction needed
     }
 
     // Find least recently used entry (oldest timestamp)
@@ -319,7 +345,7 @@ export class BlameProvider implements Disposable {
    */
   private evictMessageCache(): void {
     if (this.messageCache.size <= this.MAX_MESSAGE_CACHE_SIZE) {
-      return;  // Within limit, no eviction needed
+      return; // Within limit, no eviction needed
     }
 
     // Evict oldest 25% of entries (batch eviction for efficiency)
@@ -352,9 +378,11 @@ export class BlameProvider implements Disposable {
     }
 
     // Use pre-computed unique revisions or extract them
-    const uniqueRevisions = precomputedUniqueRevisions || [...new Set(
-      blameData.map(b => b.revision).filter(Boolean)
-    )] as string[];
+    const uniqueRevisions =
+      precomputedUniqueRevisions ||
+      ([
+        ...new Set(blameData.map(b => b.revision).filter(Boolean))
+      ] as string[]);
 
     if (uniqueRevisions.length === 0 || uniqueRevisions.length > 100) {
       return; // Skip if no revisions or too many
@@ -455,9 +483,14 @@ export class BlameProvider implements Disposable {
    * - Only renders inline decoration for current line
    * - 60-80% faster than full updateDecorations()
    */
-  private async updateInlineDecorationsForCursor(editor: TextEditor): Promise<void> {
+  private async updateInlineDecorationsForCursor(
+    editor: TextEditor
+  ): Promise<void> {
     // Early exit if inline not enabled or not in current-line-only mode
-    if (!blameConfiguration.isInlineEnabled() || !blameConfiguration.isInlineCurrentLineOnly()) {
+    if (
+      !blameConfiguration.isInlineEnabled() ||
+      !blameConfiguration.isInlineCurrentLineOnly()
+    ) {
       return;
     }
 
@@ -542,7 +575,9 @@ export class BlameProvider implements Disposable {
 
   // ===== Event Handlers =====
 
-  private async onActiveEditorChange(editor: TextEditor | undefined): Promise<void> {
+  private async onActiveEditorChange(
+    editor: TextEditor | undefined
+  ): Promise<void> {
     if (!editor) {
       return;
     }
@@ -556,7 +591,10 @@ export class BlameProvider implements Disposable {
   private onDocumentChange(event: { document: { uri: Uri } }): void {
     // Clear decorations on text change (debounced to wait for typing to stop)
     const editor = window.activeTextEditor;
-    if (editor && editor.document.uri.toString() === event.document.uri.toString()) {
+    if (
+      editor &&
+      editor.document.uri.toString() === event.document.uri.toString()
+    ) {
       this.clearDecorations(editor);
     }
   }
@@ -577,15 +615,17 @@ export class BlameProvider implements Disposable {
   }
 
   @debounce(150)
-  private async onCursorPositionChange(event: { textEditor: TextEditor }): Promise<void> {
+  private async onCursorPositionChange(event: {
+    textEditor: TextEditor;
+  }): Promise<void> {
     // Update current line number and refresh inline decorations (debounced 150ms)
     if (!blameConfiguration.isInlineCurrentLineOnly()) {
-      return;  // Skip if not in current-line-only mode
+      return; // Skip if not in current-line-only mode
     }
 
     const newLine = event.textEditor.selection.active.line;
     if (this.currentLineNumber === newLine) {
-      return;  // Skip if cursor still on same line
+      return; // Skip if cursor still on same line
     }
 
     this.currentLineNumber = newLine;
@@ -657,7 +697,8 @@ export class BlameProvider implements Disposable {
     // Check configuration - at least one decoration type must be enabled
     const anyDecorationEnabled =
       (blameConfiguration.isGutterEnabled() &&
-       (blameConfiguration.isGutterTextEnabled() || blameConfiguration.isGutterIconEnabled())) ||
+        (blameConfiguration.isGutterTextEnabled() ||
+          blameConfiguration.isGutterIconEnabled())) ||
       blameConfiguration.isInlineEnabled();
 
     if (!blameConfiguration.isEnabled() || !anyDecorationEnabled) {
@@ -726,12 +767,14 @@ export class BlameProvider implements Disposable {
     const dateFormat = blameConfiguration.getDateFormat();
 
     // Prefetch messages if inline enabled (unless skipped for progressive rendering)
-    if (!options.skipMessagePrefetch &&
-        blameConfiguration.isInlineEnabled() &&
-        blameConfiguration.shouldShowInlineMessage()) {
-      const uniqueRevisions = [...new Set(
-        blameData.map(b => b.revision).filter(Boolean)
-      )] as string[];
+    if (
+      !options.skipMessagePrefetch &&
+      blameConfiguration.isInlineEnabled() &&
+      blameConfiguration.shouldShowInlineMessage()
+    ) {
+      const uniqueRevisions = [
+        ...new Set(blameData.map(b => b.revision).filter(Boolean))
+      ] as string[];
 
       if (uniqueRevisions.length > 0 && uniqueRevisions.length <= 100) {
         await this.prefetchMessages(uniqueRevisions);
@@ -749,7 +792,10 @@ export class BlameProvider implements Disposable {
       const range = new Range(lineIndex, 0, lineIndex, 0);
 
       // 1. Gutter text decoration
-      if (blameConfiguration.isGutterEnabled() && blameConfiguration.isGutterTextEnabled()) {
+      if (
+        blameConfiguration.isGutterEnabled() &&
+        blameConfiguration.isGutterTextEnabled()
+      ) {
         const text = this.formatBlameText(blameLine, template, dateFormat);
         gutterDecorations.push({
           range,
@@ -801,7 +847,7 @@ export class BlameProvider implements Disposable {
 
     return {
       gutter: gutterDecorations,
-      icon: [],  // Not used, handled by applyIconDecorations
+      icon: [], // Not used, handled by applyIconDecorations
       inline: inlineDecorations
     };
   }
@@ -819,7 +865,10 @@ export class BlameProvider implements Disposable {
     const date = this.formatDate(line.date, dateFormat);
 
     // Compile template once, cache and reuse (eliminates 3 regex ops per line)
-    if (!this.compiledGutterTemplate || this.compiledGutterTemplate.template !== template) {
+    if (
+      !this.compiledGutterTemplate ||
+      this.compiledGutterTemplate.template !== template
+    ) {
       this.compiledGutterTemplate = {
         template,
         fn: compileTemplate(template)
@@ -833,7 +882,10 @@ export class BlameProvider implements Disposable {
   /**
    * Format date (relative or absolute)
    */
-  private formatDate(dateStr: string | undefined, format: "relative" | "absolute"): string {
+  private formatDate(
+    dateStr: string | undefined,
+    format: "relative" | "absolute"
+  ): string {
     if (!dateStr) {
       return "unknown";
     }
@@ -847,7 +899,10 @@ export class BlameProvider implements Disposable {
         return date.toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
-          year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined
+          year:
+            date.getFullYear() !== new Date().getFullYear()
+              ? "numeric"
+              : undefined
         });
       }
     } catch {
@@ -874,7 +929,11 @@ export class BlameProvider implements Disposable {
   /**
    * Calculate min/max revision range and unique revisions from blame data
    */
-  private getRevisionRange(blameData: ISvnBlameLine[]): { min: number; max: number; uniqueRevisions: number[] } {
+  private getRevisionRange(blameData: ISvnBlameLine[]): {
+    min: number;
+    max: number;
+    uniqueRevisions: number[];
+  } {
     const revisions = blameData
       .map(b => b.revision)
       .filter(Boolean)
@@ -901,7 +960,10 @@ export class BlameProvider implements Disposable {
    * Older revisions: Blue→purple gradient heatmap
    * Formula: Categorical hues [0,30,60,120,200], gradient 200→280, saturation 45%, lightness theme-aware
    */
-  private getRevisionColor(revision: string, range: { min: number; max: number; uniqueRevisions: number[] }): string {
+  private getRevisionColor(
+    revision: string,
+    range: { min: number; max: number; uniqueRevisions: number[] }
+  ): string {
     if (this.revisionColors.has(revision)) {
       return this.revisionColors.get(revision)!;
     }
@@ -914,7 +976,7 @@ export class BlameProvider implements Disposable {
       return color;
     }
 
-    const saturation = 45;  // Increased for better distinction
+    const saturation = 45; // Increased for better distinction
     const lightness = this.getThemeAwareLightness();
 
     // Find index of this revision in the file's unique revisions (sorted newest first)
@@ -955,7 +1017,7 @@ export class BlameProvider implements Disposable {
       const quantizedNormalized = bucket / 7;
 
       // Interpolate hue: 200 (blue) → 280 (purple)
-      const hue = Math.round(200 + (quantizedNormalized * 80));
+      const hue = Math.round(200 + quantizedNormalized * 80);
       const color = this.hslToHex(hue, saturation, lightness);
       this.revisionColors.set(revision, color);
       return color;
@@ -978,19 +1040,43 @@ export class BlameProvider implements Disposable {
     l /= 100;
 
     const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
     const m = l - c / 2;
 
-    let r = 0, g = 0, b = 0;
+    let r = 0,
+      g = 0,
+      b = 0;
 
-    if (h >= 0 && h < 60) { r = c; g = x; b = 0; }
-    else if (h >= 60 && h < 120) { r = x; g = c; b = 0; }
-    else if (h >= 120 && h < 180) { r = 0; g = c; b = x; }
-    else if (h >= 180 && h < 240) { r = 0; g = x; b = c; }
-    else if (h >= 240 && h < 300) { r = x; g = 0; b = c; }
-    else if (h >= 300 && h < 360) { r = c; g = 0; b = x; }
+    if (h >= 0 && h < 60) {
+      r = c;
+      g = x;
+      b = 0;
+    } else if (h >= 60 && h < 120) {
+      r = x;
+      g = c;
+      b = 0;
+    } else if (h >= 120 && h < 180) {
+      r = 0;
+      g = c;
+      b = x;
+    } else if (h >= 180 && h < 240) {
+      r = 0;
+      g = x;
+      b = c;
+    } else if (h >= 240 && h < 300) {
+      r = x;
+      g = 0;
+      b = c;
+    } else if (h >= 300 && h < 360) {
+      r = c;
+      g = 0;
+      b = x;
+    }
 
-    const toHex = (val: number) => Math.round((val + m) * 255).toString(16).padStart(2, '0');
+    const toHex = (val: number) =>
+      Math.round((val + m) * 255)
+        .toString(16)
+        .padStart(2, "0");
 
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   }
@@ -1006,7 +1092,7 @@ export class BlameProvider implements Disposable {
 
     const svgUri = this.generateColorBarSvg(color);
     const type = window.createTextEditorDecorationType({
-      gutterIconPath: svgUri,  // Set at TYPE level (correct API usage)
+      gutterIconPath: svgUri, // Set at TYPE level (correct API usage)
       gutterIconSize: "auto",
       isWholeLine: false
     });
@@ -1058,18 +1144,26 @@ export class BlameProvider implements Disposable {
       if (!decorationsByColor.has(color)) {
         decorationsByColor.set(color, []);
       }
-      decorationsByColor.get(color)!.push(new Range(lineIndex, 0, lineIndex, 0));
+      decorationsByColor
+        .get(color)!
+        .push(new Range(lineIndex, 0, lineIndex, 0));
     }
 
     // Apply each color's decoration type
     console.log("[BlameProvider] Applying icon decorations:", {
       colorCount: decorationsByColor.size,
-      totalLines: Array.from(decorationsByColor.values()).reduce((sum, ranges) => sum + ranges.length, 0)
+      totalLines: Array.from(decorationsByColor.values()).reduce(
+        (sum, ranges) => sum + ranges.length,
+        0
+      )
     });
 
     for (const [color, ranges] of decorationsByColor) {
       const type = this.getIconDecorationType(color);
-      editor.setDecorations(type, ranges.map(r => ({ range: r })));
+      editor.setDecorations(
+        type,
+        ranges.map(r => ({ range: r }))
+      );
     }
   }
 
@@ -1129,7 +1223,7 @@ export class BlameProvider implements Disposable {
     }
   }
 
-/**
+  /**
    * Prefetch messages for multiple revisions (batch)
    * Uses single SVN log command for all revisions instead of N sequential calls
    */
@@ -1160,7 +1254,10 @@ export class BlameProvider implements Disposable {
       // Evict message cache if exceeding limit
       this.evictMessageCache();
     } catch (err) {
-      logError("BlameProvider: Batch message fetch failed, falling back to sequential", err);
+      logError(
+        "BlameProvider: Batch message fetch failed, falling back to sequential",
+        err
+      );
 
       // Fallback to sequential fetching on error
       for (const revision of uncached) {
@@ -1217,7 +1314,10 @@ export class BlameProvider implements Disposable {
     const truncatedMessage = this.truncateMessage(message);
 
     // Compile template once, cache and reuse (eliminates 4 regex ops per line)
-    if (!this.compiledInlineTemplate || this.compiledInlineTemplate.template !== template) {
+    if (
+      !this.compiledInlineTemplate ||
+      this.compiledInlineTemplate.template !== template
+    ) {
       this.compiledInlineTemplate = {
         template,
         fn: compileTemplate(template)
