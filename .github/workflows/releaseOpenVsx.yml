@@ -31,11 +31,11 @@ jobs:
         id: getTag
         uses: "WyriHaximus/github-action-get-previous-tag@master"
         env:
-          GITHUB_TOKEN: "${{ secrets.githubToken }}"
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Upload Open VSX to release
         uses: svenstaro/upload-release-action@v2
         with:
-          repo_token: ${{ secrets.githubToken }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: svn-scm-ovsx.vsix
           tag: ${{ steps.getTag.outputs.tag }}
