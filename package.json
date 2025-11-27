@@ -10,14 +10,15 @@
   },
   "enabledApiProposals": [],
   "icon": "images/subversion.png",
-  "homepage": "https://github.com/viktor-rognas/svn-scm/blob/master/README.md",
+  "homepage": "https://github.com/vrognas/positron-svn#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/viktor-rognas/svn-scm.git"
+    "url": "https://github.com/vrognas/positron-svn.git"
   },
   "bugs": {
-    "url": "https://github.com/viktor-rognas/svn-scm/issues"
+    "url": "https://github.com/vrognas/positron-svn/issues"
   },
+  "license": "MIT",
   "categories": [
     "Other",
     "SCM Providers"
@@ -119,9 +120,8 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "mocha": "^11.7.5",
-    "npm-run-all": "^4.1.5",
+    "npm-run-all2": "^7.0.2",
     "original-fs": "^1.2.0",
-    "ovsx": "^0.10.7",
     "prettier": "^3.6.2",
     "prettylint": "^2.0.0",
     "sass": "^1.83.0",
@@ -1363,7 +1363,7 @@
         },
         "svn.gravatars.enabled": {
           "type": "boolean",
-          "description": "Use garavatar icons in log viewers",
+          "description": "Use gravatar icons in log viewers",
           "default": true
         },
         "svn.ignoreMissingSvnWarning": {

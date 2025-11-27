@@ -90,7 +90,7 @@ jobs:
 
       # Release only on master + ubuntu
       - name: Release
-        if: matrix.os == 'ubuntu-latest' && github.ref == 'refs/heads/master' && github.repository == 'JohnstonCode/svn-scm'
+        if: matrix.os == 'ubuntu-latest' && github.ref == 'refs/heads/master' && github.repository == 'vrognas/positron-svn'
         run: |
           npm run organize
           npm run semantic-release
