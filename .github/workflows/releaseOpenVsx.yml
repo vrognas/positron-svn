@@ -86,7 +86,7 @@ jobs:
       - name: Publish to Open VSX Registry
         uses: HaaLeo/publish-vscode-extension@v2
         with:
-          pat: ${{ secrets.OPEN_VSX_TOKEN }}
+          pat: ${{ secrets.OVSX_PAT }}
           registryUrl: https://open-vsx.org
 
       - name: Create GitHub Release
