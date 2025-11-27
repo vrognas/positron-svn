@@ -1,3 +1,14 @@
+## [2.17.238] (2025-11-27)
+
+### FIX: Authentication Error Detection in Remote Sessions
+
+- **Fix**: Auth errors now properly detected when SVN returns E170013 + E215004
+  - Root cause: `getSvnErrorCode()` found E170013 (network error) first, ignoring E215004 (no credentials)
+  - Impact: Auth retry prompt now triggers correctly in remote sessions
+  - Also fixed: `formatErrorMessage()` now shows "Authentication failed" instead of "Network error"
+  - Affected: commit, log, blame, list operations with expired/missing credentials
+- **Tests**: Added 4 tests for auth error priority detection
+
 ## [2.17.237] (2025-11-27)
 
 ### FIX: Remote Development Support

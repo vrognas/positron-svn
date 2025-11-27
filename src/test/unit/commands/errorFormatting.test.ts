@@ -181,6 +181,50 @@ suite("Error Formatting Tests", () => {
 
       assert.ok(result.includes("Authentication failed"));
     });
+
+    test("Detects E215004 error code (no more credentials)", () => {
+      const error = {
+        message: "svn: E170013: Unable to connect",
+        stderr:
+          "svn: E170013: Unable to connect\nsvn: E215004: No more credentials or we tried too many times.\nAuthentication failed"
+      };
+      const result = command.testFormatErrorMessage(error, "Generic error");
+
+      assert.ok(result.includes("Authentication failed"));
+      assert.ok(
+        !result.includes("Network error"),
+        "Should NOT show network error when auth error present"
+      );
+    });
+
+    test("Detects 'no more credentials' message with E170013", () => {
+      const error = {
+        message: "svn: E170013: Unable to connect to a repository",
+        stderr:
+          "svn: E170013: Unable to connect\nNo more credentials or we tried too many times."
+      };
+      const result = command.testFormatErrorMessage(error, "Generic error");
+
+      assert.ok(result.includes("Authentication failed"));
+      assert.ok(
+        !result.includes("Network error"),
+        "Should prioritize auth error over network error"
+      );
+    });
+
+    test("Auth errors take priority over network errors", () => {
+      // Real-world scenario: SVN returns both E170013 and E215004
+      const error = {
+        message: "Failed to execute svn",
+        stderr:
+          "svn: E170013: Unable to connect to a repository at URL 'https://svn.example.com/repo'\nsvn: E215004: No more credentials or we tried too many times.\nAuthentication failed"
+      };
+      const result = command.testFormatErrorMessage(error, "Generic error");
+
+      assert.ok(result.includes("Authentication failed"));
+      assert.ok(result.includes("credentials"));
+      assert.ok(!result.includes("Network error"));
+    });
   });
 
   suite("Repository Locked Errors (E155004)", () => {
@@ -316,10 +360,7 @@ suite("Error Formatting Tests", () => {
         throw new Error("Unknown error");
       };
 
-      await command.testHandleRepositoryOperation(
-        operation,
-        "Custom fallback"
-      );
+      await command.testHandleRepositoryOperation(operation, "Custom fallback");
 
       assert.strictEqual(showErrorCalls.length, 1);
       assert.strictEqual(showErrorCalls[0].message, "Custom fallback");
