@@ -1,3 +1,26 @@
+## [2.17.239] (2025-11-27)
+
+### FIX: Auth Retry Logic Bugs
+
+- **Bug 1 Fix**: Account cycling now works correctly
+  - Before: Always tried last stored account (`index = accounts.length - 1`)
+  - After: Cycles through accounts (`index = attempt`)
+- **Bug 2 Fix**: Pre-set credentials from stored accounts
+  - Before: First attempt ran with empty credentials in remote sessions
+  - After: Pre-loads first stored account if no credentials set
+- **Tests**: Added retryRun auth logic tests
+
+## [2.17.238] (2025-11-27)
+
+### FIX: Authentication Error Detection in Remote Sessions
+
+- **Fix**: Auth errors now properly detected when SVN returns E170013 + E215004
+  - Root cause: `getSvnErrorCode()` found E170013 (network error) first, ignoring E215004 (no credentials)
+  - Impact: Auth retry prompt now triggers correctly in remote sessions
+  - Also fixed: `formatErrorMessage()` now shows "Authentication failed" instead of "Network error"
+  - Affected: commit, log, blame, list operations with expired/missing credentials
+- **Tests**: Added 4 tests for auth error priority detection
+
 ## [2.17.237] (2025-11-27)
 
 ### FIX: Remote Development Support

@@ -348,6 +348,43 @@ catch (err) {
 
 ---
 
+### 14. Error Detection: Check Specific Patterns First
+
+**Lesson**: When detecting error types, check specific patterns before generic ones.
+
+**Issue** (v2.17.238):
+
+- SVN returns E170013 (network) with E215004 (no credentials) on auth failure
+- `getSvnErrorCode()` loop found E170013 first, returned "network error"
+- Auth retry logic never triggered because error wasn't detected as auth error
+- Users saw "Network error" when issue was actually missing credentials
+
+**Fix**:
+
+```typescript
+// BEFORE: Generic loop finds E170013 first
+for (const code of errorCodes) {
+  if (stderr.includes(code)) return code; // E170013 wins
+}
+if (stderr.includes("No more credentials")) return "E170001"; // Never reached!
+
+// AFTER: Check specific patterns FIRST
+if (stderr.includes("E215004") || stderr.includes("No more credentials")) {
+  return "E170001"; // Auth error takes priority
+}
+for (const code of errorCodes) { ... } // Generic codes
+```
+
+**Why**:
+
+- SVN errors can have multiple codes in same stderr output
+- Generic patterns (E170013) may mask specific ones (E215004)
+- User action depends on correct error classification
+
+**Rule**: Order error checks by specificity - specific patterns before generic ones.
+
+---
+
 ## Quick Reference
 
 **Starting extension**: tsc + strict mode + Positron template

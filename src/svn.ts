@@ -42,6 +42,16 @@ const DEFAULT_TIMEOUT_MS = 30000;
 const DEFAULT_LOCALE = "en_US.UTF-8";
 
 function getSvnErrorCode(stderr: string): string | undefined {
+  // Priority: Check auth-related patterns FIRST
+  // SVN may return E170013 (UnableToConnect) with E215004 (NoMoreCredentials)
+  // We want to treat this as an auth error so retry logic triggers
+  if (/No more credentials or we tried too many times/.test(stderr)) {
+    return svnErrorCodes.AuthorizationFailed;
+  }
+  if (/E215004/.test(stderr)) {
+    return svnErrorCodes.AuthorizationFailed;
+  }
+
   for (const name in svnErrorCodes) {
     if (svnErrorCodes.hasOwnProperty(name)) {
       const code = svnErrorCodes[name];
@@ -50,10 +60,6 @@ function getSvnErrorCode(stderr: string): string | undefined {
         return code;
       }
     }
-  }
-
-  if (/No more credentials or we tried too many times/.test(stderr)) {
-    return svnErrorCodes.AuthorizationFailed;
   }
 
   return void 0;
@@ -164,11 +170,23 @@ export class Svn {
       // Debug authentication indicators (never expose password values)
       if (credentialCacheFile && options.log !== false) {
         this.logOutput(`[auth: credential cache]\n`);
-      } else if (options.password && !options.realmUrl && options.log !== false) {
+      } else if (
+        options.password &&
+        !options.realmUrl &&
+        options.log !== false
+      ) {
         this.logOutput(`[auth: password (insecure - no realmUrl)]\n`);
-      } else if (options.username && !options.password && options.log !== false) {
+      } else if (
+        options.username &&
+        !options.password &&
+        options.log !== false
+      ) {
         this.logOutput(`[auth: username only]\n`);
-      } else if (!options.username && !options.password && options.log !== false) {
+      } else if (
+        !options.username &&
+        !options.password &&
+        options.log !== false
+      ) {
         this.logOutput(`[auth: none - will prompt if needed]\n`);
       }
 
@@ -216,34 +234,38 @@ export class Svn {
 
       // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
       const timeoutMs = options.timeout || DEFAULT_TIMEOUT_MS;
-      const timeoutPromise = new Promise<[number, Buffer, string]>((_, reject) => {
-        setTimeout(() => {
-          process.kill();
-          reject(
-            new SvnError({
-              message: `SVN command timeout after ${timeoutMs}ms`,
-              svnCommand: args[0],
-              exitCode: 124
-            })
-          );
-        }, timeoutMs);
-      });
-
-      // Phase 18 perf fix - Add cancellation token support
-      const cancellationPromise = new Promise<[number, Buffer, string]>((_, reject) => {
-        if (options.token) {
-          options.token.onCancellationRequested(() => {
+      const timeoutPromise = new Promise<[number, Buffer, string]>(
+        (_, reject) => {
+          setTimeout(() => {
             process.kill();
             reject(
               new SvnError({
-                message: `SVN command cancelled`,
+                message: `SVN command timeout after ${timeoutMs}ms`,
                 svnCommand: args[0],
-                exitCode: 130
+                exitCode: 124
               })
             );
-          });
+          }, timeoutMs);
         }
-      });
+      );
+
+      // Phase 18 perf fix - Add cancellation token support
+      const cancellationPromise = new Promise<[number, Buffer, string]>(
+        (_, reject) => {
+          if (options.token) {
+            options.token.onCancellationRequested(() => {
+              process.kill();
+              reject(
+                new SvnError({
+                  message: `SVN command cancelled`,
+                  svnCommand: args[0],
+                  exitCode: 130
+                })
+              );
+            });
+          }
+        }
+      );
 
       const [exitCode, stdout, stderr] = await Promise.race([
         Promise.all<any>([
@@ -253,21 +275,25 @@ export class Svn {
           }),
           new Promise<Buffer>(resolve => {
             const buffers: Buffer[] = [];
-            on(process.stdout as Readable, "data", (b: Buffer) => buffers.push(b));
+            on(process.stdout as Readable, "data", (b: Buffer) =>
+              buffers.push(b)
+            );
             once(process.stdout as Readable, "close", () =>
               resolve(Buffer.concat(buffers))
             );
           }),
           new Promise<string>(resolve => {
             const buffers: Buffer[] = [];
-            on(process.stderr as Readable, "data", (b: Buffer) => buffers.push(b));
+            on(process.stderr as Readable, "data", (b: Buffer) =>
+              buffers.push(b)
+            );
             once(process.stderr as Readable, "close", () =>
               resolve(Buffer.concat(buffers).toString())
             );
           })
         ]),
         timeoutPromise,
-        ...(options.token ? [cancellationPromise] : []),
+        ...(options.token ? [cancellationPromise] : [])
       ]);
 
       dispose(disposables);
@@ -386,11 +412,23 @@ export class Svn {
       // Debug authentication indicators (never expose password values)
       if (credentialCacheFile && options.log !== false) {
         this.logOutput(`[auth: credential cache]\n`);
-      } else if (options.password && !options.realmUrl && options.log !== false) {
+      } else if (
+        options.password &&
+        !options.realmUrl &&
+        options.log !== false
+      ) {
         this.logOutput(`[auth: password (insecure - no realmUrl)]\n`);
-      } else if (options.username && !options.password && options.log !== false) {
+      } else if (
+        options.username &&
+        !options.password &&
+        options.log !== false
+      ) {
         this.logOutput(`[auth: username only]\n`);
-      } else if (!options.username && !options.password && options.log !== false) {
+      } else if (
+        !options.username &&
+        !options.password &&
+        options.log !== false
+      ) {
         this.logOutput(`[auth: none - will prompt if needed]\n`);
       }
 
@@ -430,18 +468,20 @@ export class Svn {
 
       // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
       const timeoutMs = options.timeout || DEFAULT_TIMEOUT_MS;
-      const timeoutPromise = new Promise<[number, Buffer, string]>((_, reject) => {
-        setTimeout(() => {
-          process.kill();
-          reject(
-            new SvnError({
-              message: `SVN command timeout after ${timeoutMs}ms`,
-              svnCommand: args[0],
-              exitCode: 124
-            })
-          );
-        }, timeoutMs);
-      });
+      const timeoutPromise = new Promise<[number, Buffer, string]>(
+        (_, reject) => {
+          setTimeout(() => {
+            process.kill();
+            reject(
+              new SvnError({
+                message: `SVN command timeout after ${timeoutMs}ms`,
+                svnCommand: args[0],
+                exitCode: 124
+              })
+            );
+          }, timeoutMs);
+        }
+      );
 
       const [exitCode, stdout, stderr] = await Promise.race([
         Promise.all<any>([
@@ -451,14 +491,18 @@ export class Svn {
           }),
           new Promise<Buffer>(resolve => {
             const buffers: Buffer[] = [];
-            on(process.stdout as Readable, "data", (b: Buffer) => buffers.push(b));
+            on(process.stdout as Readable, "data", (b: Buffer) =>
+              buffers.push(b)
+            );
             once(process.stdout as Readable, "close", () =>
               resolve(Buffer.concat(buffers))
             );
           }),
           new Promise<string>(resolve => {
             const buffers: Buffer[] = [];
-            on(process.stderr as Readable, "data", (b: Buffer) => buffers.push(b));
+            on(process.stderr as Readable, "data", (b: Buffer) =>
+              buffers.push(b)
+            );
             once(process.stderr as Readable, "close", () =>
               resolve(Buffer.concat(buffers).toString())
             );

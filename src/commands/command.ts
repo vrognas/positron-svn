@@ -63,7 +63,7 @@ export type CommandResult = void | Promise<void> | Promise<unknown>;
 export abstract class Command implements Disposable {
   // Phase 10.2 perf fix - cache SourceControlManager to avoid IPC overhead
   private static _sourceControlManager?: SourceControlManager;
-  
+
   static setSourceControlManager(scm: SourceControlManager) {
     Command._sourceControlManager = scm;
   }
@@ -95,10 +95,12 @@ export abstract class Command implements Disposable {
     method: (...args: unknown[]) => CommandResult
   ): (...args: unknown[]) => Promise<unknown> {
     const result = async (...args: unknown[]) => {
-      const sourceControlManager = Command._sourceControlManager || (await commands.executeCommand(
-        "svn.getSourceControlManager",
-        ""
-      )) as SourceControlManager;
+      const sourceControlManager =
+        Command._sourceControlManager ||
+        ((await commands.executeCommand(
+          "svn.getSourceControlManager",
+          ""
+        )) as SourceControlManager);
       const repository = sourceControlManager.getRepository(args[0]);
       let repositoryPromise;
 
@@ -175,10 +177,12 @@ export abstract class Command implements Disposable {
     const resources = arg instanceof Uri ? [arg] : arg;
     const isSingleResource = arg instanceof Uri;
 
-    const sourceControlManager = Command._sourceControlManager || (await commands.executeCommand(
-      "svn.getSourceControlManager",
-      ""
-    )) as SourceControlManager;
+    const sourceControlManager =
+      Command._sourceControlManager ||
+      ((await commands.executeCommand(
+        "svn.getSourceControlManager",
+        ""
+      )) as SourceControlManager);
 
     const groups: Array<{ repository: Repository; resources: Uri[] }> = [];
 
@@ -230,10 +234,12 @@ export abstract class Command implements Disposable {
     }
 
     if (uri.scheme === "file") {
-      const sourceControlManager = Command._sourceControlManager || (await commands.executeCommand(
-        "svn.getSourceControlManager",
-        ""
-      )) as SourceControlManager;
+      const sourceControlManager =
+        Command._sourceControlManager ||
+        ((await commands.executeCommand(
+          "svn.getSourceControlManager",
+          ""
+        )) as SourceControlManager);
       const repository = sourceControlManager.getRepository(uri);
 
       if (!repository) {
@@ -594,20 +600,25 @@ export abstract class Command implements Disposable {
       return stderr;
     }
 
-    return stderr
-      // Strip absolute file paths (Unix and Windows)
-      .replace(/\/[^\s:]+/g, "[PATH]")
-      .replace(/[A-Za-z]:\\[^\s:]+/g, "[PATH]")
-      // Remove password parameters
-      .replace(/password[=:]\s*\S+/gi, "password=[REDACTED]")
-      .replace(/--password\s+\S+/gi, "--password [REDACTED]")
-      // Remove username parameters
-      .replace(/username[=:]\s*\S+/gi, "username=[REDACTED]")
-      .replace(/--username\s+\S+/gi, "--username [REDACTED]")
-      // Sanitize URLs (preserve protocol and domain, strip credentials)
-      .replace(/https?:\/\/[^:@\s]+:[^@\s]+@/g, "https://[CREDENTIALS]@")
-      // Strip internal IP addresses
-      .replace(/\b(?:10|127|172\.(?:1[6-9]|2[0-9]|3[01])|192\.168)\.\d{1,3}\.\d{1,3}\b/g, "[INTERNAL_IP]");
+    return (
+      stderr
+        // Strip absolute file paths (Unix and Windows)
+        .replace(/\/[^\s:]+/g, "[PATH]")
+        .replace(/[A-Za-z]:\\[^\s:]+/g, "[PATH]")
+        // Remove password parameters
+        .replace(/password[=:]\s*\S+/gi, "password=[REDACTED]")
+        .replace(/--password\s+\S+/gi, "--password [REDACTED]")
+        // Remove username parameters
+        .replace(/username[=:]\s*\S+/gi, "username=[REDACTED]")
+        .replace(/--username\s+\S+/gi, "--username [REDACTED]")
+        // Sanitize URLs (preserve protocol and domain, strip credentials)
+        .replace(/https?:\/\/[^:@\s]+:[^@\s]+@/g, "https://[CREDENTIALS]@")
+        // Strip internal IP addresses
+        .replace(
+          /\b(?:10|127|172\.(?:1[6-9]|2[0-9]|3[01])|192\.168)\.\d{1,3}\.\d{1,3}\b/g,
+          "[INTERNAL_IP]"
+        )
+    );
   }
 
   /**
@@ -619,6 +630,18 @@ export abstract class Command implements Disposable {
     const rawStderr = error?.stderr || error?.stderrFormated || "";
     const stderr = this.sanitizeStderr(rawStderr);
     const fullError = `${errorStr} ${stderr}`.toLowerCase();
+
+    // Authentication errors - check FIRST (priority over network errors)
+    // SVN may return E170013 with E215004 when auth fails
+    if (
+      fullError.includes("e170001") ||
+      fullError.includes("e215004") ||
+      fullError.includes("no more credentials") ||
+      fullError.includes("authorization failed") ||
+      fullError.includes("authentication failed")
+    ) {
+      return "Authentication failed: Please check your credentials and try again.";
+    }
 
     // Network/connection errors (E170013)
     if (
@@ -638,15 +661,6 @@ export abstract class Command implements Disposable {
       fullError.includes("operation timed out")
     ) {
       return "Network timeout: The operation took too long. Try again or check your network connection.";
-    }
-
-    // Authentication errors (E170001)
-    if (
-      fullError.includes("e170001") ||
-      fullError.includes("authorization failed") ||
-      fullError.includes("authentication failed")
-    ) {
-      return "Authentication failed: Please check your credentials and try again.";
     }
 
     // Repository locked (E155004)

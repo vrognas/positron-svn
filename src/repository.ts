@@ -387,7 +387,9 @@ export class Repository implements IRemoteRepository {
       return;
     }
 
-    const rules = config.ignoredRulesForDeletedFiles.map(ignored => match(ignored));
+    const rules = config.ignoredRulesForDeletedFiles.map(ignored =>
+      match(ignored)
+    );
 
     if (rules.length) {
       uris = uris.filter(uri => {
@@ -395,9 +397,7 @@ export class Repository implements IRemoteRepository {
         const relativePath = this.repository.removeAbsolutePath(uri.fsPath);
 
         // If some match, remove from list
-        return !rules.some(
-          rule => rule(relativePath) || rule(uri.fsPath)
-        );
+        return !rules.some(rule => rule(relativePath) || rule(uri.fsPath));
       });
     }
 
@@ -523,7 +523,10 @@ export class Repository implements IRemoteRepository {
     }
 
     // Update remote changes count
-    if (checkRemoteChanges && result.remoteChanges.length !== this.remoteChangedFiles) {
+    if (
+      checkRemoteChanges &&
+      result.remoteChanges.length !== this.remoteChangedFiles
+    ) {
       this.remoteChangedFiles = result.remoteChanges.length;
       this._onDidChangeRemoteChangedFiles.fire();
     }
@@ -965,7 +968,10 @@ export class Repository implements IRemoteRepository {
     };
 
     return shouldShowProgress(operation)
-      ? window.withProgress({ location: ProgressLocation.SourceControl, cancellable: true }, run)
+      ? window.withProgress(
+          { location: ProgressLocation.SourceControl, cancellable: true },
+          run
+        )
       : run();
   }
 
@@ -975,6 +981,13 @@ export class Repository implements IRemoteRepository {
     let attempt = 0;
     // Phase 8.2 perf fix - pre-load accounts before retry loop to avoid blocking
     const accounts: IStoredAuth[] = await this.loadStoredAuths();
+
+    // Fix Bug 2: Pre-set credentials from first stored account if none set
+    // Prevents first attempt failing with empty credentials in remote sessions
+    if (!this.username && !this.password && accounts.length > 0) {
+      this.username = accounts[0].account;
+      this.password = accounts[0].password;
+    }
 
     while (true) {
       try {
@@ -988,15 +1001,15 @@ export class Repository implements IRemoteRepository {
           svnError.svnErrorCode === svnErrorCodes.RepositoryIsLocked &&
           attempt <= 10
         ) {
-          // quatratic backoff
+          // quadratic backoff
           await timeout(Math.pow(attempt, 2) * 50);
         } else if (
           svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&
-          attempt <= 1 + accounts.length
+          attempt <= accounts.length
         ) {
-
-          // each attempt, try a different account
-          const index = accounts.length - 1;
+          // Fix Bug 1: Cycle through stored accounts properly
+          // attempt 1 failed with accounts[0], try accounts[1], etc.
+          const index = attempt;
           if (typeof accounts[index] !== "undefined") {
             this.username = accounts[index].account;
             this.password = accounts[index].password;
