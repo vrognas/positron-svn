@@ -3,15 +3,16 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Decorators require 'any' for TypeScript type inference to work correctly.
+// The decorator pattern wraps arbitrary methods/getters with unknown signatures.
+
 "use strict";
 
 import { done } from "./util";
 
 // Type definitions for method signatures
-// These types require 'any' for TypeScript decorator type inference to work correctly
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyMethod = (...args: any[]) => any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AsyncMethod = (...args: any[]) => Promise<any>;
 
 /**
