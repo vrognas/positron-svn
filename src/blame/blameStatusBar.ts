@@ -28,7 +28,10 @@ import { logError } from "../util/errorLogger";
  */
 export class BlameStatusBar implements Disposable {
   private statusBarItem: StatusBarItem;
-  private blameCache = new Map<string, { data: ISvnBlameLine[]; timestamp: number }>();
+  private blameCache = new Map<
+    string,
+    { data: ISvnBlameLine[]; timestamp: number }
+  >();
   private disposables: Disposable[] = [];
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -186,11 +189,15 @@ export class BlameStatusBar implements Disposable {
   // ===== Event Handlers =====
 
   @debounce(150)
-  private async onSelectionChanged(_event: TextEditorSelectionChangeEvent): Promise<void> {
+  private async onSelectionChanged(
+    _event: TextEditorSelectionChangeEvent
+  ): Promise<void> {
     await this.updateStatusBar();
   }
 
-  private async onActiveEditorChanged(_editor: TextEditor | undefined): Promise<void> {
+  private async onActiveEditorChanged(
+    _editor: TextEditor | undefined
+  ): Promise<void> {
     await this.updateStatusBar();
   }
 
@@ -214,7 +221,10 @@ export class BlameStatusBar implements Disposable {
     }
 
     // Check configuration
-    if (!blameConfiguration.isEnabled() || !blameConfiguration.isStatusBarEnabled()) {
+    if (
+      !blameConfiguration.isEnabled() ||
+      !blameConfiguration.isStatusBarEnabled()
+    ) {
       return false;
     }
 
@@ -244,13 +254,18 @@ export class BlameStatusBar implements Disposable {
       return undefined;
     }
 
-    // Skip untracked files (prevents SVN errors for UNVERSIONED/IGNORED files)
+    // Skip files that can't be blamed:
+    // - UNVERSIONED/IGNORED/NONE: not under version control
+    // - ADDED: scheduled for addition but never committed (E195002)
     const resource = repository.getResourceFromFile(uri);
     if (resource) {
       const { Status } = await import("../common/types");
-      if (resource.type === Status.UNVERSIONED ||
-          resource.type === Status.IGNORED ||
-          resource.type === Status.NONE) {
+      if (
+        resource.type === Status.UNVERSIONED ||
+        resource.type === Status.IGNORED ||
+        resource.type === Status.NONE ||
+        resource.type === Status.ADDED
+      ) {
         return undefined;
       }
     }
@@ -302,7 +317,10 @@ export class BlameStatusBar implements Disposable {
 
     // Add merge info if present
     if (line.merged) {
-      parts.push("", `Merged from: r${line.merged.revision} (${line.merged.author})`);
+      parts.push(
+        "",
+        `Merged from: r${line.merged.revision} (${line.merged.author})`
+      );
     }
 
     parts.push("", "Click for actions");
@@ -313,7 +331,10 @@ export class BlameStatusBar implements Disposable {
   /**
    * Format date (relative or absolute)
    */
-  private formatDate(dateStr: string | undefined, format: "relative" | "absolute"): string {
+  private formatDate(
+    dateStr: string | undefined,
+    format: "relative" | "absolute"
+  ): string {
     if (!dateStr) {
       return "unknown";
     }
@@ -327,7 +348,10 @@ export class BlameStatusBar implements Disposable {
         return date.toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
-          year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined
+          year:
+            date.getFullYear() !== new Date().getFullYear()
+              ? "numeric"
+              : undefined
         });
       }
     } catch {
@@ -377,7 +401,9 @@ export class BlameStatusBar implements Disposable {
       case "copy":
         // Copy revision to clipboard
         await env.clipboard.writeText(blameLine.revision!);
-        window.showInformationMessage(`Copied r${blameLine.revision} to clipboard`);
+        window.showInformationMessage(
+          `Copied r${blameLine.revision} to clipboard`
+        );
         break;
 
       case "toggle":

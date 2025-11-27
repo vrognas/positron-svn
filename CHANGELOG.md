@@ -1,3 +1,13 @@
+## [2.17.241] (2025-11-27)
+
+### FIX: Blame Errors on Newly Added Files
+
+- **Fix**: Skip blame for files with ADDED status (never committed)
+  - Before: Blame tried on `svn add`ed files, causing E195002 error spam
+  - After: BlameProvider/BlameStatusBar/BlameIconState check for ADDED status
+  - Affected: blameProvider.ts, blameStatusBar.ts, blameIconState.ts
+- **Tests**: Added 3 tests for unblameable file handling (ADDED, UNVERSIONED, MODIFIED)
+
 ## [2.17.240] (2025-11-27)
 
 ### FIX: Resource Leak in commitFiles

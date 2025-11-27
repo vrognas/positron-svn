@@ -41,7 +41,7 @@ export class BlameIconState implements IDisposable {
 
     // Set initial state
     void this.updateIconContext().catch(err => {
-      console.error('[BlameIconState] Initial context update failed:', err);
+      console.error("[BlameIconState] Initial context update failed:", err);
       // Set safe defaults
       void setVscodeContext("svnBlameActiveForFile", false);
       void setVscodeContext("svnBlameUntrackedFile", false);
@@ -50,17 +50,24 @@ export class BlameIconState implements IDisposable {
 
   private async updateIconContext(): Promise<void> {
     const editor = window.activeTextEditor;
-    console.log("[BlameIconState] updateIconContext called, editor:", editor?.document.uri.fsPath);
+    console.log(
+      "[BlameIconState] updateIconContext called, editor:",
+      editor?.document.uri.fsPath
+    );
 
     if (!editor || editor.document.uri.scheme !== "file") {
-      console.log("[BlameIconState] No editor or non-file scheme, setting both to false");
+      console.log(
+        "[BlameIconState] No editor or non-file scheme, setting both to false"
+      );
       await setVscodeContext("svnBlameActiveForFile", false);
       await setVscodeContext("svnBlameUntrackedFile", false);
       return;
     }
 
     // Check if file is tracked in SVN
-    const repository = this.sourceControlManager.getRepository(editor.document.uri);
+    const repository = this.sourceControlManager.getRepository(
+      editor.document.uri
+    );
 
     // No repository found - file not in SVN workspace
     if (!repository) {
@@ -89,20 +96,29 @@ export class BlameIconState implements IDisposable {
       return;
     }
 
-    // Check if file is untracked
+    // Check if file cannot be blamed:
+    // - UNVERSIONED/IGNORED/NONE: not under version control
+    // - ADDED: scheduled for addition but never committed (E195002)
     const { Status } = await import("../common/types");
-    const isUntracked = resource.type === Status.UNVERSIONED ||
-                        resource.type === Status.IGNORED ||
-                        resource.type === Status.NONE;
+    const cannotBlame =
+      resource.type === Status.UNVERSIONED ||
+      resource.type === Status.IGNORED ||
+      resource.type === Status.NONE ||
+      resource.type === Status.ADDED;
 
     // Set context variables
-    if (isUntracked) {
-      console.log("[BlameIconState] File is UNTRACKED, setting svnBlameUntrackedFile=true");
+    if (cannotBlame) {
+      console.log("[BlameIconState] File cannot be blamed", {
+        status: resource.type
+      });
       await setVscodeContext("svnBlameActiveForFile", false);
       await setVscodeContext("svnBlameUntrackedFile", true);
     } else {
       const isEnabled = blameStateManager.isBlameEnabled(editor.document.uri);
-      console.log("[BlameIconState] File is TRACKED, blame enabled:", isEnabled);
+      console.log(
+        "[BlameIconState] File is TRACKED, blame enabled:",
+        isEnabled
+      );
       await setVscodeContext("svnBlameActiveForFile", isEnabled);
       await setVscodeContext("svnBlameUntrackedFile", false);
     }
