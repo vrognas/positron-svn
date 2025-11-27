@@ -50,16 +50,22 @@ export class DiffWithExternalTool extends Command {
       console.log("Getting repository for:", filePath);
 
       // Get SourceControlManager (use cached static or fetch via command)
-      const sourceControlManager = (Command as any)._sourceControlManager || (await commands.executeCommand(
-        "svn.getSourceControlManager",
-        ""
-      )) as SourceControlManager;
+      const sourceControlManager =
+        (Command as unknown as { _sourceControlManager?: SourceControlManager })
+          ._sourceControlManager ||
+        ((await commands.executeCommand(
+          "svn.getSourceControlManager",
+          ""
+        )) as SourceControlManager);
 
       console.log("Got SourceControlManager:", !!sourceControlManager);
 
       // Get repository for the file path
       const repository = sourceControlManager.getRepository(Uri.file(filePath));
-      console.log("getRepository returned:", repository ? "found" : "null/undefined");
+      console.log(
+        "getRepository returned:",
+        repository ? "found" : "null/undefined"
+      );
 
       if (!repository) {
         console.log("ERROR: Repository not found");
@@ -74,11 +80,12 @@ export class DiffWithExternalTool extends Command {
         filePath,
         sourceControlManager.svn.exec.bind(sourceControlManager.svn)
       );
-
     } catch (error) {
       // Security: Use logError helper to sanitize error output
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`[diffWithExternalTool] Failed to launch external diff: ${message}`);
+      console.error(
+        `[diffWithExternalTool] Failed to launch external diff: ${message}`
+      );
       window.showErrorMessage(`Failed to launch external diff: ${message}`);
     }
   }

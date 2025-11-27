@@ -83,8 +83,10 @@ export class Checkout extends Command {
 
     // Use Notification location if supported
     let location = ProgressLocation.Window;
-    if ((ProgressLocation as any).Notification) {
-      location = (ProgressLocation as any).Notification;
+    if ((ProgressLocation as unknown as Record<string, unknown>).Notification) {
+      location = (
+        ProgressLocation as unknown as Record<string, ProgressLocation>
+      ).Notification;
     }
 
     const progressOptions = {
@@ -137,7 +139,7 @@ export class Checkout extends Command {
     const addToWorkspace = "Add to Workspace";
     if (
       workspace.workspaceFolders &&
-      (workspace as any).updateWorkspaceFolders // For VSCode >= 1.21
+      (workspace as unknown as Record<string, unknown>).updateWorkspaceFolders // For VSCode >= 1.21
     ) {
       message =
         "Would you like to open the checked out repository, or add it to the current workspace?";
@@ -152,13 +154,17 @@ export class Checkout extends Command {
       commands.executeCommand("vscode.openFolder", Uri.file(repositoryPath));
     } else if (result === addToWorkspace) {
       // For VSCode >= 1.21
-      (workspace as any).updateWorkspaceFolders(
-        workspace.workspaceFolders!.length,
-        0,
-        {
-          uri: Uri.file(repositoryPath)
+      (
+        workspace as unknown as {
+          updateWorkspaceFolders: (
+            start: number,
+            deleteCount: number,
+            folder: { uri: Uri }
+          ) => void;
         }
-      );
+      ).updateWorkspaceFolders(workspace.workspaceFolders!.length, 0, {
+        uri: Uri.file(repositoryPath)
+      });
     }
   }
 }

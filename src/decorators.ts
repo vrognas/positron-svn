@@ -8,7 +8,10 @@
 import { done } from "./util";
 
 // Type definitions for method signatures
+// These types require 'any' for TypeScript decorator type inference to work correctly
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyMethod = (...args: any[]) => any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AsyncMethod = (...args: any[]) => Promise<any>;
 
 /**

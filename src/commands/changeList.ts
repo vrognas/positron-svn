@@ -14,7 +14,7 @@ export class ChangeList extends Command {
     super("svn.changelist");
   }
 
-  public async execute(...args: any[]) {
+  public async execute(...args: (Resource | Uri | Uri[])[]) {
     let uris: Uri[];
 
     if (args[0] instanceof Resource) {
@@ -100,12 +100,15 @@ export class ChangeList extends Command {
         `Unable to remove file "${paths.join(",")}" from changelist`
       );
     } else {
-      await this.handleRepositoryOperation(async () => {
-        await repository.addChangelist(paths, changelistName);
-        window.showInformationMessage(
-          `Added files "${paths.join(",")}" to changelist "${changelistName}"`
-        );
-      }, `Unable to add file "${paths.join(",")}" to changelist "${changelistName}"`);
+      await this.handleRepositoryOperation(
+        async () => {
+          await repository.addChangelist(paths, changelistName);
+          window.showInformationMessage(
+            `Added files "${paths.join(",")}" to changelist "${changelistName}"`
+          );
+        },
+        `Unable to add file "${paths.join(",")}" to changelist "${changelistName}"`
+      );
     }
   }
 }

@@ -6,6 +6,7 @@
 
 import {
   ColorThemeKind,
+  ConfigurationChangeEvent,
   DecorationOptions,
   Disposable,
   Range,
@@ -640,7 +641,9 @@ export class BlameProvider implements Disposable {
     }
   }
 
-  private async onConfigurationChange(_event: any): Promise<void> {
+  private async onConfigurationChange(
+    _event: ConfigurationChangeEvent
+  ): Promise<void> {
     // Save old decoration types
     const oldTypes = this.decorationTypes;
     const oldIconTypes = this.iconTypes;

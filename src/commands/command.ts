@@ -625,9 +625,12 @@ export abstract class Command implements Disposable {
    * Format user-friendly error message based on error type.
    * Provides actionable guidance for common errors (network, timeout, auth).
    */
-  private formatErrorMessage(error: any, fallbackMsg: string): string {
-    const errorStr = error?.message || error?.toString() || "";
-    const rawStderr = error?.stderr || error?.stderrFormated || "";
+  private formatErrorMessage(error: unknown, fallbackMsg: string): string {
+    const err = error as
+      | { message?: string; stderr?: string; stderrFormated?: string }
+      | undefined;
+    const errorStr = err?.message || String(error) || "";
+    const rawStderr = err?.stderr || err?.stderrFormated || "";
     const stderr = this.sanitizeStderr(rawStderr);
     const fullError = `${errorStr} ${stderr}`.toLowerCase();
 
