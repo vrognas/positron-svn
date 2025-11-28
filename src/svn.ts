@@ -35,9 +35,6 @@ export const svnErrorCodes: { [key: string]: string } = {
 // Path separator pattern for cross-platform path splitting
 const PATH_SEPARATOR_PATTERN = /[\\\/]+/;
 
-// Default timeout for SVN commands (30 seconds)
-const DEFAULT_TIMEOUT_MS = 30000;
-
 // Default locale for SVN command execution
 const DEFAULT_LOCALE = "en_US.UTF-8";
 
@@ -133,8 +130,19 @@ export class Svn {
         );
       }
 
-      // Handle credential cache for secure password passing
-      if (options.password && options.realmUrl && options.username) {
+      // Check if native credential store is enabled (gpg-agent, gnome-keyring, etc)
+      const useNativeStore = configuration.get<boolean>(
+        "auth.useNativeStore",
+        true
+      );
+
+      // Handle credential cache for secure password passing (only when not using native store)
+      if (
+        !useNativeStore &&
+        options.password &&
+        options.realmUrl &&
+        options.username
+      ) {
         try {
           credentialCacheFile = await this.authCache.writeCredential(
             options.username,
@@ -152,23 +160,38 @@ export class Svn {
         args.push("--username", options.username);
       }
 
-      if (options.password && !credentialCacheFile) {
-        // Only use insecure --password if cache write failed or no realmUrl provided
-        args.push("--password", options.password);
-      }
+      if (useNativeStore) {
+        // Native store mode: Let SVN handle credentials via gpg-agent, etc.
+        // Don't pass --password or disable stores - SVN will use cached credentials
+      } else {
+        // Extension-managed mode: Use credential cache file or --password
+        if (options.password && !credentialCacheFile) {
+          // Only use insecure --password if cache write failed or no realmUrl provided
+          args.push("--password", options.password);
+        }
 
-      if ((options.username || options.password) && !credentialCacheFile) {
-        // Configuration format: FILE:SECTION:OPTION=[VALUE]
-        // Only disable password stores if not using credential cache
-        args.push("--config-option", "config:auth:password-stores=");
-        args.push("--config-option", "servers:global:store-auth-creds=no");
+        if ((options.username || options.password) && !credentialCacheFile) {
+          // Configuration format: FILE:SECTION:OPTION=[VALUE]
+          // Only disable password stores if not using credential cache
+          args.push("--config-option", "config:auth:password-stores=");
+          args.push("--config-option", "servers:global:store-auth-creds=no");
+        }
       }
 
       // Force non interactive environment
       args.push("--non-interactive");
 
+      // Read configurable timeout (in seconds, convert to ms)
+      const timeoutSeconds = configuration.get<number>(
+        "auth.commandTimeout",
+        60
+      );
+      const configuredTimeoutMs = timeoutSeconds * 1000;
+
       // Debug authentication indicators (never expose password values)
-      if (credentialCacheFile && options.log !== false) {
+      if (useNativeStore && options.log !== false) {
+        this.logOutput(`[auth: native store (gpg-agent/keyring)]\n`);
+      } else if (credentialCacheFile && options.log !== false) {
         this.logOutput(`[auth: credential cache]\n`);
       } else if (
         options.password &&
@@ -233,7 +256,8 @@ export class Svn {
       };
 
       // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
-      const timeoutMs = options.timeout || DEFAULT_TIMEOUT_MS;
+      // Use configured timeout from settings, or explicit option, or default
+      const timeoutMs = options.timeout || configuredTimeoutMs;
       const timeoutPromise = new Promise<[number, Buffer, string]>(
         (_, reject) => {
           setTimeout(() => {
@@ -375,8 +399,19 @@ export class Svn {
         );
       }
 
-      // Handle credential cache for secure password passing
-      if (options.password && options.realmUrl && options.username) {
+      // Check if native credential store is enabled (gpg-agent, gnome-keyring, etc)
+      const useNativeStore = configuration.get<boolean>(
+        "auth.useNativeStore",
+        true
+      );
+
+      // Handle credential cache for secure password passing (only when not using native store)
+      if (
+        !useNativeStore &&
+        options.password &&
+        options.realmUrl &&
+        options.username
+      ) {
         try {
           credentialCacheFile = await this.authCache.writeCredential(
             options.username,
@@ -394,23 +429,38 @@ export class Svn {
         args.push("--username", options.username);
       }
 
-      if (options.password && !credentialCacheFile) {
-        // Only use insecure --password if cache write failed or no realmUrl provided
-        args.push("--password", options.password);
-      }
+      if (useNativeStore) {
+        // Native store mode: Let SVN handle credentials via gpg-agent, etc.
+        // Don't pass --password or disable stores - SVN will use cached credentials
+      } else {
+        // Extension-managed mode: Use credential cache file or --password
+        if (options.password && !credentialCacheFile) {
+          // Only use insecure --password if cache write failed or no realmUrl provided
+          args.push("--password", options.password);
+        }
 
-      if ((options.username || options.password) && !credentialCacheFile) {
-        // Configuration format: FILE:SECTION:OPTION=[VALUE]
-        // Only disable password stores if not using credential cache
-        args.push("--config-option", "config:auth:password-stores=");
-        args.push("--config-option", "servers:global:store-auth-creds=no");
+        if ((options.username || options.password) && !credentialCacheFile) {
+          // Configuration format: FILE:SECTION:OPTION=[VALUE]
+          // Only disable password stores if not using credential cache
+          args.push("--config-option", "config:auth:password-stores=");
+          args.push("--config-option", "servers:global:store-auth-creds=no");
+        }
       }
 
       // Force non interactive environment
       args.push("--non-interactive");
 
+      // Read configurable timeout (in seconds, convert to ms)
+      const timeoutSeconds = configuration.get<number>(
+        "auth.commandTimeout",
+        60
+      );
+      const configuredTimeoutMs = timeoutSeconds * 1000;
+
       // Debug authentication indicators (never expose password values)
-      if (credentialCacheFile && options.log !== false) {
+      if (useNativeStore && options.log !== false) {
+        this.logOutput(`[auth: native store (gpg-agent/keyring)]\n`);
+      } else if (credentialCacheFile && options.log !== false) {
         this.logOutput(`[auth: credential cache]\n`);
       } else if (
         options.password &&
@@ -467,7 +517,8 @@ export class Svn {
       };
 
       // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
-      const timeoutMs = options.timeout || DEFAULT_TIMEOUT_MS;
+      // Use configured timeout from settings, or explicit option, or default
+      const timeoutMs = options.timeout || configuredTimeoutMs;
       const timeoutPromise = new Promise<[number, Buffer, string]>(
         (_, reject) => {
           setTimeout(() => {

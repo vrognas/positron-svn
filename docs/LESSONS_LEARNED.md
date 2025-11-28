@@ -1,7 +1,7 @@
 # Lessons Learned
 
-**Version**: v2.17.241
-**Updated**: 2025-11-27
+**Version**: v2.18.0
+**Updated**: 2025-11-28
 
 ---
 
@@ -385,6 +385,45 @@ for (const code of errorCodes) { ... } // Generic codes
 
 ---
 
+### 15. Remote SSH: Respect Native Credential Stores
+
+**Lesson**: Don't disable system credential managers (gpg-agent, gnome-keyring) in remote environments.
+
+**Issue** (v2.18.0):
+
+- Extension always passed `--config-option config:auth:password-stores=` to SVN
+- This disabled gpg-agent/gnome-keyring, breaking remote SSH workflows
+- Password prompt cycled endlessly because:
+  1. Extension credential cache needs `realmUrl` from `svn info`
+  2. But `svn info` itself needs auth → chicken-egg problem
+  3. Without cached credentials, SVN rejected `--password` on command line
+  4. Auth failed, prompted again → infinite loop
+
+**Fix**:
+
+```typescript
+// BEFORE: Always disabled native stores
+args.push("--config-option", "config:auth:password-stores=");
+args.push("--config-option", "servers:global:store-auth-creds=no");
+
+// AFTER: Let native stores work by default
+const useNativeStore = configuration.get("auth.useNativeStore", true);
+if (!useNativeStore) {
+  args.push("--config-option", "config:auth:password-stores=");
+  args.push("--config-option", "servers:global:store-auth-creds=no");
+}
+```
+
+**Why native stores matter**:
+
+- gpg-agent caches SVN passwords per-realm (configurable TTL)
+- Works seamlessly in SSH sessions when `GPG_TTY=$(tty)` is set
+- No chicken-egg problem - SVN handles auth before extension needs info
+
+**Rule**: Default to native credential stores. Extension-managed credentials are fallback.
+
+---
+
 ## Quick Reference
 
 **Starting extension**: tsc + strict mode + Positron template
@@ -407,5 +446,5 @@ for (const code of errorCodes) { ... } // Generic codes
 
 ---
 
-**Document Version**: 2.2
-**Last Updated**: 2025-11-27
+**Document Version**: 2.3
+**Last Updated**: 2025-11-28

@@ -1,3 +1,20 @@
+## [2.18.0] (2025-11-28)
+
+### FEAT: Remote SSH Development Improvements
+
+- **New Setting**: `svn.auth.useNativeStore` (default: true)
+  - Enables SVN's native credential stores (gpg-agent, gnome-keyring, etc.)
+  - Fixes infinite password prompt loop in remote SSH sessions
+  - When true, SVN manages credentials natively - no more cycling prompts
+  - When false, extension-managed credential cache (legacy behavior)
+- **New Setting**: `svn.auth.commandTimeout` (default: 60s)
+  - Configurable timeout for SVN commands (10-600 seconds)
+  - Helps with slow remote connections
+- **Fix**: Password prompt no longer cycles endlessly
+  - Root cause: Extension disabled gpg-agent/keyring via `--config-option`
+  - Now respects native credential stores when enabled
+- **Improved**: Auth logging shows `[auth: native store (gpg-agent/keyring)]`
+
 ## [2.17.244] (2025-11-28)
 
 ### FIX: Marketplace Auto-Publish

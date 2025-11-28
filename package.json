@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.17.244",
+  "version": "2.18.0",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.74.0",
@@ -1145,6 +1145,18 @@
     "configuration": {
       "title": "Svn",
       "properties": {
+        "svn.auth.useNativeStore": {
+          "type": "boolean",
+          "description": "Use SVN's native credential stores (gpg-agent, gnome-keyring, etc). When enabled, SVN manages credential persistence. Disable to use extension-only credential handling.",
+          "default": true
+        },
+        "svn.auth.commandTimeout": {
+          "type": "number",
+          "description": "Timeout in seconds for SVN commands. Increase for slow remote connections.",
+          "default": 60,
+          "minimum": 10,
+          "maximum": 600
+        },
         "svn.autorefresh": {
           "type": "boolean",
           "description": "Whether auto refreshing is enabled",
