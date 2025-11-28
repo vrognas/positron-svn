@@ -1,7 +1,7 @@
 # SVN Extension Architecture
 
-**Version**: 2.17.241
-**Updated**: 2025-11-27
+**Version**: 2.18.0
+**Updated**: 2025-11-28
 
 ---
 
@@ -205,11 +205,11 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 
 ## Key Files
 
-**Entry**: extension.ts, source_control_manager.ts, commands.ts
+**Entry**: extension.ts, source*control_manager.ts, commands.ts
 **Core**: repository.ts, svnRepository.ts, svn.ts
 **Services**: statusService.ts, resourceGroupManager.ts, remoteChangeService.ts
-**Blame**: blameConfiguration.ts, blameStateManager.ts, commands/blame/_.ts
-**Commands**: command.ts (base), commands/_.ts (54 total, 3 blame)
+**Blame**: blameConfiguration.ts, blameStateManager.ts, commands/blame/*.ts
+**Commands**: command.ts (base), commands/\_.ts (54 total, 3 blame)
 **Parsing**: statusParser.ts, logParser.ts, infoParser.ts
 **Utils**: types.ts (323 lines), util.ts, decorators.ts
 

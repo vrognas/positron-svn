@@ -124,6 +124,9 @@ export class Repository implements IRemoteRepository {
   }
 
   private lastPromptAuth?: Thenable<IAuth | undefined>;
+  private saveAuthLock: Promise<void> = Promise.resolve();
+  private promptAuthCooldown: boolean = false;
+  private promptAuthCooldownTimer?: ReturnType<typeof setTimeout>;
 
   private _fsWatcher: RepositoryFilesWatcher;
   public get fsWatcher() {
@@ -826,21 +829,37 @@ export class Repository implements IRemoteRepository {
     return new PathNormalizer(this.repository.info);
   }
 
-  protected getCredentialServiceName() {
-    let key = "vscode.positron-svn";
-
+  /**
+   * Get credential storage key based on server (not repo path).
+   * This allows multiple repos on same server to share credentials.
+   * e.g., https://svn.example.com/repoA and /repoB both use
+   * key "vscode.positron-svn:https://svn.example.com"
+   */
+  public getCredentialServiceName() {
     const info = this.repository.info;
+    const repoUrl = info.repository?.root || info.url;
 
-    if (info.repository?.root) {
-      key += ":" + info.repository.root;
-    } else if (info.url) {
-      key += ":" + info.url;
+    if (repoUrl) {
+      try {
+        const url = new URL(repoUrl);
+        // Use scheme + host + port (if non-default)
+        const server = `${url.protocol}//${url.host}`;
+        return `vscode.positron-svn:${server}`;
+      } catch {
+        // Invalid URL, fall back to full URL
+        return `vscode.positron-svn:${repoUrl}`;
+      }
     }
 
-    return key;
+    return "vscode.positron-svn";
   }
 
   public async loadStoredAuths(): Promise<Array<IStoredAuth>> {
+    // Skip if extension storage disabled
+    if (!configuration.get<boolean>("auth.useExtensionStorage", true)) {
+      return [];
+    }
+
     // Prevent multiple prompts for auth
     if (this.lastPromptAuth) {
       await this.lastPromptAuth;
@@ -852,10 +871,17 @@ export class Repository implements IRemoteRepository {
       return [];
     }
 
-    // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed secrets
+    // Safe JSON.parse with runtime type validation
     try {
-      const credentials = JSON.parse(secret) as Array<IStoredAuth>;
-      return credentials;
+      const parsed = JSON.parse(secret);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      // Filter to only valid credential entries
+      return parsed.filter(
+        (c): c is IStoredAuth =>
+          c && typeof c.account === "string" && typeof c.password === "string"
+      );
     } catch (error) {
       logError("Failed to parse stored credentials", error);
       return [];
@@ -863,38 +889,79 @@ export class Repository implements IRemoteRepository {
   }
 
   public async saveAuth(): Promise<void> {
-    if (this.canSaveAuth && this.username && this.password) {
+    // Skip if extension storage disabled
+    if (!configuration.get<boolean>("auth.useExtensionStorage", true)) {
+      return;
+    }
+
+    if (!this.canSaveAuth || !this.username || !this.password) {
+      return;
+    }
+
+    // Mutex: serialize concurrent saves to prevent read-modify-write race
+    const username = this.username;
+    const password = this.password;
+    this.canSaveAuth = false;
+
+    this.saveAuthLock = this.saveAuthLock.then(async () => {
       const secret = await this.secrets.get(this.getCredentialServiceName());
       let credentials: Array<IStoredAuth> = [];
 
-      // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed secrets
       if (typeof secret === "string") {
         try {
-          credentials = JSON.parse(secret) as Array<IStoredAuth>;
+          const parsed = JSON.parse(secret);
+          if (Array.isArray(parsed)) {
+            credentials = parsed.filter(
+              (c): c is IStoredAuth =>
+                c &&
+                typeof c.account === "string" &&
+                typeof c.password === "string"
+            );
+          }
         } catch (error) {
           logError("Failed to parse stored credentials", error);
           credentials = [];
         }
       }
 
-      credentials.push({
-        account: this.username,
-        password: this.password
-      });
+      // Deduplicate: update existing entry or add new
+      const existingIndex = credentials.findIndex(c => c.account === username);
+      if (existingIndex >= 0) {
+        credentials[existingIndex].password = password;
+      } else {
+        credentials.push({ account: username, password });
+      }
 
       await this.secrets.store(
         this.getCredentialServiceName(),
         JSON.stringify(credentials)
       );
+    });
 
-      this.canSaveAuth = false;
-    }
+    return this.saveAuthLock;
+  }
+
+  /**
+   * Clear all saved credentials for this repository
+   * Removes from SecretStorage and clears runtime credentials
+   */
+  public async clearCredentials(): Promise<void> {
+    // Clear SecretStorage
+    await this.secrets.delete(this.getCredentialServiceName());
+
+    // Clear runtime credentials
+    this.username = undefined;
+    this.password = undefined;
+    this.canSaveAuth = false;
   }
 
   public async promptAuth(): Promise<IAuth | undefined> {
-    // Prevent multiple prompts for auth
-    if (this.lastPromptAuth) {
-      return this.lastPromptAuth;
+    // Prevent multiple prompts: active prompt or cooldown period
+    if (this.lastPromptAuth || this.promptAuthCooldown) {
+      if (this.lastPromptAuth) {
+        return this.lastPromptAuth;
+      }
+      return undefined; // During cooldown, skip prompting
     }
 
     this.lastPromptAuth = commands.executeCommand("svn.promptAuth");
@@ -906,7 +973,17 @@ export class Repository implements IRemoteRepository {
       this.canSaveAuth = true;
     }
 
+    // Cooldown: prevent rapid re-prompting after dialog closes
     this.lastPromptAuth = undefined;
+    this.promptAuthCooldown = true;
+    if (this.promptAuthCooldownTimer) {
+      clearTimeout(this.promptAuthCooldownTimer);
+    }
+    this.promptAuthCooldownTimer = setTimeout(() => {
+      this.promptAuthCooldown = false;
+      this.promptAuthCooldownTimer = undefined;
+    }, 500);
+
     return result;
   }
 
@@ -1007,6 +1084,8 @@ export class Repository implements IRemoteRepository {
           svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&
           attempt <= accounts.length
         ) {
+          // Backoff before trying next stored account (prevent server hammering)
+          await timeout(500);
           // Fix Bug 1: Cycle through stored accounts properly
           // attempt 1 failed with accounts[0], try accounts[1], etc.
           const index = attempt;
@@ -1018,6 +1097,8 @@ export class Repository implements IRemoteRepository {
           svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&
           attempt <= 3 + accounts.length
         ) {
+          // Backoff before prompting user (prevent server hammering)
+          await timeout(1000);
           const result = await this.promptAuth();
           if (!result) {
             throw err;
@@ -1030,6 +1111,11 @@ export class Repository implements IRemoteRepository {
   }
 
   public dispose(): void {
+    // Clear auth cooldown timer to prevent memory leak
+    if (this.promptAuthCooldownTimer) {
+      clearTimeout(this.promptAuthCooldownTimer);
+      this.promptAuthCooldownTimer = undefined;
+    }
     this.statusService.dispose();
     this.repository.clearInfoCacheTimers(); // Phase 8.2 perf fix - clear timers
     this.disposables = dispose(this.disposables);

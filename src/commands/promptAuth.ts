@@ -16,7 +16,13 @@ export class PromptAuth extends Command {
       placeHolder: "Svn repository username",
       prompt: "Please enter your username",
       ignoreFocusOut: true,
-      value: prevUsername
+      value: prevUsername,
+      validateInput: value => {
+        if (!value || !value.trim()) {
+          return "Username cannot be empty";
+        }
+        return null;
+      }
     });
 
     if (username === undefined) {
@@ -28,7 +34,13 @@ export class PromptAuth extends Command {
       prompt: "Please enter your password",
       value: prevPassword,
       ignoreFocusOut: true,
-      password: true
+      password: true,
+      validateInput: value => {
+        if (!value) {
+          return "Password cannot be empty";
+        }
+        return null;
+      }
     });
 
     if (password === undefined) {
@@ -36,7 +48,7 @@ export class PromptAuth extends Command {
     }
 
     const auth: IAuth = {
-      username,
+      username: username.trim(),
       password
     };
 

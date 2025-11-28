@@ -1,3 +1,179 @@
+## [2.22.1] (2025-11-28)
+
+### FIX: Auth Input Validation & Timer Cleanup
+
+- **Fix**: Empty username/password no longer accepted
+  - Input validation prevents saving empty credentials
+  - Username is trimmed of whitespace
+- **Fix**: Auth cooldown timer properly cleaned up on repository dispose
+  - Prevents potential memory leak on rapid repo open/close
+
+## [2.22.0] (2025-11-28)
+
+### SECURITY: Password Hidden from Process List (SVN 1.10+)
+
+- **New**: Uses `--password-from-stdin` on SVN 1.10+ to hide password from `ps aux`
+  - Previously: `svn --password "secret"` visible to all users on system
+  - Now: Password piped via stdin, not visible in process list
+  - Falls back to `--password` on SVN < 1.10
+- **Log indicator**: Shows `[auth: extension-only (stdin)]` or `(--password)`
+
+**Security improvement**: On multi-user systems (especially remote SSH servers), other users could previously see your SVN password by running `ps aux`. This fix prevents that exposure on SVN 1.10+.
+
+## [2.21.0] (2025-11-28)
+
+### IMPROVED: Clear Saved Credentials Command
+
+- **Enhanced**: `SVN: Clear Saved Credentials` now in Command Palette
+  - Previously only in SCM menu
+  - Now accessible via Ctrl/Cmd+Shift+P
+  - Clears credentials for all open repositories (deduped by server)
+  - Shows confirmation with server count
+
+## [2.20.0] (2025-11-28)
+
+### FEATURE: Separate Credential Storage Controls
+
+- **New setting**: `svn.auth.useExtensionStorage` (default: `true`)
+  - Store credentials in VS Code's encrypted SecretStorage
+  - Enables automatic retry with stored accounts
+  - Works reliably in remote/headless environments
+- **Clean separation**: Two independent switches for credential storage
+  - `useSystemKeyring`: Cache in OS keyring (gnome-keyring, macOS Keychain)
+  - `useExtensionStorage`: Store in VS Code SecretStorage
+  - Both can be enabled for fallback behavior
+  - Both can be disabled to always prompt
+
+**Configurations:**
+| useSystemKeyring | useExtensionStorage | Behavior |
+|------------------|---------------------|----------|
+| false (default) | true (default) | Extension-only, best for remote |
+| true | false | Keyring-only, shares with CLI |
+| true | true | Both stores, fallback support |
+| false | false | Always prompt |
+
+## [2.19.0] (2025-11-28)
+
+### BREAKING: Renamed Auth Setting & Changed Default
+
+- **Renamed**: `svn.auth.useNativeStore` → `svn.auth.useSystemKeyring`
+  - Clearer name: indicates system keyring caching (gnome-keyring, macOS Keychain, etc.)
+  - Better description in settings UI
+- **Changed default**: `true` → `false`
+  - Extension-only mode now default (more reliable for remote SSH/headless)
+  - System keyring opt-in for users who need it
+- **Improved**: Auth failure notification now offers "Disable Keyring" button
+  - Opens settings directly to toggle the option
+
+**Migration**: If you had `svn.auth.useNativeStore: true`, change to `svn.auth.useSystemKeyring: true`
+
+## [2.18.8] (2025-11-28)
+
+### FIX: Auth Retry Backoff
+
+- **Fix**: Added backoff delays to prevent server hammering during auth failures
+  - 500ms backoff between stored account cycling attempts
+  - 1000ms backoff before prompting user for credentials
+  - Prevents rate limiting/blocking from servers during credential issues
+
+## [2.18.7] (2025-11-28)
+
+### FIX: Multi-Repo Same-Server Credential Sharing
+
+- **Fix**: Repos on same server now share credentials
+  - Previously: Each repo had separate credential storage
+  - Now: Credentials keyed by server (scheme://host:port), not repo path
+  - `https://svn.example.com/repoA` and `/repoB` share same credentials
+  - Eliminates duplicate prompts for same-server repos
+
+## [2.18.6] (2025-11-28)
+
+### FIX: Race Conditions in Auth Flow
+
+- **Fix**: saveAuth() mutex prevents concurrent credential corruption
+  - Previously: Concurrent saves could lose credentials (read-modify-write race)
+  - Now: Saves are serialized via promise chain
+- **Fix**: promptAuth() cooldown prevents rapid re-prompting
+  - Previously: Multiple operations could trigger duplicate prompts
+  - Now: 500ms cooldown after prompt closes prevents race
+
+## [2.18.5] (2025-11-28)
+
+### FIX: Credential Storage & Security Hardening
+
+- **Fix**: Credential deduplication in SecretStorage
+  - Previously: Credentials always pushed, causing unbounded array growth
+  - Now: Updates existing entry for same username instead of duplicating
+  - Prevents stale password accumulation after password changes
+- **Fix**: Password regex handles quoted values
+  - Previously: `--password "my secret"` left `secret"` exposed in logs
+  - Now: Properly redacts `--password "quoted value"` and `'quoted value'`
+- **Fix**: Runtime type validation for stored credentials
+  - Validates JSON is array with correct `{account, password}` shape
+  - Filters out malformed entries instead of crashing
+
+## [2.18.4] (2025-11-28)
+
+### FIX: Extension-Managed Mode Auth Cycling
+
+- **Fix**: Credentials no longer cycle when `useNativeStore: false`
+  - Root cause: Credential cache realm hash didn't match server's actual realm
+  - Server uses realm like `<https://host:443> Login Account`
+  - We computed `<https://host:443> Authentication Realm` (wrong hash)
+  - SVN couldn't find our cached credentials → auth failed → retry loop
+- **Solution**: Removed credential cache file approach for extension-managed mode
+  - Now uses `--password` flag directly (works reliably)
+  - Credentials still stored in SecretStorage and reused across operations
+- **Log**: Shows `[auth: extension-managed (--password)]` in output
+
+## [2.18.3] (2025-11-28)
+
+### FEAT: Clear Saved Credentials Command
+
+- **New Command**: `SVN: Clear Saved Credentials`
+  - Clears all stored credentials for the current repository
+  - Removes from SecretStorage and clears runtime credentials
+  - Next SVN operation will prompt for credentials again
+  - Useful for testing auth flow or switching accounts
+
+## [2.18.2] (2025-11-28)
+
+### FIX: Native Store Mode Now Passes User-Provided Credentials
+
+- **Fix**: Password prompt no longer cycles when using native store mode
+  - Previously: Extension didn't pass password to SVN in native store mode
+  - Now: Passes user-provided password while keeping native stores enabled
+  - SVN can authenticate AND cache credentials in gpg-agent/keyring
+- **Improved**: Auth logging shows `[auth: native store + password (will cache)]`
+
+## [2.18.1] (2025-11-28)
+
+### FEAT: Auth Failure Notification for GPG-Agent
+
+- **New**: Shows notification when SVN auth fails in native store mode
+  - Informs user that GPG-agent may need password
+  - "Open Terminal" button to run `svn info <url>` for authentication
+  - "Learn More" links to documentation
+  - Shows once per session to avoid spam
+- **Files**: `src/util/nativeStoreAuthNotification.ts`, `src/svn.ts`
+
+## [2.18.0] (2025-11-28)
+
+### FEAT: Remote SSH Development Improvements
+
+- **New Setting**: `svn.auth.useNativeStore` (default: true)
+  - Enables SVN's native credential stores (gpg-agent, gnome-keyring, etc.)
+  - Fixes infinite password prompt loop in remote SSH sessions
+  - When true, SVN manages credentials natively - no more cycling prompts
+  - When false, extension-managed credential cache (legacy behavior)
+- **New Setting**: `svn.auth.commandTimeout` (default: 60s)
+  - Configurable timeout for SVN commands (10-600 seconds)
+  - Helps with slow remote connections
+- **Fix**: Password prompt no longer cycles endlessly
+  - Root cause: Extension disabled gpg-agent/keyring via `--config-option`
+  - Now respects native credential stores when enabled
+- **Improved**: Auth logging shows `[auth: native store (gpg-agent/keyring)]`
+
 ## [2.17.244] (2025-11-28)
 
 ### FIX: Marketplace Auto-Publish

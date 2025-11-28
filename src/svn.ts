@@ -6,6 +6,7 @@ import * as cp from "child_process";
 import { EventEmitter } from "events";
 import * as proc from "process";
 import { Readable } from "stream";
+import * as semver from "semver";
 import {
   ConstructorPolicy,
   ICpOptions,
@@ -20,6 +21,7 @@ import { SvnAuthCache } from "./services/svnAuthCache";
 import { Repository } from "./svnRepository";
 import { dispose, IDisposable, toDisposable } from "./util";
 import { logError } from "./util/errorLogger";
+import { showSystemKeyringAuthNotification } from "./util/nativeStoreAuthNotification";
 import { iconv } from "./vscodeModules";
 
 export const svnErrorCodes: { [key: string]: string } = {
@@ -34,9 +36,6 @@ export const svnErrorCodes: { [key: string]: string } = {
 
 // Path separator pattern for cross-platform path splitting
 const PATH_SEPARATOR_PATTERN = /[\\\/]+/;
-
-// Default timeout for SVN commands (30 seconds)
-const DEFAULT_TIMEOUT_MS = 30000;
 
 // Default locale for SVN command execution
 const DEFAULT_LOCALE = "en_US.UTF-8";
@@ -118,8 +117,6 @@ export class Svn {
     args: any[],
     options: ICpOptions = {}
   ): Promise<IExecutionResult> {
-    let credentialCacheFile: string | undefined;
-
     try {
       if (cwd) {
         this.lastCwd = cwd;
@@ -133,49 +130,77 @@ export class Svn {
         );
       }
 
-      // Handle credential cache for secure password passing
-      if (options.password && options.realmUrl && options.username) {
-        try {
-          credentialCacheFile = await this.authCache.writeCredential(
-            options.username,
-            options.password,
-            options.realmUrl
-          );
-        } catch (err) {
-          console.warn(
-            `[SVN] Failed to write credential cache: ${(err as Error).message}, falling back to --password`
-          );
-        }
-      }
+      // Check if system keyring caching is enabled (gnome-keyring, macOS Keychain, etc)
+      const useSystemKeyring = configuration.get<boolean>(
+        "auth.useSystemKeyring",
+        false
+      );
+
+      // Note: Credential cache file approach removed - realm string varies per server
+      // and we cannot compute the correct hash without server cooperation.
 
       if (options.username) {
         args.push("--username", options.username);
       }
 
-      if (options.password && !credentialCacheFile) {
-        // Only use insecure --password if cache write failed or no realmUrl provided
-        args.push("--password", options.password);
-      }
+      // Check if SVN 1.10+ for --password-from-stdin support (hides password from ps)
+      const supportsStdinPassword = semver.gte(this.version, "1.10.0");
+      let passwordForStdin: string | undefined;
 
-      if ((options.username || options.password) && !credentialCacheFile) {
-        // Configuration format: FILE:SECTION:OPTION=[VALUE]
-        // Only disable password stores if not using credential cache
-        args.push("--config-option", "config:auth:password-stores=");
-        args.push("--config-option", "servers:global:store-auth-creds=no");
+      if (useSystemKeyring) {
+        // System keyring mode: Pass password but keep native stores enabled
+        // SVN will cache credentials in gnome-keyring/macOS Keychain/etc.
+        if (options.password) {
+          if (supportsStdinPassword) {
+            args.push("--password-from-stdin");
+            passwordForStdin = options.password;
+          } else {
+            args.push("--password", options.password);
+          }
+        }
+        // Don't disable stores - let SVN cache credentials in system keyring
+      } else {
+        // Extension-only mode: Use --password and disable system keyring caching
+        // Credentials stored only in VS Code's encrypted SecretStorage
+        if (options.password) {
+          if (supportsStdinPassword) {
+            args.push("--password-from-stdin");
+            passwordForStdin = options.password;
+          } else {
+            args.push("--password", options.password);
+          }
+        }
+
+        if (options.username || options.password) {
+          // Configuration format: FILE:SECTION:OPTION=[VALUE]
+          // Disable all password stores to prevent credential confusion
+          args.push("--config-option", "config:auth:password-stores=");
+          args.push("--config-option", "servers:global:store-auth-creds=no");
+        }
       }
 
       // Force non interactive environment
       args.push("--non-interactive");
 
+      // Read configurable timeout (in seconds, convert to ms)
+      const timeoutSeconds = configuration.get<number>(
+        "auth.commandTimeout",
+        60
+      );
+      const configuredTimeoutMs = timeoutSeconds * 1000;
+
       // Debug authentication indicators (never expose password values)
-      if (credentialCacheFile && options.log !== false) {
-        this.logOutput(`[auth: credential cache]\n`);
+      const authMethod = supportsStdinPassword ? "stdin" : "--password";
+      if (useSystemKeyring && options.password && options.log !== false) {
+        this.logOutput(`[auth: system keyring + ${authMethod}]\n`);
+      } else if (useSystemKeyring && options.log !== false) {
+        this.logOutput(`[auth: system keyring]\n`);
       } else if (
+        !useSystemKeyring &&
         options.password &&
-        !options.realmUrl &&
         options.log !== false
       ) {
-        this.logOutput(`[auth: password (insecure - no realmUrl)]\n`);
+        this.logOutput(`[auth: extension-only (${authMethod})]\n`);
       } else if (
         options.username &&
         !options.password &&
@@ -212,6 +237,13 @@ export class Svn {
 
       const process = cp.spawn(this.svnPath, args, defaults);
 
+      // Write password via stdin if using --password-from-stdin (SVN 1.10+)
+      // This hides password from process list (ps aux)
+      if (passwordForStdin && process.stdin) {
+        process.stdin.write(passwordForStdin);
+        process.stdin.end();
+      }
+
       const disposables: IDisposable[] = [];
 
       const once = (
@@ -233,7 +265,8 @@ export class Svn {
       };
 
       // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
-      const timeoutMs = options.timeout || DEFAULT_TIMEOUT_MS;
+      // Use configured timeout from settings, or explicit option, or default
+      const timeoutMs = options.timeout || configuredTimeoutMs;
       const timeoutPromise = new Promise<[number, Buffer, string]>(
         (_, reject) => {
           setTimeout(() => {
@@ -327,6 +360,17 @@ export class Svn {
       }
 
       if (exitCode) {
+        const svnErrorCode = getSvnErrorCode(stderr);
+
+        // Show notification for system keyring auth failures (keyring may need unlock)
+        if (
+          useSystemKeyring &&
+          svnErrorCode === svnErrorCodes.AuthorizationFailed
+        ) {
+          // Fire and forget - don't await, just show notification
+          showSystemKeyringAuthNotification();
+        }
+
         return Promise.reject<IExecutionResult>(
           new SvnError({
             message: "Failed to execute svn",
@@ -334,24 +378,15 @@ export class Svn {
             stderr,
             stderrFormated: stderr.replace(/^svn: E\d+: +/gm, ""),
             exitCode,
-            svnErrorCode: getSvnErrorCode(stderr),
+            svnErrorCode,
             svnCommand: args[0]
           })
         );
       }
 
       return { exitCode, stdout: decodedStdout, stderr };
-    } finally {
-      // RAII pattern: Always cleanup credential file even if command fails
-      if (credentialCacheFile && options.realmUrl) {
-        try {
-          await this.authCache.deleteCredential(options.realmUrl);
-        } catch (err) {
-          console.error(
-            `[SVN] Failed to cleanup credential cache: ${(err as Error).message}`
-          );
-        }
-      }
+    } catch (err) {
+      throw err;
     }
   }
 
@@ -360,8 +395,6 @@ export class Svn {
     args: any[],
     options: ICpOptions = {}
   ): Promise<BufferResult> {
-    let credentialCacheFile: string | undefined;
-
     try {
       if (cwd) {
         this.lastCwd = cwd;
@@ -375,49 +408,77 @@ export class Svn {
         );
       }
 
-      // Handle credential cache for secure password passing
-      if (options.password && options.realmUrl && options.username) {
-        try {
-          credentialCacheFile = await this.authCache.writeCredential(
-            options.username,
-            options.password,
-            options.realmUrl
-          );
-        } catch (err) {
-          console.warn(
-            `[SVN] Failed to write credential cache: ${(err as Error).message}, falling back to --password`
-          );
-        }
-      }
+      // Check if system keyring caching is enabled (gnome-keyring, macOS Keychain, etc)
+      const useSystemKeyring = configuration.get<boolean>(
+        "auth.useSystemKeyring",
+        false
+      );
+
+      // Note: Credential cache file approach removed - realm string varies per server
+      // and we cannot compute the correct hash without server cooperation.
 
       if (options.username) {
         args.push("--username", options.username);
       }
 
-      if (options.password && !credentialCacheFile) {
-        // Only use insecure --password if cache write failed or no realmUrl provided
-        args.push("--password", options.password);
-      }
+      // Check if SVN 1.10+ for --password-from-stdin support (hides password from ps)
+      const supportsStdinPassword = semver.gte(this.version, "1.10.0");
+      let passwordForStdin: string | undefined;
 
-      if ((options.username || options.password) && !credentialCacheFile) {
-        // Configuration format: FILE:SECTION:OPTION=[VALUE]
-        // Only disable password stores if not using credential cache
-        args.push("--config-option", "config:auth:password-stores=");
-        args.push("--config-option", "servers:global:store-auth-creds=no");
+      if (useSystemKeyring) {
+        // System keyring mode: Pass password but keep native stores enabled
+        // SVN will cache credentials in gnome-keyring/macOS Keychain/etc.
+        if (options.password) {
+          if (supportsStdinPassword) {
+            args.push("--password-from-stdin");
+            passwordForStdin = options.password;
+          } else {
+            args.push("--password", options.password);
+          }
+        }
+        // Don't disable stores - let SVN cache credentials in system keyring
+      } else {
+        // Extension-only mode: Use --password and disable system keyring caching
+        // Credentials stored only in VS Code's encrypted SecretStorage
+        if (options.password) {
+          if (supportsStdinPassword) {
+            args.push("--password-from-stdin");
+            passwordForStdin = options.password;
+          } else {
+            args.push("--password", options.password);
+          }
+        }
+
+        if (options.username || options.password) {
+          // Configuration format: FILE:SECTION:OPTION=[VALUE]
+          // Disable all password stores to prevent credential confusion
+          args.push("--config-option", "config:auth:password-stores=");
+          args.push("--config-option", "servers:global:store-auth-creds=no");
+        }
       }
 
       // Force non interactive environment
       args.push("--non-interactive");
 
+      // Read configurable timeout (in seconds, convert to ms)
+      const timeoutSeconds = configuration.get<number>(
+        "auth.commandTimeout",
+        60
+      );
+      const configuredTimeoutMs = timeoutSeconds * 1000;
+
       // Debug authentication indicators (never expose password values)
-      if (credentialCacheFile && options.log !== false) {
-        this.logOutput(`[auth: credential cache]\n`);
+      const authMethod = supportsStdinPassword ? "stdin" : "--password";
+      if (useSystemKeyring && options.password && options.log !== false) {
+        this.logOutput(`[auth: system keyring + ${authMethod}]\n`);
+      } else if (useSystemKeyring && options.log !== false) {
+        this.logOutput(`[auth: system keyring]\n`);
       } else if (
+        !useSystemKeyring &&
         options.password &&
-        !options.realmUrl &&
         options.log !== false
       ) {
-        this.logOutput(`[auth: password (insecure - no realmUrl)]\n`);
+        this.logOutput(`[auth: extension-only (${authMethod})]\n`);
       } else if (
         options.username &&
         !options.password &&
@@ -446,6 +507,13 @@ export class Svn {
 
       const process = cp.spawn(this.svnPath, args, defaults);
 
+      // Write password via stdin if using --password-from-stdin (SVN 1.10+)
+      // This hides password from process list (ps aux)
+      if (passwordForStdin && process.stdin) {
+        process.stdin.write(passwordForStdin);
+        process.stdin.end();
+      }
+
       const disposables: IDisposable[] = [];
 
       const once = (
@@ -467,7 +535,8 @@ export class Svn {
       };
 
       // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
-      const timeoutMs = options.timeout || DEFAULT_TIMEOUT_MS;
+      // Use configured timeout from settings, or explicit option, or default
+      const timeoutMs = options.timeout || configuredTimeoutMs;
       const timeoutPromise = new Promise<[number, Buffer, string]>(
         (_, reject) => {
           setTimeout(() => {
@@ -524,17 +593,8 @@ export class Svn {
       }
 
       return { exitCode, stdout, stderr };
-    } finally {
-      // RAII pattern: Always cleanup credential file even if command fails
-      if (credentialCacheFile && options.realmUrl) {
-        try {
-          await this.authCache.deleteCredential(options.realmUrl);
-        } catch (err) {
-          console.error(
-            `[SVN] Failed to cleanup credential cache: ${(err as Error).message}`
-          );
-        }
-      }
+    } catch (err) {
+      throw err;
     }
   }
 

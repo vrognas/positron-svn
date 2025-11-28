@@ -605,12 +605,24 @@ export abstract class Command implements Disposable {
         // Strip absolute file paths (Unix and Windows)
         .replace(/\/[^\s:]+/g, "[PATH]")
         .replace(/[A-Za-z]:\\[^\s:]+/g, "[PATH]")
-        // Remove password parameters
-        .replace(/password[=:]\s*\S+/gi, "password=[REDACTED]")
-        .replace(/--password\s+\S+/gi, "--password [REDACTED]")
-        // Remove username parameters
-        .replace(/username[=:]\s*\S+/gi, "username=[REDACTED]")
-        .replace(/--username\s+\S+/gi, "--username [REDACTED]")
+        // Remove password parameters (handles quoted values with spaces)
+        .replace(
+          /password[=:]\s*(?:"[^"]*"|'[^']*'|\S+)/gi,
+          "password=[REDACTED]"
+        )
+        .replace(
+          /--password\s+(?:"[^"]*"|'[^']*'|\S+)/gi,
+          "--password [REDACTED]"
+        )
+        // Remove username parameters (handles quoted values with spaces)
+        .replace(
+          /username[=:]\s*(?:"[^"]*"|'[^']*'|\S+)/gi,
+          "username=[REDACTED]"
+        )
+        .replace(
+          /--username\s+(?:"[^"]*"|'[^']*'|\S+)/gi,
+          "--username [REDACTED]"
+        )
         // Sanitize URLs (preserve protocol and domain, strip credentials)
         .replace(/https?:\/\/[^:@\s]+:[^@\s]+@/g, "https://[CREDENTIALS]@")
         // Strip internal IP addresses
