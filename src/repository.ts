@@ -126,6 +126,7 @@ export class Repository implements IRemoteRepository {
   private lastPromptAuth?: Thenable<IAuth | undefined>;
   private saveAuthLock: Promise<void> = Promise.resolve();
   private promptAuthCooldown: boolean = false;
+  private promptAuthCooldownTimer?: ReturnType<typeof setTimeout>;
 
   private _fsWatcher: RepositoryFilesWatcher;
   public get fsWatcher() {
@@ -975,8 +976,12 @@ export class Repository implements IRemoteRepository {
     // Cooldown: prevent rapid re-prompting after dialog closes
     this.lastPromptAuth = undefined;
     this.promptAuthCooldown = true;
-    setTimeout(() => {
+    if (this.promptAuthCooldownTimer) {
+      clearTimeout(this.promptAuthCooldownTimer);
+    }
+    this.promptAuthCooldownTimer = setTimeout(() => {
       this.promptAuthCooldown = false;
+      this.promptAuthCooldownTimer = undefined;
     }, 500);
 
     return result;
@@ -1106,6 +1111,11 @@ export class Repository implements IRemoteRepository {
   }
 
   public dispose(): void {
+    // Clear auth cooldown timer to prevent memory leak
+    if (this.promptAuthCooldownTimer) {
+      clearTimeout(this.promptAuthCooldownTimer);
+      this.promptAuthCooldownTimer = undefined;
+    }
     this.statusService.dispose();
     this.repository.clearInfoCacheTimers(); // Phase 8.2 perf fix - clear timers
     this.disposables = dispose(this.disposables);

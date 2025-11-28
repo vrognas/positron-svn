@@ -1,3 +1,13 @@
+## [2.22.1] (2025-11-28)
+
+### FIX: Auth Input Validation & Timer Cleanup
+
+- **Fix**: Empty username/password no longer accepted
+  - Input validation prevents saving empty credentials
+  - Username is trimmed of whitespace
+- **Fix**: Auth cooldown timer properly cleaned up on repository dispose
+  - Prevents potential memory leak on rapid repo open/close
+
 ## [2.22.0] (2025-11-28)
 
 ### SECURITY: Password Hidden from Process List (SVN 1.10+)
