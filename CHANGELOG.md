@@ -1,3 +1,12 @@
+## [2.18.8] (2025-11-28)
+
+### FIX: Auth Retry Backoff
+
+- **Fix**: Added backoff delays to prevent server hammering during auth failures
+  - 500ms backoff between stored account cycling attempts
+  - 1000ms backoff before prompting user for credentials
+  - Prevents rate limiting/blocking from servers during credential issues
+
 ## [2.18.7] (2025-11-28)
 
 ### FIX: Multi-Repo Same-Server Credential Sharing

@@ -1069,6 +1069,8 @@ export class Repository implements IRemoteRepository {
           svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&
           attempt <= accounts.length
         ) {
+          // Backoff before trying next stored account (prevent server hammering)
+          await timeout(500);
           // Fix Bug 1: Cycle through stored accounts properly
           // attempt 1 failed with accounts[0], try accounts[1], etc.
           const index = attempt;
@@ -1080,6 +1082,8 @@ export class Repository implements IRemoteRepository {
           svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&
           attempt <= 3 + accounts.length
         ) {
+          // Backoff before prompting user (prevent server hammering)
+          await timeout(1000);
           const result = await this.promptAuth();
           if (!result) {
             throw err;
