@@ -124,6 +124,8 @@ export class Repository implements IRemoteRepository {
   }
 
   private lastPromptAuth?: Thenable<IAuth | undefined>;
+  private saveAuthLock: Promise<void> = Promise.resolve();
+  private promptAuthCooldown: boolean = false;
 
   private _fsWatcher: RepositoryFilesWatcher;
   public get fsWatcher() {
@@ -870,15 +872,22 @@ export class Repository implements IRemoteRepository {
   }
 
   public async saveAuth(): Promise<void> {
-    if (this.canSaveAuth && this.username && this.password) {
+    if (!this.canSaveAuth || !this.username || !this.password) {
+      return;
+    }
+
+    // Mutex: serialize concurrent saves to prevent read-modify-write race
+    const username = this.username;
+    const password = this.password;
+    this.canSaveAuth = false;
+
+    this.saveAuthLock = this.saveAuthLock.then(async () => {
       const secret = await this.secrets.get(this.getCredentialServiceName());
       let credentials: Array<IStoredAuth> = [];
 
-      // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed secrets
       if (typeof secret === "string") {
         try {
           const parsed = JSON.parse(secret);
-          // Validate parsed data is array
           if (Array.isArray(parsed)) {
             credentials = parsed.filter(
               (c): c is IStoredAuth =>
@@ -894,25 +903,20 @@ export class Repository implements IRemoteRepository {
       }
 
       // Deduplicate: update existing entry or add new
-      const existingIndex = credentials.findIndex(
-        c => c.account === this.username
-      );
+      const existingIndex = credentials.findIndex(c => c.account === username);
       if (existingIndex >= 0) {
-        credentials[existingIndex].password = this.password;
+        credentials[existingIndex].password = password;
       } else {
-        credentials.push({
-          account: this.username,
-          password: this.password
-        });
+        credentials.push({ account: username, password });
       }
 
       await this.secrets.store(
         this.getCredentialServiceName(),
         JSON.stringify(credentials)
       );
+    });
 
-      this.canSaveAuth = false;
-    }
+    return this.saveAuthLock;
   }
 
   /**
@@ -930,9 +934,12 @@ export class Repository implements IRemoteRepository {
   }
 
   public async promptAuth(): Promise<IAuth | undefined> {
-    // Prevent multiple prompts for auth
-    if (this.lastPromptAuth) {
-      return this.lastPromptAuth;
+    // Prevent multiple prompts: active prompt or cooldown period
+    if (this.lastPromptAuth || this.promptAuthCooldown) {
+      if (this.lastPromptAuth) {
+        return this.lastPromptAuth;
+      }
+      return undefined; // During cooldown, skip prompting
     }
 
     this.lastPromptAuth = commands.executeCommand("svn.promptAuth");
@@ -944,7 +951,13 @@ export class Repository implements IRemoteRepository {
       this.canSaveAuth = true;
     }
 
+    // Cooldown: prevent rapid re-prompting after dialog closes
     this.lastPromptAuth = undefined;
+    this.promptAuthCooldown = true;
+    setTimeout(() => {
+      this.promptAuthCooldown = false;
+    }, 500);
+
     return result;
   }
 

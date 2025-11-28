@@ -1,3 +1,14 @@
+## [2.18.6] (2025-11-28)
+
+### FIX: Race Conditions in Auth Flow
+
+- **Fix**: saveAuth() mutex prevents concurrent credential corruption
+  - Previously: Concurrent saves could lose credentials (read-modify-write race)
+  - Now: Saves are serialized via promise chain
+- **Fix**: promptAuth() cooldown prevents rapid re-prompting
+  - Previously: Multiple operations could trigger duplicate prompts
+  - Now: 500ms cooldown after prompt closes prevents race
+
 ## [2.18.5] (2025-11-28)
 
 ### FIX: Credential Storage & Security Hardening
