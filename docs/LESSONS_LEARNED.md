@@ -420,6 +420,22 @@ if (!useNativeStore) {
 - Works seamlessly in SSH sessions when `GPG_TTY=$(tty)` is set
 - No chicken-egg problem - SVN handles auth before extension needs info
 
+**Additional fix** (v2.18.2):
+
+- Native store mode must STILL pass `--password` for initial caching
+- Without password, gpg-agent has nothing to cache on first auth
+- After initial cache, subsequent operations use cached credentials
+
+```typescript
+// Pass password in native store mode to enable caching
+if (useNativeStore && options.password) {
+  args.push("--password", options.password);
+  // Don't disable stores - let gpg-agent cache for future use
+}
+```
+
+**Workaround**: If native stores still fail, set `svn.auth.useNativeStore: false` to use extension-managed credentials.
+
 **Rule**: Default to native credential stores. Extension-managed credentials are fallback.
 
 ---
@@ -446,5 +462,5 @@ if (!useNativeStore) {
 
 ---
 
-**Document Version**: 2.3
+**Document Version**: 2.4
 **Last Updated**: 2025-11-28
