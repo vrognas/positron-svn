@@ -852,10 +852,17 @@ export class Repository implements IRemoteRepository {
       return [];
     }
 
-    // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed secrets
+    // Safe JSON.parse with runtime type validation
     try {
-      const credentials = JSON.parse(secret) as Array<IStoredAuth>;
-      return credentials;
+      const parsed = JSON.parse(secret);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      // Filter to only valid credential entries
+      return parsed.filter(
+        (c): c is IStoredAuth =>
+          c && typeof c.account === "string" && typeof c.password === "string"
+      );
     } catch (error) {
       logError("Failed to parse stored credentials", error);
       return [];
@@ -870,17 +877,34 @@ export class Repository implements IRemoteRepository {
       // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed secrets
       if (typeof secret === "string") {
         try {
-          credentials = JSON.parse(secret) as Array<IStoredAuth>;
+          const parsed = JSON.parse(secret);
+          // Validate parsed data is array
+          if (Array.isArray(parsed)) {
+            credentials = parsed.filter(
+              (c): c is IStoredAuth =>
+                c &&
+                typeof c.account === "string" &&
+                typeof c.password === "string"
+            );
+          }
         } catch (error) {
           logError("Failed to parse stored credentials", error);
           credentials = [];
         }
       }
 
-      credentials.push({
-        account: this.username,
-        password: this.password
-      });
+      // Deduplicate: update existing entry or add new
+      const existingIndex = credentials.findIndex(
+        c => c.account === this.username
+      );
+      if (existingIndex >= 0) {
+        credentials[existingIndex].password = this.password;
+      } else {
+        credentials.push({
+          account: this.username,
+          password: this.password
+        });
+      }
 
       await this.secrets.store(
         this.getCredentialServiceName(),

@@ -1,3 +1,18 @@
+## [2.18.5] (2025-11-28)
+
+### FIX: Credential Storage & Security Hardening
+
+- **Fix**: Credential deduplication in SecretStorage
+  - Previously: Credentials always pushed, causing unbounded array growth
+  - Now: Updates existing entry for same username instead of duplicating
+  - Prevents stale password accumulation after password changes
+- **Fix**: Password regex handles quoted values
+  - Previously: `--password "my secret"` left `secret"` exposed in logs
+  - Now: Properly redacts `--password "quoted value"` and `'quoted value'`
+- **Fix**: Runtime type validation for stored credentials
+  - Validates JSON is array with correct `{account, password}` shape
+  - Filters out malformed entries instead of crashing
+
 ## [2.18.4] (2025-11-28)
 
 ### FIX: Extension-Managed Mode Auth Cycling
