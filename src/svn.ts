@@ -20,6 +20,7 @@ import { SvnAuthCache } from "./services/svnAuthCache";
 import { Repository } from "./svnRepository";
 import { dispose, IDisposable, toDisposable } from "./util";
 import { logError } from "./util/errorLogger";
+import { showNativeStoreAuthNotification } from "./util/nativeStoreAuthNotification";
 import { iconv } from "./vscodeModules";
 
 export const svnErrorCodes: { [key: string]: string } = {
@@ -351,6 +352,17 @@ export class Svn {
       }
 
       if (exitCode) {
+        const svnErrorCode = getSvnErrorCode(stderr);
+
+        // Show notification for native store auth failures (gpg-agent needs password)
+        if (
+          useNativeStore &&
+          svnErrorCode === svnErrorCodes.AuthorizationFailed
+        ) {
+          // Fire and forget - don't await, just show notification
+          showNativeStoreAuthNotification();
+        }
+
         return Promise.reject<IExecutionResult>(
           new SvnError({
             message: "Failed to execute svn",
@@ -358,7 +370,7 @@ export class Svn {
             stderr,
             stderrFormated: stderr.replace(/^svn: E\d+: +/gm, ""),
             exitCode,
-            svnErrorCode: getSvnErrorCode(stderr),
+            svnErrorCode,
             svnCommand: args[0]
           })
         );

@@ -1,3 +1,14 @@
+## [2.18.1] (2025-11-28)
+
+### FEAT: Auth Failure Notification for GPG-Agent
+
+- **New**: Shows notification when SVN auth fails in native store mode
+  - Informs user that GPG-agent may need password
+  - "Open Terminal" button to run `svn info <url>` for authentication
+  - "Learn More" links to documentation
+  - Shows once per session to avoid spam
+- **Files**: `src/util/nativeStoreAuthNotification.ts`, `src/svn.ts`
+
 ## [2.18.0] (2025-11-28)
 
 ### FEAT: Remote SSH Development Improvements
