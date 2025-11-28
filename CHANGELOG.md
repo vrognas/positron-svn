@@ -1,3 +1,18 @@
+## [2.19.0] (2025-11-28)
+
+### BREAKING: Renamed Auth Setting & Changed Default
+
+- **Renamed**: `svn.auth.useNativeStore` → `svn.auth.useSystemKeyring`
+  - Clearer name: indicates system keyring caching (gnome-keyring, macOS Keychain, etc.)
+  - Better description in settings UI
+- **Changed default**: `true` → `false`
+  - Extension-only mode now default (more reliable for remote SSH/headless)
+  - System keyring opt-in for users who need it
+- **Improved**: Auth failure notification now offers "Disable Keyring" button
+  - Opens settings directly to toggle the option
+
+**Migration**: If you had `svn.auth.useNativeStore: true`, change to `svn.auth.useSystemKeyring: true`
+
 ## [2.18.8] (2025-11-28)
 
 ### FIX: Auth Retry Backoff

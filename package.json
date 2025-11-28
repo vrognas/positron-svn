@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.18.8",
+  "version": "2.19.0",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.74.0",
@@ -1151,10 +1151,10 @@
     "configuration": {
       "title": "Svn",
       "properties": {
-        "svn.auth.useNativeStore": {
+        "svn.auth.useSystemKeyring": {
           "type": "boolean",
-          "description": "Use SVN's native credential stores (gpg-agent, gnome-keyring, etc). When enabled, SVN manages credential persistence. Disable to use extension-only credential handling.",
-          "default": true
+          "description": "Allow SVN to cache credentials in your system keyring (gnome-keyring, macOS Keychain, Windows Credential Manager). When disabled, credentials are stored only in VS Code's encrypted storage and passed via command-line. Disable for remote SSH or headless environments where keyring may be unavailable.",
+          "default": false
         },
         "svn.auth.commandTimeout": {
           "type": "number",

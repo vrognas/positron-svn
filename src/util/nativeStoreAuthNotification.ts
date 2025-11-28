@@ -10,12 +10,12 @@ import { window, commands } from "vscode";
 let notificationShownThisSession = false;
 
 /**
- * Shows notification when GPG-agent/native store auth fails.
- * Guides user to authenticate via terminal.
+ * Shows notification when system keyring auth fails.
+ * Guides user to authenticate via terminal or disable keyring.
  *
  * Only shows once per session to avoid spam.
  */
-export async function showNativeStoreAuthNotification(): Promise<void> {
+export async function showSystemKeyringAuthNotification(): Promise<void> {
   if (notificationShownThisSession) {
     return;
   }
@@ -23,31 +23,39 @@ export async function showNativeStoreAuthNotification(): Promise<void> {
   notificationShownThisSession = true;
 
   const openTerminal = "Open Terminal";
-  const learnMore = "Learn More";
+  const disableKeyring = "Disable Keyring";
 
   const message =
-    "SVN authentication failed. GPG-agent may need your password. " +
-    "Run 'svn info <url>' in terminal to authenticate.";
+    "SVN authentication failed. System keyring may need unlock. " +
+    "Run 'svn info <url>' in terminal, or disable keyring in settings.";
 
   const result = await window.showWarningMessage(
     message,
     openTerminal,
-    learnMore
+    disableKeyring
   );
 
   if (result === openTerminal) {
     await commands.executeCommand("workbench.action.terminal.new");
-  } else if (result === learnMore) {
+  } else if (result === disableKeyring) {
     await commands.executeCommand(
-      "vscode.open",
-      "https://github.com/vrognas/positron-svn#gpg-agent-setup"
+      "workbench.action.openSettings",
+      "svn.auth.useSystemKeyring"
     );
   }
 }
 
+// Legacy alias for backwards compatibility
+export const showNativeStoreAuthNotification =
+  showSystemKeyringAuthNotification;
+
 /**
  * Reset notification state (for testing)
  */
-export function resetNativeStoreAuthNotification(): void {
+export function resetSystemKeyringAuthNotification(): void {
   notificationShownThisSession = false;
 }
+
+// Legacy alias
+export const resetNativeStoreAuthNotification =
+  resetSystemKeyringAuthNotification;

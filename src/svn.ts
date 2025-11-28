@@ -20,7 +20,7 @@ import { SvnAuthCache } from "./services/svnAuthCache";
 import { Repository } from "./svnRepository";
 import { dispose, IDisposable, toDisposable } from "./util";
 import { logError } from "./util/errorLogger";
-import { showNativeStoreAuthNotification } from "./util/nativeStoreAuthNotification";
+import { showSystemKeyringAuthNotification } from "./util/nativeStoreAuthNotification";
 import { iconv } from "./vscodeModules";
 
 export const svnErrorCodes: { [key: string]: string } = {
@@ -129,10 +129,10 @@ export class Svn {
         );
       }
 
-      // Check if native credential store is enabled (gpg-agent, gnome-keyring, etc)
-      const useNativeStore = configuration.get<boolean>(
-        "auth.useNativeStore",
-        true
+      // Check if system keyring caching is enabled (gnome-keyring, macOS Keychain, etc)
+      const useSystemKeyring = configuration.get<boolean>(
+        "auth.useSystemKeyring",
+        false
       );
 
       // Note: Credential cache file approach removed - realm string varies per server
@@ -142,16 +142,16 @@ export class Svn {
         args.push("--username", options.username);
       }
 
-      if (useNativeStore) {
-        // Native store mode: Pass user-provided password but keep native stores enabled
-        // This allows SVN to authenticate AND cache credentials in gpg-agent/keyring
+      if (useSystemKeyring) {
+        // System keyring mode: Pass password but keep native stores enabled
+        // SVN will cache credentials in gnome-keyring/macOS Keychain/etc.
         if (options.password) {
           args.push("--password", options.password);
         }
-        // Don't disable stores - let SVN cache credentials for future use
+        // Don't disable stores - let SVN cache credentials in system keyring
       } else {
-        // Extension-managed mode: Always use --password and disable native stores
-        // Each SVN operation will require fresh credentials (no caching)
+        // Extension-only mode: Use --password and disable system keyring caching
+        // Credentials stored only in VS Code's encrypted SecretStorage
         if (options.password) {
           args.push("--password", options.password);
         }
@@ -175,12 +175,16 @@ export class Svn {
       const configuredTimeoutMs = timeoutSeconds * 1000;
 
       // Debug authentication indicators (never expose password values)
-      if (useNativeStore && options.password && options.log !== false) {
-        this.logOutput(`[auth: native store + password (will cache)]\n`);
-      } else if (useNativeStore && options.log !== false) {
-        this.logOutput(`[auth: native store (gpg-agent/keyring)]\n`);
-      } else if (!useNativeStore && options.password && options.log !== false) {
-        this.logOutput(`[auth: extension-managed (--password)]\n`);
+      if (useSystemKeyring && options.password && options.log !== false) {
+        this.logOutput(`[auth: system keyring + password]\n`);
+      } else if (useSystemKeyring && options.log !== false) {
+        this.logOutput(`[auth: system keyring]\n`);
+      } else if (
+        !useSystemKeyring &&
+        options.password &&
+        options.log !== false
+      ) {
+        this.logOutput(`[auth: extension-only (--password)]\n`);
       } else if (
         options.username &&
         !options.password &&
@@ -335,13 +339,13 @@ export class Svn {
       if (exitCode) {
         const svnErrorCode = getSvnErrorCode(stderr);
 
-        // Show notification for native store auth failures (gpg-agent needs password)
+        // Show notification for system keyring auth failures (keyring may need unlock)
         if (
-          useNativeStore &&
+          useSystemKeyring &&
           svnErrorCode === svnErrorCodes.AuthorizationFailed
         ) {
           // Fire and forget - don't await, just show notification
-          showNativeStoreAuthNotification();
+          showSystemKeyringAuthNotification();
         }
 
         return Promise.reject<IExecutionResult>(
@@ -381,10 +385,10 @@ export class Svn {
         );
       }
 
-      // Check if native credential store is enabled (gpg-agent, gnome-keyring, etc)
-      const useNativeStore = configuration.get<boolean>(
-        "auth.useNativeStore",
-        true
+      // Check if system keyring caching is enabled (gnome-keyring, macOS Keychain, etc)
+      const useSystemKeyring = configuration.get<boolean>(
+        "auth.useSystemKeyring",
+        false
       );
 
       // Note: Credential cache file approach removed - realm string varies per server
@@ -394,16 +398,16 @@ export class Svn {
         args.push("--username", options.username);
       }
 
-      if (useNativeStore) {
-        // Native store mode: Pass user-provided password but keep native stores enabled
-        // This allows SVN to authenticate AND cache credentials in gpg-agent/keyring
+      if (useSystemKeyring) {
+        // System keyring mode: Pass password but keep native stores enabled
+        // SVN will cache credentials in gnome-keyring/macOS Keychain/etc.
         if (options.password) {
           args.push("--password", options.password);
         }
-        // Don't disable stores - let SVN cache credentials for future use
+        // Don't disable stores - let SVN cache credentials in system keyring
       } else {
-        // Extension-managed mode: Always use --password and disable native stores
-        // Each SVN operation will require fresh credentials (no caching)
+        // Extension-only mode: Use --password and disable system keyring caching
+        // Credentials stored only in VS Code's encrypted SecretStorage
         if (options.password) {
           args.push("--password", options.password);
         }
@@ -427,12 +431,16 @@ export class Svn {
       const configuredTimeoutMs = timeoutSeconds * 1000;
 
       // Debug authentication indicators (never expose password values)
-      if (useNativeStore && options.password && options.log !== false) {
-        this.logOutput(`[auth: native store + password (will cache)]\n`);
-      } else if (useNativeStore && options.log !== false) {
-        this.logOutput(`[auth: native store (gpg-agent/keyring)]\n`);
-      } else if (!useNativeStore && options.password && options.log !== false) {
-        this.logOutput(`[auth: extension-managed (--password)]\n`);
+      if (useSystemKeyring && options.password && options.log !== false) {
+        this.logOutput(`[auth: system keyring + password]\n`);
+      } else if (useSystemKeyring && options.log !== false) {
+        this.logOutput(`[auth: system keyring]\n`);
+      } else if (
+        !useSystemKeyring &&
+        options.password &&
+        options.log !== false
+      ) {
+        this.logOutput(`[auth: extension-only (--password)]\n`);
       } else if (
         options.username &&
         !options.password &&
