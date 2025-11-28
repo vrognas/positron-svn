@@ -1,3 +1,25 @@
+## [2.20.0] (2025-11-28)
+
+### FEATURE: Separate Credential Storage Controls
+
+- **New setting**: `svn.auth.useExtensionStorage` (default: `true`)
+  - Store credentials in VS Code's encrypted SecretStorage
+  - Enables automatic retry with stored accounts
+  - Works reliably in remote/headless environments
+- **Clean separation**: Two independent switches for credential storage
+  - `useSystemKeyring`: Cache in OS keyring (gnome-keyring, macOS Keychain)
+  - `useExtensionStorage`: Store in VS Code SecretStorage
+  - Both can be enabled for fallback behavior
+  - Both can be disabled to always prompt
+
+**Configurations:**
+| useSystemKeyring | useExtensionStorage | Behavior |
+|------------------|---------------------|----------|
+| false (default) | true (default) | Extension-only, best for remote |
+| true | false | Keyring-only, shares with CLI |
+| true | true | Both stores, fallback support |
+| false | false | Always prompt |
+
 ## [2.19.0] (2025-11-28)
 
 ### BREAKING: Renamed Auth Setting & Changed Default

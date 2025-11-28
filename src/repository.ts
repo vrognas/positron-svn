@@ -854,6 +854,11 @@ export class Repository implements IRemoteRepository {
   }
 
   public async loadStoredAuths(): Promise<Array<IStoredAuth>> {
+    // Skip if extension storage disabled
+    if (!configuration.get<boolean>("auth.useExtensionStorage", true)) {
+      return [];
+    }
+
     // Prevent multiple prompts for auth
     if (this.lastPromptAuth) {
       await this.lastPromptAuth;
@@ -883,6 +888,11 @@ export class Repository implements IRemoteRepository {
   }
 
   public async saveAuth(): Promise<void> {
+    // Skip if extension storage disabled
+    if (!configuration.get<boolean>("auth.useExtensionStorage", true)) {
+      return;
+    }
+
     if (!this.canSaveAuth || !this.username || !this.password) {
       return;
     }
