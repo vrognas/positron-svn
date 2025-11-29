@@ -58,7 +58,7 @@
     "style-check": "prettylint 'src/**/*.ts'",
     "style-fix": "prettier --write \"src/**/*.ts\"",
     "pretest": "npm-run-all --parallel build:ts lint",
-    "test": "npm run test:unit && npm run test:e2e",
+    "test": "npm run test:unit && if [ \"$CI\" = \"true\" ]; then npm run test:e2e; fi",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:unit:coverage": "vitest run --coverage",
