@@ -1,3 +1,18 @@
+## [2.25.0] (2025-11-29)
+
+### FEAT: Sparse Checkout Manager Tree View
+
+- **New**: Dedicated tree view in SCM sidebar for managing sparse checkouts
+  - Shows local items with depth labels (Full, Shallow, Files Only, Empty)
+  - Shows ghost items (not checked out) with cloud icon
+  - Lazy-loads children on expand via `svn list`
+- **New**: Commands for sparse checkout management
+  - `svn.sparse.checkout` - Checkout ghost items with depth picker
+  - `svn.sparse.exclude` - Exclude local items from working copy
+  - `svn.sparse.refresh` - Refresh the view
+- **Types**: Added `ISparseItem`, `SparseDepthKey` interfaces
+- **Provider**: `SparseCheckoutProvider` with ghost detection logic
+
 ## [2.24.0] (2025-11-29)
 
 ### FEAT: SVN File Locking System

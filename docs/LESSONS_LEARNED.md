@@ -1,6 +1,6 @@
 # Lessons Learned
 
-**Version**: v2.24.0
+**Version**: v2.25.0
 **Updated**: 2025-11-29
 
 ---

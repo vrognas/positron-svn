@@ -272,5 +272,21 @@ See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.20
-**Updated**: 2025-11-29 (v2.24.0)
+### Sparse Checkout Manager (v2.25.0)
+
+- **Tree View**: `sparseCheckout` in SCM sidebar
+- **Provider**: `sparseCheckoutProvider.ts` (~310 lines)
+- **Node**: `sparseItemNode.ts` for tree items
+- **Types**: `ISparseItem`, `SparseDepthKey`
+- **Features**:
+  - Shows local items with depth labels (Full, Shallow, Files Only, Empty)
+  - Shows ghost items (not checked out) with cloud icon
+  - Lazy-loads children on expand via `svn list`
+  - Checkout command for ghost items (pick depth)
+  - Exclude command for local items
+- **Commands**: `svn.sparse.refresh`, `svn.sparse.checkout`, `svn.sparse.exclude`
+
+---
+
+**Version**: 3.21
+**Updated**: 2025-11-29 (v2.25.0)
