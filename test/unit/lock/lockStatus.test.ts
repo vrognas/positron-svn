@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseStatusXml } from "../../../src/parser/statusParser";
+import { LockStatus } from "../../../src/common/types";
 
 describe("Lock Status in Status Parser", () => {
   describe("Remote Lock Detection", () => {
@@ -102,6 +103,103 @@ describe("Lock Status in Status Parser", () => {
       expect(result).toHaveLength(1);
       const lockInfo = result[0].reposStatus?.lock;
       expect(lockInfo).toBeTruthy();
+    });
+  });
+
+  describe("Lock Status Badge Detection", () => {
+    it("returns K when we have local token but no server check", async () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<status>
+  <target path=".">
+    <entry path="myfile.csv">
+      <wc-status props="none" item="normal" wc-locked="true">
+        <commit revision="100"/>
+      </wc-status>
+    </entry>
+  </target>
+</status>`;
+
+      const result = await parseStatusXml(xml);
+
+      expect(result[0].wcStatus.lockStatus).toBe(LockStatus.K);
+      expect(result[0].wcStatus.hasLockToken).toBe(true);
+      expect(result[0].wcStatus.serverChecked).toBe(false);
+    });
+
+    it("returns K when we have local token and server confirms our lock", async () => {
+      // Parser returns K; T detection happens in StatusService when lockOwner !== username
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<status>
+  <target path=".">
+    <entry path="myfile.csv">
+      <wc-status props="none" item="normal" wc-locked="true">
+        <commit revision="100"/>
+      </wc-status>
+      <repos-status props="none" item="none">
+        <lock>
+          <owner>myuser</owner>
+          <token>opaquelocktoken:12345</token>
+          <created>2025-11-01T10:00:00.000000Z</created>
+        </lock>
+      </repos-status>
+    </entry>
+  </target>
+</status>`;
+
+      const result = await parseStatusXml(xml);
+
+      // Parser returns K; StatusService upgrades to T if lockOwner !== repository.username
+      expect(result[0].wcStatus.lockStatus).toBe(LockStatus.K);
+      expect(result[0].wcStatus.hasLockToken).toBe(true);
+      expect(result[0].wcStatus.lockOwner).toBe("myuser");
+      expect(result[0].wcStatus.serverChecked).toBe(true);
+    });
+
+    it("returns O when server has lock by another user (no local token)", async () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<status>
+  <target path=".">
+    <entry path="otherfile.csv">
+      <wc-status props="none" item="normal">
+        <commit revision="100"/>
+      </wc-status>
+      <repos-status props="none" item="none">
+        <lock>
+          <owner>otheruser</owner>
+          <token>opaquelocktoken:99999</token>
+          <created>2025-11-01T10:00:00.000000Z</created>
+        </lock>
+      </repos-status>
+    </entry>
+  </target>
+</status>`;
+
+      const result = await parseStatusXml(xml);
+
+      expect(result[0].wcStatus.lockStatus).toBe(LockStatus.O);
+      expect(result[0].wcStatus.hasLockToken).toBe(false);
+      expect(result[0].wcStatus.lockOwner).toBe("otheruser");
+    });
+
+    it("returns B when we have local token but server shows no lock (broken)", async () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<status>
+  <target path=".">
+    <entry path="broken.csv">
+      <wc-status props="none" item="normal" wc-locked="true">
+        <commit revision="100"/>
+      </wc-status>
+      <repos-status props="none" item="none"/>
+    </entry>
+  </target>
+</status>`;
+
+      const result = await parseStatusXml(xml);
+
+      expect(result[0].wcStatus.lockStatus).toBe(LockStatus.B);
+      expect(result[0].wcStatus.hasLockToken).toBe(true);
+      expect(result[0].wcStatus.lockOwner).toBeUndefined();
+      expect(result[0].wcStatus.serverChecked).toBe(true);
     });
   });
 });

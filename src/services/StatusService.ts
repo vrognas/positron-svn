@@ -3,7 +3,7 @@
 // Licensed under MIT License
 
 import { Disposable, Uri, workspace } from "vscode";
-import { IFileStatus, Status } from "../common/types";
+import { IFileStatus, LockStatus, Status } from "../common/types";
 import { configuration } from "../helpers/configuration";
 import { Resource } from "../resource";
 import { Repository as BaseRepository } from "../svnRepository";
@@ -328,6 +328,18 @@ export class StatusService implements IStatusService {
         );
       }
 
+      // Detect T (stolen) lock: we have token but server shows different owner
+      let lockStatus = status.wcStatus.lockStatus;
+      if (
+        lockStatus === LockStatus.K &&
+        status.wcStatus.hasLockToken &&
+        status.wcStatus.lockOwner &&
+        this.repository.username &&
+        status.wcStatus.lockOwner !== this.repository.username
+      ) {
+        lockStatus = LockStatus.T;
+      }
+
       const resource = new Resource(
         uri,
         status.status,
@@ -337,7 +349,7 @@ export class StatusService implements IStatusService {
         status.wcStatus.locked,
         status.wcStatus.lockOwner,
         status.wcStatus.hasLockToken,
-        status.wcStatus.lockStatus
+        lockStatus
       );
 
       // Skip normal/unchanged items
