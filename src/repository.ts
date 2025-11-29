@@ -165,6 +165,7 @@ export class Repository implements IRemoteRepository {
   private saveAuthLock: Promise<void> = Promise.resolve();
   private promptAuthCooldown: boolean = false;
   private promptAuthCooldownTimer?: ReturnType<typeof setTimeout>;
+  private storedAuthsCache?: { accounts: IStoredAuth[]; expiry: number };
 
   private _fsWatcher: RepositoryFilesWatcher;
   public get fsWatcher() {
@@ -906,6 +907,12 @@ export class Repository implements IRemoteRepository {
       return [];
     }
 
+    // Return cached if valid (60s TTL)
+    const now = Date.now();
+    if (this.storedAuthsCache && now < this.storedAuthsCache.expiry) {
+      return this.storedAuthsCache.accounts;
+    }
+
     // Prevent multiple prompts for auth
     if (this.lastPromptAuth) {
       await this.lastPromptAuth;
@@ -915,19 +922,23 @@ export class Repository implements IRemoteRepository {
       const secret = await this.secrets.get(this.getCredentialServiceName());
 
       if (secret === undefined) {
+        this.storedAuthsCache = { accounts: [], expiry: now + 60000 };
         return [];
       }
 
       // Safe JSON.parse with runtime type validation
       const parsed = JSON.parse(secret);
       if (!Array.isArray(parsed)) {
+        this.storedAuthsCache = { accounts: [], expiry: now + 60000 };
         return [];
       }
       // Filter to only valid credential entries
-      return parsed.filter(
+      const accounts = parsed.filter(
         (c): c is IStoredAuth =>
           c && typeof c.account === "string" && typeof c.password === "string"
       );
+      this.storedAuthsCache = { accounts, expiry: now + 60000 };
+      return accounts;
     } catch (error) {
       // SecretStorage can fail if keyring is locked/unavailable
       logError("Failed to load stored credentials", error);
@@ -986,6 +997,8 @@ export class Repository implements IRemoteRepository {
           this.getCredentialServiceName(),
           JSON.stringify(credentials)
         );
+        // Invalidate cache after save
+        this.storedAuthsCache = undefined;
       } catch (error) {
         // SecretStorage can fail if keyring is locked/unavailable
         // Reset canSaveAuth so user can retry on next successful operation
@@ -1020,7 +1033,13 @@ export class Repository implements IRemoteRepository {
       return undefined; // During cooldown, skip prompting
     }
 
-    this.lastPromptAuth = commands.executeCommand("svn.promptAuth");
+    const repoUrl = this.repository.info?.url;
+    this.lastPromptAuth = commands.executeCommand(
+      "svn.promptAuth",
+      undefined,
+      undefined,
+      repoUrl
+    );
     const result = await this.lastPromptAuth;
 
     if (result) {

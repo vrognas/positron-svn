@@ -30,42 +30,65 @@ import { iconv } from "./vscodeModules";
  */
 type CredentialMode = "auto" | "systemKeyring" | "extensionStorage" | "prompt";
 
-/**
- * Determine if native system keyring should be used based on credential mode and environment.
- * @returns true if system keyring should be used, false if extension-only mode
- */
-function shouldUseSystemKeyring(): boolean {
-  const mode = configuration.get<CredentialMode>("auth.credentialMode", "auto");
-  const isRemote = !!env.remoteName; // ssh-remote, wsl, dev-container, etc.
+// Auth config cache - avoids repeated config reads per command
+let authConfigCache: {
+  useSystemKeyring: boolean;
+  modeDescription: string;
+  expiry: number;
+} | null = null;
 
-  switch (mode) {
-    case "auto":
-      // System keyring locally, extension storage remotely
-      return !isRemote;
-    case "systemKeyring":
-      // Always use system keyring
-      return true;
-    case "extensionStorage":
-    case "prompt":
-      // Never use system keyring
-      return false;
-    default:
-      return !isRemote; // Default to auto behavior
+const AUTH_CACHE_TTL = 5000; // 5 seconds
+
+function getAuthConfig(): {
+  useSystemKeyring: boolean;
+  modeDescription: string;
+} {
+  const now = Date.now();
+  if (authConfigCache && now < authConfigCache.expiry) {
+    return authConfigCache;
   }
-}
 
-/**
- * Get human-readable auth mode description for logging
- */
-function getAuthModeDescription(): string {
   const mode = configuration.get<CredentialMode>("auth.credentialMode", "auto");
   const isRemote = !!env.remoteName;
 
-  if (mode === "auto") {
-    return isRemote ? "extension storage (remote)" : "system keyring (local)";
+  let useSystemKeyring: boolean;
+  let modeDescription: string;
+
+  switch (mode) {
+    case "auto":
+      useSystemKeyring = !isRemote;
+      modeDescription = isRemote
+        ? "extension storage (remote)"
+        : "system keyring (local)";
+      break;
+    case "systemKeyring":
+      useSystemKeyring = true;
+      modeDescription = mode;
+      break;
+    case "extensionStorage":
+    case "prompt":
+      useSystemKeyring = false;
+      modeDescription = mode;
+      break;
+    default:
+      useSystemKeyring = !isRemote;
+      modeDescription = "auto";
   }
-  return mode;
+
+  authConfigCache = {
+    useSystemKeyring,
+    modeDescription,
+    expiry: now + AUTH_CACHE_TTL
+  };
+  return authConfigCache;
 }
+
+// Invalidate cache when config changes
+configuration.onDidChange(e => {
+  if (e.affectsConfiguration("svn.auth.credentialMode")) {
+    authConfigCache = null;
+  }
+});
 
 export const svnErrorCodes: { [key: string]: string } = {
   AuthorizationFailed: "E170001",
@@ -174,8 +197,9 @@ export class Svn {
         );
       }
 
-      // Determine credential mode based on setting and environment
-      const useSystemKeyring = shouldUseSystemKeyring();
+      // Determine credential mode based on setting and environment (cached)
+      const authConfig = getAuthConfig();
+      const useSystemKeyring = authConfig.useSystemKeyring;
 
       if (options.username) {
         args.push("--username", options.username);
@@ -220,8 +244,7 @@ export class Svn {
 
       // Log auth mode (don't log credential presence for security)
       if (options.log !== false) {
-        const modeDesc = getAuthModeDescription();
-        this.logOutput(`[auth: ${modeDesc}]\n`);
+        this.logOutput(`[auth: ${authConfig.modeDescription}]\n`);
       }
 
       let encoding: string | undefined | null = options.encoding;
@@ -423,8 +446,9 @@ export class Svn {
         );
       }
 
-      // Determine credential mode based on setting and environment
-      const useSystemKeyring = shouldUseSystemKeyring();
+      // Determine credential mode based on setting and environment (cached)
+      const authConfig = getAuthConfig();
+      const useSystemKeyring = authConfig.useSystemKeyring;
 
       if (options.username) {
         args.push("--username", options.username);
@@ -469,8 +493,7 @@ export class Svn {
 
       // Log auth mode (don't log credential presence for security)
       if (options.log !== false) {
-        const modeDesc = getAuthModeDescription();
-        this.logOutput(`[auth: ${modeDesc}]\n`);
+        this.logOutput(`[auth: ${authConfig.modeDescription}]\n`);
       }
 
       const defaults: cp.SpawnOptions = {
