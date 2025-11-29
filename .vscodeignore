@@ -71,12 +71,9 @@ build.js
 eslint.config.js
 scripts/**
 
-# Exclude all markdown except user-facing docs
+# Exclude all markdown except readme
 *.md
 !readme.md
-!CHANGELOG.md
-!SECURITY.md
-!PRIVACY.md
 
 # Exclude internal dev documentation
 DELIVERY_SUMMARY.txt
@@ -85,6 +82,11 @@ DOCUMENTATION_ASSESSMENT_COMPLETE.txt
 *_SUMMARY.md
 *_PLAN.md
 POSITRON_RESEARCH_SUMMARY.md
+
+# Dev tooling - not needed in extension
+.husky/**
+commitlint.config.js
+THIRD_PARTY_NOTICES.txt
 
 docs/**
 
