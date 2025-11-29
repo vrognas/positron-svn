@@ -43,6 +43,7 @@ export interface ISvnInfo {
   wcInfo?: {
     wcrootAbspath?: string;
     uuid: string;
+    depth?: string;
   };
   commit: {
     revision: string;
@@ -361,6 +362,16 @@ export enum SvnDepth {
   files = "the target and any immediate file children thereof",
   immediates = "the target and any immediate children thereof",
   infinity = "the target and all of its descendants—full recursion"
+}
+
+export type SparseDepthKey = keyof typeof SvnDepth;
+
+export interface ISparseItem {
+  name: string;
+  path: string;
+  kind: "file" | "dir";
+  depth?: SparseDepthKey;
+  isGhost: boolean;
 }
 
 export interface LineChange {

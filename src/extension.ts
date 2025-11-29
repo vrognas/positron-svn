@@ -24,6 +24,7 @@ import { SourceControlManager } from "./source_control_manager";
 import { Svn } from "./svn";
 import { SvnFinder } from "./svnFinder";
 import SvnProvider from "./treeView/dataProviders/svnProvider";
+import SparseCheckoutProvider from "./treeView/dataProviders/sparseCheckoutProvider";
 import { toDisposable } from "./util";
 import { BranchChangesProvider } from "./historyView/branchChangesProvider";
 import { IsSvn19orGreater } from "./contexts/isSvn19orGreater";
@@ -84,6 +85,7 @@ async function init(
     new RepoLogProvider(sourceControlManager),
     new ItemLogProvider(sourceControlManager),
     new BranchChangesProvider(sourceControlManager),
+    new SparseCheckoutProvider(sourceControlManager),
     new CheckActiveEditor(sourceControlManager),
     new OpenRepositoryCount(sourceControlManager),
     new IsSvn18orGreater(info.version),

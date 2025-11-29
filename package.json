@@ -172,6 +172,11 @@
           "id": "branchchanges",
           "name": "Branch Changes",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "id": "sparseCheckout",
+          "name": "Sparse Checkout",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         }
       ]
     },
@@ -453,6 +458,24 @@
         "title": "Sparse Checkout...",
         "category": "SVN",
         "icon": "$(folder)"
+      },
+      {
+        "command": "svn.sparse.refresh",
+        "title": "Refresh",
+        "category": "SVN",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "svn.sparse.checkout",
+        "title": "Checkout...",
+        "category": "SVN",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "svn.sparse.exclude",
+        "title": "Exclude",
+        "category": "SVN",
+        "icon": "$(eye-closed)"
       },
       {
         "command": "svn.removeUnversioned",
@@ -849,9 +872,29 @@
           "command": "svn.branchchanges.refresh",
           "when": "view == branchchanges",
           "group": "navigation"
+        },
+        {
+          "command": "svn.sparse.refresh",
+          "when": "view == sparseCheckout",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
+        {
+          "command": "svn.sparse.checkout",
+          "when": "viewItem =~ /sparseGhost/",
+          "group": "inline"
+        },
+        {
+          "command": "svn.sparse.exclude",
+          "when": "viewItem =~ /sparseLocal/",
+          "group": "inline"
+        },
+        {
+          "command": "svn.setDepth",
+          "when": "viewItem == sparseLocalDir",
+          "group": "1_sparse"
+        },
         {
           "command": "svn.openHEADFile",
           "when": "viewItem =~ /incomingChange:(added|modified)/"
