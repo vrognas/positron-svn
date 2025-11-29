@@ -12,10 +12,10 @@ interface DepthQuickPickItem extends QuickPickItem {
 
 const depthOptions: DepthQuickPickItem[] = [
   {
-    label: "$(eye-closed) Exclude from Working Copy",
+    label: "$(eye-closed) Exclude",
     description: "Don't download this folder",
     detail:
-      "Removes the folder and all contents. Use this for large folders you don't need.",
+      "Removes the folder and all contents locally. Use for large folders you don't need.",
     depth: "exclude"
   },
   {
@@ -27,7 +27,7 @@ const depthOptions: DepthQuickPickItem[] = [
   {
     label: "$(file) Files Only (No Subfolders)",
     description: "Skip nested folders",
-    detail: "Downloads files directly in this folder, but not any subfolders.",
+    detail: "Downloads files in this folder, but skips all subfolders.",
     depth: "files"
   },
   {
@@ -85,8 +85,8 @@ export class SetDepth extends Command {
     if (selected.depth !== "infinity") {
       const warningMessages: Record<string, string> = {
         exclude:
-          "This will remove the folder and all its contents from your working copy. " +
-          "The files still exist in the repository and can be restored later.",
+          "This will remove the folder and all its contents from your computer. " +
+          "The files still exist on the server and can be restored later.",
         empty:
           "This will remove all files and subfolders inside this folder. " +
           "The folder itself will remain as an empty placeholder.",
@@ -114,10 +114,10 @@ export class SetDepth extends Command {
       const result = await repository.setDepth(uri.fsPath, selected.depth);
       if (result.exitCode === 0) {
         const successMessages: Record<string, string> = {
-          exclude: `"${folderName}" excluded from working copy`,
+          exclude: `"${folderName}" excluded`,
           empty: `"${folderName}" contents removed (folder kept)`,
           files: `"${folderName}" set to files only`,
-          immediates: `"${folderName}" set to shallow checkout`,
+          immediates: `"${folderName}" set to shallow`,
           infinity: `"${folderName}" fully restored`
         };
         window.showInformationMessage(
