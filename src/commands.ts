@@ -48,6 +48,7 @@ import { Revert } from "./commands/revert";
 import { RevertAll } from "./commands/revertAll";
 import { RevertChange } from "./commands/revertChange";
 import { RevertExplorer } from "./commands/revertExplorer";
+import { SetDepth } from "./commands/setDepth";
 import { SwitchBranch } from "./commands/switchBranch";
 import { Unlock, BreakLock } from "./commands/unlock";
 import { Update } from "./commands/update";
@@ -113,6 +114,7 @@ export function registerCommands(
   disposables.push(new RenameExplorer());
   disposables.push(new Unlock());
   disposables.push(new BreakLock());
+  disposables.push(new SetDepth());
   disposables.push(new Upgrade());
   disposables.push(new OpenChangePrev());
   disposables.push(new PromptRemove());

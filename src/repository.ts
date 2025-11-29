@@ -1147,6 +1147,17 @@ export class Repository implements IRemoteRepository {
     return this.repository.getLockInfo(filePath);
   }
 
+  /**
+   * Set depth of a folder for sparse checkouts.
+   * @param folderPath Path to folder
+   * @param depth One of: exclude, empty, files, immediates, infinity
+   */
+  public async setDepth(folderPath: string, depth: keyof typeof SvnDepth) {
+    return this.run(Operation.Update, () =>
+      this.repository.setDepth(folderPath, depth)
+    );
+  }
+
   public dispose(): void {
     // Clear auth cooldown timer to prevent memory leak
     if (this.promptAuthCooldownTimer) {

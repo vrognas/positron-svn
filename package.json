@@ -437,6 +437,12 @@
         "icon": "$(warning)"
       },
       {
+        "command": "svn.setDepth",
+        "title": "Set Folder Depth...",
+        "category": "SVN",
+        "icon": "$(folder)"
+      },
+      {
         "command": "svn.removeUnversioned",
         "title": "Remove unversioned files",
         "category": "SVN"
@@ -1203,6 +1209,11 @@
           "command": "svn.breakLock",
           "group": "9_svn@4",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "command": "svn.setDepth",
+          "group": "9_svn@5",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0 && explorerResourceIsFolder"
         }
       ]
     },

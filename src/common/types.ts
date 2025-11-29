@@ -336,6 +336,7 @@ export interface ISvnLogEntry {
 }
 
 export enum SvnDepth {
+  exclude = "exclude from working copy",
   empty = "only the target itself",
   files = "the target and any immediate file children thereof",
   immediates = "the target and any immediate children thereof",

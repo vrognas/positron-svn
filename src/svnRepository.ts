@@ -1402,6 +1402,25 @@ export class Repository {
   }
 
   /**
+   * Set the depth of a working copy folder for sparse checkouts.
+   * Use this to exclude large directories or selectively include content.
+   *
+   * @param folderPath Path to the folder
+   * @param depth One of: exclude, empty, files, immediates, infinity
+   * @returns SVN update output
+   */
+  public async setDepth(
+    folderPath: string,
+    depth: keyof typeof SvnDepth
+  ): Promise<IExecutionResult> {
+    folderPath = this.removeAbsolutePath(folderPath);
+
+    const args = ["update", "--set-depth", depth, folderPath];
+
+    return this.exec(args);
+  }
+
+  /**
    * Clear all info cache timers (Phase 8.2 perf fix - prevent memory leak)
    * Should be called on repository disposal
    */

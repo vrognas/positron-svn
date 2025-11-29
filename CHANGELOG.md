@@ -14,6 +14,17 @@
 - **Types**: Added `ISvnLockInfo`, `ILockOptions`, `IUnlockOptions` interfaces
 - **API**: Repository methods: `lock()`, `unlock()`, `getLockInfo()`
 
+### FEAT: Sparse Checkout Support
+
+- **New**: `SVN: Set Folder Depth...` command for sparse checkouts
+  - Exclude: Remove folder from working copy entirely
+  - Empty: Keep only folder, remove all contents
+  - Files: Keep folder and immediate files only
+  - Immediates: Keep files and empty subfolders
+  - Infinity: Full recursive checkout (restore)
+- **UI**: Explorer context menu (folders only)
+- **API**: Repository method: `setDepth(path, depth)`
+
 ## [2.23.1] (2025-11-29)
 
 ### CHORE: Fix TypeScript `any` Type Warnings
