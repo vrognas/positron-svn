@@ -348,6 +348,14 @@ export class Repository implements IRemoteRepository {
         this.remoteChangeService.restart();
         this.updateRemoteChangedFiles();
       }
+
+      // Clear runtime credentials when auth mode changes
+      // Forces re-authentication with new storage mode
+      if (e.affectsConfiguration("svn.auth.credentialMode")) {
+        this.username = undefined;
+        this.password = undefined;
+        this.canSaveAuth = false;
+      }
     });
 
     this.status();
@@ -903,14 +911,14 @@ export class Repository implements IRemoteRepository {
       await this.lastPromptAuth;
     }
 
-    const secret = await this.secrets.get(this.getCredentialServiceName());
-
-    if (secret === undefined) {
-      return [];
-    }
-
-    // Safe JSON.parse with runtime type validation
     try {
+      const secret = await this.secrets.get(this.getCredentialServiceName());
+
+      if (secret === undefined) {
+        return [];
+      }
+
+      // Safe JSON.parse with runtime type validation
       const parsed = JSON.parse(secret);
       if (!Array.isArray(parsed)) {
         return [];
@@ -921,7 +929,8 @@ export class Repository implements IRemoteRepository {
           c && typeof c.account === "string" && typeof c.password === "string"
       );
     } catch (error) {
-      logError("Failed to parse stored credentials", error);
+      // SecretStorage can fail if keyring is locked/unavailable
+      logError("Failed to load stored credentials", error);
       return [];
     }
   }
@@ -942,38 +951,47 @@ export class Repository implements IRemoteRepository {
     this.canSaveAuth = false;
 
     this.saveAuthLock = this.saveAuthLock.then(async () => {
-      const secret = await this.secrets.get(this.getCredentialServiceName());
-      let credentials: Array<IStoredAuth> = [];
+      try {
+        const secret = await this.secrets.get(this.getCredentialServiceName());
+        let credentials: Array<IStoredAuth> = [];
 
-      if (typeof secret === "string") {
-        try {
-          const parsed = JSON.parse(secret);
-          if (Array.isArray(parsed)) {
-            credentials = parsed.filter(
-              (c): c is IStoredAuth =>
-                c &&
-                typeof c.account === "string" &&
-                typeof c.password === "string"
-            );
+        if (typeof secret === "string") {
+          try {
+            const parsed = JSON.parse(secret);
+            if (Array.isArray(parsed)) {
+              credentials = parsed.filter(
+                (c): c is IStoredAuth =>
+                  c &&
+                  typeof c.account === "string" &&
+                  typeof c.password === "string"
+              );
+            }
+          } catch (error) {
+            logError("Failed to parse stored credentials", error);
+            credentials = [];
           }
-        } catch (error) {
-          logError("Failed to parse stored credentials", error);
-          credentials = [];
         }
-      }
 
-      // Deduplicate: update existing entry or add new
-      const existingIndex = credentials.findIndex(c => c.account === username);
-      if (existingIndex >= 0) {
-        credentials[existingIndex].password = password;
-      } else {
-        credentials.push({ account: username, password });
-      }
+        // Deduplicate: update existing entry or add new
+        const existingIndex = credentials.findIndex(
+          c => c.account === username
+        );
+        if (existingIndex >= 0) {
+          credentials[existingIndex].password = password;
+        } else {
+          credentials.push({ account: username, password });
+        }
 
-      await this.secrets.store(
-        this.getCredentialServiceName(),
-        JSON.stringify(credentials)
-      );
+        await this.secrets.store(
+          this.getCredentialServiceName(),
+          JSON.stringify(credentials)
+        );
+      } catch (error) {
+        // SecretStorage can fail if keyring is locked/unavailable
+        // Reset canSaveAuth so user can retry on next successful operation
+        this.canSaveAuth = true;
+        logError("Failed to save credentials", error);
+      }
     });
 
     return this.saveAuthLock;

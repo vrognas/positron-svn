@@ -186,12 +186,19 @@ export class Svn {
       let passwordForStdin: string | undefined;
 
       // Add password if provided
+      // SECURITY: Only use --password-from-stdin (SVN 1.10+) to avoid exposing password in process list
+      // For older SVN versions, password is not passed - user must use system keyring
       if (options.password) {
         if (supportsStdinPassword) {
           args.push("--password-from-stdin");
           passwordForStdin = options.password;
         } else {
-          args.push("--password", options.password);
+          // SVN < 1.10: Don't pass password via --password (visible in ps/top)
+          // Log warning - auth will fail if system keyring doesn't have credentials
+          this.logOutput(
+            `[SECURITY] SVN ${this.version} < 1.10 does not support --password-from-stdin. ` +
+              `Password not passed to avoid process list exposure. Use system keyring or upgrade SVN.\n`
+          );
         }
       }
 
@@ -211,11 +218,10 @@ export class Svn {
       );
       const configuredTimeoutMs = timeoutSeconds * 1000;
 
-      // Log auth mode
+      // Log auth mode (don't log credential presence for security)
       if (options.log !== false) {
         const modeDesc = getAuthModeDescription();
-        const hasCreds = options.password ? " + credentials" : "";
-        this.logOutput(`[auth: ${modeDesc}${hasCreds}]\n`);
+        this.logOutput(`[auth: ${modeDesc}]\n`);
       }
 
       let encoding: string | undefined | null = options.encoding;
@@ -243,8 +249,14 @@ export class Svn {
       // Write password via stdin if using --password-from-stdin (SVN 1.10+)
       // This hides password from process list (ps aux)
       if (passwordForStdin && process.stdin) {
-        process.stdin.write(passwordForStdin);
-        process.stdin.end();
+        try {
+          process.stdin.write(passwordForStdin);
+          process.stdin.end();
+        } catch (err) {
+          // stdin write can fail if process exits early (EPIPE)
+          // SVN will fail with auth error, retry logic will handle it
+          logError("stdin write failed", err);
+        }
       }
 
       const disposables: IDisposable[] = [];
@@ -423,12 +435,19 @@ export class Svn {
       let passwordForStdin: string | undefined;
 
       // Add password if provided
+      // SECURITY: Only use --password-from-stdin (SVN 1.10+) to avoid exposing password in process list
+      // For older SVN versions, password is not passed - user must use system keyring
       if (options.password) {
         if (supportsStdinPassword) {
           args.push("--password-from-stdin");
           passwordForStdin = options.password;
         } else {
-          args.push("--password", options.password);
+          // SVN < 1.10: Don't pass password via --password (visible in ps/top)
+          // Log warning - auth will fail if system keyring doesn't have credentials
+          this.logOutput(
+            `[SECURITY] SVN ${this.version} < 1.10 does not support --password-from-stdin. ` +
+              `Password not passed to avoid process list exposure. Use system keyring or upgrade SVN.\n`
+          );
         }
       }
 
@@ -448,11 +467,10 @@ export class Svn {
       );
       const configuredTimeoutMs = timeoutSeconds * 1000;
 
-      // Log auth mode
+      // Log auth mode (don't log credential presence for security)
       if (options.log !== false) {
         const modeDesc = getAuthModeDescription();
-        const hasCreds = options.password ? " + credentials" : "";
-        this.logOutput(`[auth: ${modeDesc}${hasCreds}]\n`);
+        this.logOutput(`[auth: ${modeDesc}]\n`);
       }
 
       const defaults: cp.SpawnOptions = {
@@ -472,8 +490,14 @@ export class Svn {
       // Write password via stdin if using --password-from-stdin (SVN 1.10+)
       // This hides password from process list (ps aux)
       if (passwordForStdin && process.stdin) {
-        process.stdin.write(passwordForStdin);
-        process.stdin.end();
+        try {
+          process.stdin.write(passwordForStdin);
+          process.stdin.end();
+        } catch (err) {
+          // stdin write can fail if process exits early (EPIPE)
+          // SVN will fail with auth error, retry logic will handle it
+          logError("stdin write failed", err);
+        }
       }
 
       const disposables: IDisposable[] = [];
