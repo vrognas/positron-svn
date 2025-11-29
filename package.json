@@ -450,7 +450,7 @@
       },
       {
         "command": "svn.setDepth",
-        "title": "Set Folder Depth...",
+        "title": "Sparse Checkout...",
         "category": "SVN",
         "icon": "$(folder)"
       },

@@ -12,34 +12,35 @@ interface DepthQuickPickItem extends QuickPickItem {
 
 const depthOptions: DepthQuickPickItem[] = [
   {
-    label: "$(eye-closed) Exclude",
-    description: "Remove from working copy",
+    label: "$(eye-closed) Exclude from Working Copy",
+    description: "Don't download this folder",
     detail:
-      "Completely removes the folder and its contents from the working copy",
+      "Removes the folder and all contents. Use this for large folders you don't need.",
     depth: "exclude"
   },
   {
-    label: "$(folder) Empty",
-    description: "Only this folder",
-    detail: "Keep only the folder itself, remove all contents",
+    label: "$(folder) Folder Only (No Contents)",
+    description: "Keep empty folder",
+    detail: "Keeps the folder as a placeholder but removes all files inside.",
     depth: "empty"
   },
   {
-    label: "$(file) Files only",
-    description: "Immediate file children",
-    detail: "Keep the folder and its immediate files, but not subfolders",
+    label: "$(file) Files Only (No Subfolders)",
+    description: "Skip nested folders",
+    detail: "Downloads files directly in this folder, but not any subfolders.",
     depth: "files"
   },
   {
-    label: "$(list-tree) Immediates",
-    description: "Immediate children",
-    detail: "Keep files and subfolders (as empty), but not deeper content",
+    label: "$(list-tree) Shallow (One Level)",
+    description: "First level only",
+    detail:
+      "Downloads files and shows subfolders as empty. Good for exploring structure.",
     depth: "immediates"
   },
   {
-    label: "$(folder-opened) Fully recursive",
-    description: "All descendants",
-    detail: "Include the folder and all its contents recursively",
+    label: "$(folder-opened) Full (All Contents)",
+    description: "Download everything",
+    detail: "Downloads the folder and all its contents recursively.",
     depth: "infinity"
   }
 ];
@@ -67,10 +68,13 @@ export class SetDepth extends Command {
       return;
     }
 
+    // Get folder name for display
+    const folderName = uri.fsPath.split(/[\\/]/).pop() || "folder";
+
     // Show QuickPick for depth selection
     const selected = await window.showQuickPick(depthOptions, {
-      placeHolder: "Select checkout depth for this folder",
-      title: "SVN: Set Folder Depth"
+      placeHolder: "What should be downloaded for this folder?",
+      title: `SVN: Sparse Checkout - ${folderName}`
     });
 
     if (!selected) {
@@ -79,13 +83,29 @@ export class SetDepth extends Command {
 
     // Confirm for destructive operations (all except infinity add content)
     if (selected.depth !== "infinity") {
+      const warningMessages: Record<string, string> = {
+        exclude:
+          "This will remove the folder and all its contents from your working copy. " +
+          "The files still exist in the repository and can be restored later.",
+        empty:
+          "This will remove all files and subfolders inside this folder. " +
+          "The folder itself will remain as an empty placeholder.",
+        files:
+          "This will remove all subfolders (but keep files). " +
+          "Subfolder contents can be restored later.",
+        immediates:
+          "This will remove contents of subfolders (keeping them as empty). " +
+          "Deeper contents can be restored later."
+      };
+
       const confirm = await window.showWarningMessage(
-        `Setting depth to "${selected.depth}" may remove local files.`,
+        warningMessages[selected.depth] ||
+          "This operation may remove local files.",
         { modal: true },
-        "Change Depth",
+        "Continue",
         "Cancel"
       );
-      if (confirm !== "Change Depth") {
+      if (confirm !== "Continue") {
         return;
       }
     }
@@ -93,16 +113,23 @@ export class SetDepth extends Command {
     try {
       const result = await repository.setDepth(uri.fsPath, selected.depth);
       if (result.exitCode === 0) {
+        const successMessages: Record<string, string> = {
+          exclude: `"${folderName}" excluded from working copy`,
+          empty: `"${folderName}" contents removed (folder kept)`,
+          files: `"${folderName}" set to files only`,
+          immediates: `"${folderName}" set to shallow checkout`,
+          infinity: `"${folderName}" fully restored`
+        };
         window.showInformationMessage(
-          `Folder depth set to "${selected.depth}"`
+          successMessages[selected.depth] || `Checkout depth changed`
         );
       } else {
         window.showErrorMessage(
-          `Failed to set depth: ${result.stderr || "Unknown error"}`
+          `Failed to change checkout: ${result.stderr || "Unknown error"}`
         );
       }
     } catch (error) {
-      window.showErrorMessage(`Failed to set depth: ${error}`);
+      window.showErrorMessage(`Failed to change checkout: ${error}`);
     }
   }
 }
