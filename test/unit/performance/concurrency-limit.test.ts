@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import { describe, it, expect } from "vitest";
 
 /**
  * Concurrency Limiting Performance Tests (Phase 9.1)
@@ -34,7 +34,7 @@ describe("Concurrency Limiting", () => {
 
     const results = await processConcurrently(
       items,
-      async (item) => {
+      async item => {
         currentConcurrent++;
         maxConcurrent = Math.max(maxConcurrent, currentConcurrent);
         await new Promise(resolve => setTimeout(resolve, 10));
@@ -44,8 +44,8 @@ describe("Concurrency Limiting", () => {
       5 // Concurrency limit
     );
 
-    assert.strictEqual(results.length, 20);
-    assert.ok(maxConcurrent <= 5, `Max concurrent was ${maxConcurrent}, expected <= 5`);
+    expect(results.length).toBe(20);
+    expect(maxConcurrent <= 5).toBeTruthy();
   });
 
   /**
@@ -58,7 +58,7 @@ describe("Concurrency Limiting", () => {
       10
     );
 
-    assert.strictEqual(results.length, 0);
+    expect(results.length).toBe(0);
   });
 
   /**
@@ -70,7 +70,7 @@ describe("Concurrency Limiting", () => {
 
     const results = await processConcurrently(
       items,
-      async (item) => {
+      async item => {
         await new Promise(resolve => setTimeout(resolve, 1));
         return item;
       },
@@ -79,9 +79,9 @@ describe("Concurrency Limiting", () => {
 
     const duration = Date.now() - startTime;
 
-    assert.strictEqual(results.length, 100);
+    expect(results.length).toBe(100);
     // With concurrency 16, should take ~7 batches (~7ms minimum)
     // Without limit, would take ~1ms (all parallel, but causes issues)
-    assert.ok(duration < 100, `Duration ${duration}ms too high`);
+    expect(duration < 100).toBeTruthy();
   });
 });

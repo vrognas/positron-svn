@@ -462,5 +462,47 @@ if (useNativeStore && options.password) {
 
 ---
 
-**Document Version**: 2.4
-**Last Updated**: 2025-11-28
+### 16. Testing: Vitest for Unit Tests
+
+**Lesson**: Use Vitest for unit tests, keep Mocha for VS Code E2E tests.
+
+**Migration** (v2.23.0):
+
+- Unit tests: Vitest (104 tests, runs in 1.5s)
+- E2E tests: Mocha + @vscode/test-electron (needs VS Code API)
+- Dual framework: Both run in parallel in CI
+
+**Benefits**:
+
+- 6-10x faster unit tests (no TypeScript compilation needed)
+- Better error messages with object diffs
+- Watch mode for development
+- Built-in coverage (replaces c8)
+
+**Pattern**:
+
+```typescript
+// Vitest (unit tests)
+import { describe, it, expect, vi } from "vitest";
+describe("Parser", () => {
+  it("parses XML", () => {
+    expect(result).toHaveLength(1);
+  });
+});
+
+// Mocha (E2E tests needing VS Code)
+suite("Extension", () => {
+  test("activates", async () => {
+    const ext = vscode.extensions.getExtension("...");
+  });
+});
+```
+
+**Key insight**: Mock `vscode` module via `vitest.config.ts` alias for unit tests.
+
+**Rule**: Use Vitest for pure logic, Mocha only when VS Code API required.
+
+---
+
+**Document Version**: 2.5
+**Last Updated**: 2025-11-29

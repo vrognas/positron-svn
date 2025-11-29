@@ -22,7 +22,7 @@ function getIconUri(iconName: string, theme: string): Uri {
 }
 
 export class Resource implements SourceControlResourceState {
-  private static icons: any = {
+  private static icons: Record<string, Record<string, Uri>> = {
     light: {
       Added: getIconUri("status-added", "light"),
       Conflicted: getIconUri("status-conflicted", "light"),

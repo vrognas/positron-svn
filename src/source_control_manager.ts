@@ -91,7 +91,7 @@ export class SourceControlManager implements IDisposable {
 
     return eventToPromise(
       filterEvent(this.onDidchangeState, s => s === "initialized")
-    ) as Promise<any>;
+    ) as unknown as Promise<void>;
   }
 
   get repositories(): Repository[] {
@@ -357,7 +357,7 @@ export class SourceControlManager implements IDisposable {
     return RemoteRepository.open(this.svn, uri);
   }
 
-  public getRepository(hint: any): Repository | null {
+  public getRepository(hint: unknown): Repository | null {
     const liveRepository = this.getOpenRepository(hint);
     if (liveRepository && liveRepository.repository) {
       return liveRepository.repository;
@@ -366,7 +366,7 @@ export class SourceControlManager implements IDisposable {
     return null;
   }
 
-  public getOpenRepository(hint: any): IOpenRepository | undefined {
+  public getOpenRepository(hint: unknown): IOpenRepository | undefined {
     if (!hint) {
       return undefined;
     }
@@ -375,9 +375,15 @@ export class SourceControlManager implements IDisposable {
       return this.openRepositories.find(r => r.repository === hint);
     }
 
-    if ((hint as any).repository instanceof Repository) {
+    if (
+      typeof hint === "object" &&
+      hint !== null &&
+      "repository" in hint &&
+      hint.repository instanceof Repository
+    ) {
+      const hintWithRepo = hint as { repository: Repository };
       return this.openRepositories.find(
-        r => r.repository === (hint as any).repository
+        r => r.repository === hintWithRepo.repository
       );
     }
 
@@ -394,7 +400,9 @@ export class SourceControlManager implements IDisposable {
         }
 
         // Phase 15 perf fix - O(n×m) → O(n×k) with cached Set lookup
-        const excludedPaths = this.excludedPathsCache.get(liveRepository.repository.workspaceRoot);
+        const excludedPaths = this.excludedPathsCache.get(
+          liveRepository.repository.workspaceRoot
+        );
         if (excludedPaths) {
           for (const excluded of excludedPaths) {
             if (isDescendant(excluded, hint.fsPath)) {
@@ -488,7 +496,6 @@ export class SourceControlManager implements IDisposable {
       repository.dispose();
 
       this.openRepositories = this.openRepositories.filter(
-
         e => e !== openRepository
       );
       this.excludedPathsCache.delete(repository.workspaceRoot); // Phase 15 perf fix
@@ -515,12 +522,13 @@ export class SourceControlManager implements IDisposable {
       throw new Error("There are no available repositories");
     }
 
-    const picks: Array<{ label: string; repository: Repository }> = this.repositories.map(repository => {
-      return {
-        label: path.basename(repository.root),
-        repository
-      };
-    });
+    const picks: Array<{ label: string; repository: Repository }> =
+      this.repositories.map(repository => {
+        return {
+          label: path.basename(repository.root),
+          repository
+        };
+      });
     const placeHolder = "Choose a repository";
     const pick = await window.showQuickPick(picks, { placeHolder });
 

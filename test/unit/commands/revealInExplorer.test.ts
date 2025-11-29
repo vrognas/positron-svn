@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 import { RevealInExplorer } from "../../../src/commands/revealInExplorer";
 import { Uri } from "vscode";
 
@@ -18,7 +17,7 @@ describe("Reveal In Explorer Command", () => {
     // Should not throw when called with empty array
     await command.execute();
 
-    assert.ok(true, "Command should handle empty array gracefully");
+    expect(true).toBeTruthy();
   });
 
   /**
@@ -33,7 +32,7 @@ describe("Reveal In Explorer Command", () => {
     // Should not throw when resourceUri is undefined
     await command.execute(mockResource);
 
-    assert.ok(true, "Command should handle missing URI gracefully");
+    expect(true).toBeTruthy();
   });
 
   /**
@@ -52,10 +51,10 @@ describe("Reveal In Explorer Command", () => {
     // Should process first resource (validation: no throw)
     try {
       await command.execute(...mockResources);
-      assert.ok(true, "Command should process first resource");
+      expect(true).toBeTruthy();
     } catch {
       // Expected: revealFileInOS might not exist in test env
-      assert.ok(true, "Command attempted to reveal first file");
+      expect(true).toBeTruthy();
     }
   });
 });

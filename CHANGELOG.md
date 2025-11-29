@@ -1,3 +1,38 @@
+## [2.23.1] (2025-11-29)
+
+### CHORE: Fix TypeScript `any` Type Warnings
+
+- **Type Safety**: Removed 12 `@typescript-eslint/no-explicit-any` warnings
+  - configuration.ts: `value: any` → `value: unknown`
+  - historyView/common.ts: clipboard type guard
+  - input/revert.ts: enum dynamic access with proper typing
+  - parser/blameParser.ts: XML result with `Record<string, unknown>`
+  - parser/statusParser.ts: XML result with `Record<string, unknown>`
+  - resource.ts: icons map with `Record<string, Record<string, Uri>>`
+  - RemoteChangeService.ts: error in catch → `unknown`
+  - svnError.ts: removed unnecessary cast, use Error.stack
+  - svnFileSystemProvider.ts: error type guard for stderr check
+  - svnFinder.ts: error callback → `unknown`
+  - svnRepository.ts: catch blocks → `unknown`, Promise.all type inference
+  - util/fileOperations.ts: svnExec → `Promise<IExecutionResult>`
+- **No Runtime Changes**: Type-only changes, all 104 unit tests pass
+
+## [2.23.0] (2025-11-29)
+
+### CHORE: Migrate Unit Tests to Vitest
+
+- **New**: Unit tests now run on Vitest (104 tests, ~1.5s)
+  - 6-10x faster than Mocha (no TS compilation needed)
+  - Better error messages with object diffs
+  - Watch mode: `npm run test:unit:watch`
+  - Built-in coverage: `npm run test:unit:coverage`
+- **Dual framework**: E2E tests stay on Mocha + @vscode/test-electron
+  - Unit tests: `npm run test:unit` (Vitest)
+  - E2E tests: `npm run test:e2e` (Mocha)
+  - Full suite: `npm run test`
+- **CI**: GitHub Actions runs both frameworks
+- **Deps**: Added vitest, @vitest/coverage-v8
+
 ## [2.22.4] (2025-11-29)
 
 ### FIX: Peg Revision for External Diff Tool

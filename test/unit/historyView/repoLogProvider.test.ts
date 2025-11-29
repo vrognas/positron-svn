@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import { describe, it, expect } from "vitest";
 import * as path from "path";
 import { parseSvnLog } from "../../../src/parser/logParser";
 
@@ -6,8 +6,8 @@ import { parseSvnLog } from "../../../src/parser/logParser";
  * E2E Tests: Revision Expansion (v2.17.137 bug fix)
  * Tests full flow: XML → parser → path content accessible
  */
-suite("RepoLogProvider - Revision Expansion E2E", () => {
-  test("expands revision showing multiple changed files", async () => {
+describe("RepoLogProvider - Revision Expansion E2E", () => {
+  it("expands revision showing multiple changed files", async () => {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <log>
   <logentry revision="126">
@@ -23,32 +23,32 @@ suite("RepoLogProvider - Revision Expansion E2E", () => {
 </log>`;
 
     const logEntries = await parseSvnLog(xml);
-    assert.strictEqual(logEntries.length, 1);
+    expect(logEntries.length).toBe(1);
 
     const commit = logEntries[0];
-    assert.strictEqual(commit.paths.length, 3);
+    expect(commit.paths.length).toBe(3);
 
     // E2E: Verify path content (_) accessible for tree item creation
     // This is the property accessed in repoLogProvider.ts:351,353,356
     const pathElem = commit.paths[0];
-    assert.strictEqual(pathElem._, "/trunk/src/file.txt");
+    expect(pathElem._).toBe("/trunk/src/file.txt");
 
     // E2E: Verify path.basename() works (was the crash point)
     const basename = path.basename(pathElem._);
-    assert.strictEqual(basename, "file.txt");
+    expect(basename).toBe("file.txt");
 
     // E2E: Verify path.dirname() works
     const dirname = path.dirname(pathElem._);
-    assert.strictEqual(dirname, "/trunk/src");
+    expect(dirname).toBe("/trunk/src");
 
     // E2E: Verify all paths and actions
-    assert.strictEqual(commit.paths[1]._, "/trunk/newdir");
-    assert.strictEqual(commit.paths[1].action, "A");
-    assert.strictEqual(commit.paths[2]._, "/trunk/old.txt");
-    assert.strictEqual(commit.paths[2].action, "D");
+    expect(commit.paths[1]._).toBe("/trunk/newdir");
+    expect(commit.paths[1].action).toBe("A");
+    expect(commit.paths[2]._).toBe("/trunk/old.txt");
+    expect(commit.paths[2].action).toBe("D");
   });
 
-  test("handles revision with no paths", async () => {
+  it("handles revision with no paths", async () => {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <log>
   <logentry revision="125">
@@ -59,12 +59,12 @@ suite("RepoLogProvider - Revision Expansion E2E", () => {
 </log>`;
 
     const logEntries = await parseSvnLog(xml);
-    assert.strictEqual(logEntries.length, 1);
-    assert.strictEqual(Array.isArray(logEntries[0].paths), true);
-    assert.strictEqual(logEntries[0].paths.length, 0);
+    expect(logEntries.length).toBe(1);
+    expect(Array.isArray(logEntries[0].paths)).toBe(true);
+    expect(logEntries[0].paths.length).toBe(0);
   });
 
-  test("parses paths with special characters", async () => {
+  it("parses paths with special characters", async () => {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <log>
   <logentry revision="127">
@@ -81,8 +81,8 @@ suite("RepoLogProvider - Revision Expansion E2E", () => {
     const pathElem = logEntries[0].paths[0];
 
     // E2E: Special characters in path content
-    assert.strictEqual(pathElem._, "/trunk/my file (copy).txt");
+    expect(pathElem._).toBe("/trunk/my file (copy).txt");
     const basename = path.basename(pathElem._);
-    assert.strictEqual(basename, "my file (copy).txt");
+    expect(basename).toBe("my file (copy).txt");
   });
 });

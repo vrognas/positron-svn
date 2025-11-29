@@ -65,18 +65,19 @@ function getSvnErrorCode(stderr: string): string | undefined {
 }
 
 export function cpErrorHandler(
-  cb: (reason?: any) => void
-): (reason?: any) => void {
+  cb: (reason?: unknown) => void
+): (reason?: unknown) => void {
   return err => {
-    if (/ENOENT/.test(err.message)) {
-      err = new SvnError({
+    let error = err;
+    if (err instanceof Error && /ENOENT/.test(err.message)) {
+      error = new SvnError({
         error: err,
         message: "Failed to execute svn (ENOENT)",
         svnErrorCode: "NotASvnRepository"
       });
     }
 
-    cb(err);
+    cb(error);
   };
 }
 
@@ -114,7 +115,7 @@ export class Svn {
 
   public async exec(
     cwd: string,
-    args: any[],
+    args: string[],
     options: ICpOptions = {}
   ): Promise<IExecutionResult> {
     try {
@@ -246,19 +247,19 @@ export class Svn {
 
       const disposables: IDisposable[] = [];
 
-      const once = (
+      const once = <T extends unknown[]>(
         ee: NodeJS.EventEmitter,
         name: string,
-        fn: (...args: any[]) => void
+        fn: (...args: T) => void
       ) => {
         ee.once(name, fn);
         disposables.push(toDisposable(() => ee.removeListener(name, fn)));
       };
 
-      const on = (
+      const on = <T extends unknown[]>(
         ee: NodeJS.EventEmitter,
         name: string,
-        fn: (...args: any[]) => void
+        fn: (...args: T) => void
       ) => {
         ee.on(name, fn);
         disposables.push(toDisposable(() => ee.removeListener(name, fn)));
@@ -301,7 +302,7 @@ export class Svn {
       );
 
       const [exitCode, stdout, stderr] = await Promise.race([
-        Promise.all<any>([
+        Promise.all([
           new Promise<number>((resolve, reject) => {
             once(process, "error", reject);
             once(process, "exit", resolve);
@@ -392,7 +393,7 @@ export class Svn {
 
   public async execBuffer(
     cwd: string,
-    args: any[],
+    args: string[],
     options: ICpOptions = {}
   ): Promise<BufferResult> {
     try {
@@ -516,19 +517,19 @@ export class Svn {
 
       const disposables: IDisposable[] = [];
 
-      const once = (
+      const once = <T extends unknown[]>(
         ee: NodeJS.EventEmitter,
         name: string,
-        fn: (...args: any[]) => void
+        fn: (...args: T) => void
       ) => {
         ee.once(name, fn);
         disposables.push(toDisposable(() => ee.removeListener(name, fn)));
       };
 
-      const on = (
+      const on = <T extends unknown[]>(
         ee: NodeJS.EventEmitter,
         name: string,
-        fn: (...args: any[]) => void
+        fn: (...args: T) => void
       ) => {
         ee.on(name, fn);
         disposables.push(toDisposable(() => ee.removeListener(name, fn)));
@@ -553,7 +554,7 @@ export class Svn {
       );
 
       const [exitCode, stdout, stderr] = await Promise.race([
-        Promise.all<any>([
+        Promise.all([
           new Promise<number>((resolve, reject) => {
             once(process, "error", reject);
             once(process, "exit", resolve);

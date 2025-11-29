@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 
 /**
  * DeleteUnversioned Command Tests (Phase 14)
@@ -26,7 +25,7 @@ describe("DeleteUnversioned - Phase 14", () => {
 
     // Should await properly
     await asyncOp();
-    assert.ok(true, "Async operation completed");
+    expect(true).toBeTruthy();
   });
 
   /**
@@ -52,6 +51,6 @@ describe("DeleteUnversioned - Phase 14", () => {
       errorCaught = true;
     }
 
-    assert.strictEqual(errorCaught, true, "Error should be caught");
+    expect(errorCaught).toBe(true);
   });
 });

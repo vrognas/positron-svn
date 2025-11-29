@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.22.4",
+  "version": "2.23.1",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.74.0",
@@ -58,10 +58,14 @@
     "style-check": "prettylint 'src/**/*.ts'",
     "style-fix": "prettier --write \"src/**/*.ts\"",
     "pretest": "npm-run-all --parallel build:ts lint",
-    "test": "vscode-test",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:unit:coverage": "vitest run --coverage",
+    "test:e2e": "vscode-test",
     "test-compile": "npm run build:ts",
-    "test:coverage": "c8 --reporter=html --reporter=text --reporter=lcov vscode-test",
-    "test:fast": "npm run build:ts && vscode-test",
+    "test:coverage": "vitest run --coverage && c8 --reporter=html --reporter=text --reporter=lcov vscode-test",
+    "test:fast": "vitest run",
     "tools:genReadme": "node ./out/tools/generateConfigSectionForReadme.js",
     "vscode:prepublish": "npm run build",
     "watch:css": "sass scss/:css/ --watch --style=compressed --no-source-map",
@@ -108,6 +112,7 @@
     "@types/vscode": "^1.74.0",
     "@typescript-eslint/eslint-plugin": "^8.46.3",
     "@typescript-eslint/parser": "^8.46.3",
+    "@vitest/coverage-v8": "^4.0.14",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "c8": "^10.1.3",
@@ -130,7 +135,8 @@
     "sinon": "^21.0.0",
     "size-limit": "^11.2.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.46.3"
+    "typescript-eslint": "^8.46.3",
+    "vitest": "^4.0.14"
   },
   "config": {
     "commitizen": {

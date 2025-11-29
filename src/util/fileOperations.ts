@@ -12,6 +12,7 @@ import { commands, Uri, window, workspace } from "vscode";
 import { logError } from "./errorLogger";
 import { exists } from "../fs";
 import { fixPegRevision } from "../util";
+import { IExecutionResult } from "../common/types";
 
 /**
  * Reveal file in OS file explorer
@@ -39,7 +40,7 @@ export async function revealFileInOS(fsPath: string | Uri): Promise<void> {
 export async function diffWithExternalTool(
   workspaceRoot: string,
   filePath: string,
-  svnExec: (cwd: string, args: string[]) => Promise<any>,
+  svnExec: (cwd: string, args: string[]) => Promise<IExecutionResult>,
   oldRevision?: string,
   newRevision?: string
 ): Promise<void> {

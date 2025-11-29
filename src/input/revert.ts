@@ -21,12 +21,17 @@ export async function confirmRevert() {
   return true;
 }
 
-export async function promptDepth(): Promise<keyof typeof SvnDepth | undefined> {
+export async function promptDepth(): Promise<
+  keyof typeof SvnDepth | undefined
+> {
   const picks: Array<{ label: string; description: string }> = [];
 
   for (const depth in SvnDepth) {
     if (SvnDepth.hasOwnProperty(depth)) {
-      picks.push({ label: depth, description: (SvnDepth as any)[depth] });
+      picks.push({
+        label: depth,
+        description: SvnDepth[depth as keyof typeof SvnDepth]
+      });
     }
   }
 

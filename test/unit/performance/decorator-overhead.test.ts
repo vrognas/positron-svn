@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 
 /**
  * Decorator Overhead Performance Tests (Phase 15)
@@ -23,11 +22,11 @@ describe("Repository - Decorator Overhead (Phase 15)", () => {
     if (now - lastUpdate < MODEL_CACHE_MS) {
       // Early return - no decorator overhead should occur
       const elapsed = Date.now() - start;
-      assert.ok(elapsed < 1, `Cache hit overhead should be <1ms, was ${elapsed}ms`);
+      expect(elapsed < 1).toBeTruthy();
       return;
     }
 
     // Should not reach here in cache hit scenario
-    assert.ok(true);
+    expect(true).toBeTruthy();
   });
 });

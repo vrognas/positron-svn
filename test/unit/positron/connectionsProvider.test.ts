@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 
 /**
  * Positron Connections Provider Tests (Phase 23.P1)
@@ -14,29 +13,25 @@ describe("Positron Connections Provider - Phase 23.P1", () => {
     const metadata = {
       languageId: "svn",
       name: "Subversion Repository",
-      inputs: [
-        { id: "url", label: "Repository URL", type: "text" }
-      ]
+      inputs: [{ id: "url", label: "Repository URL", type: "text" }]
     };
 
-    assert.strictEqual(metadata.languageId, "svn", "Language ID should be svn");
-    assert.strictEqual(metadata.name, "Subversion Repository", "Name should be set");
-    assert.ok(metadata.inputs.length > 0, "Should have connection inputs");
+    expect(metadata.languageId).toBe("svn");
+    expect(metadata.name).toBe("Subversion Repository");
+    expect(metadata.inputs.length > 0).toBeTruthy();
   });
 
   /**
    * Test 2: Connection code generation for SVN checkout
    */
   it("generates SVN checkout code from inputs", () => {
-    const inputs = [
-      { id: "url", value: "https://svn.example.com/repo" }
-    ];
+    const inputs = [{ id: "url", value: "https://svn.example.com/repo" }];
 
     // Mock code generation
     const code = `svn checkout ${inputs[0].value}`;
 
-    assert.ok(code.includes("svn checkout"), "Should generate checkout command");
-    assert.ok(code.includes("https://svn.example.com/repo"), "Should include URL");
+    expect(code.includes("svn checkout")).toBeTruthy();
+    expect(code.includes("https://svn.example.com/repo")).toBeTruthy();
   });
 
   /**
@@ -50,8 +45,8 @@ describe("Positron Connections Provider - Phase 23.P1", () => {
       status: "up-to-date"
     };
 
-    assert.strictEqual(repoInfo.branch, "trunk", "Should show branch");
-    assert.strictEqual(repoInfo.revision, "r12345", "Should show revision");
-    assert.ok(repoInfo.remoteUrl, "Should have remote URL");
+    expect(repoInfo.branch).toBe("trunk");
+    expect(repoInfo.revision).toBe("r12345");
+    expect(repoInfo.remoteUrl).toBeTruthy();
   });
 });

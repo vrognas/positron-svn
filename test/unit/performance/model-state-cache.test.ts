@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 
 describe("Repository - updateModelState cache", () => {
   it("skips redundant calls within 2s cache window", async () => {
@@ -14,8 +13,8 @@ describe("Repository - updateModelState cache", () => {
     const call3Time = now + 1500; // 1.5s later
 
     // All within 2s window, should skip calls 2 & 3
-    assert.strictEqual(call2Time - call1Time < MODEL_CACHE_MS, true);
-    assert.strictEqual(call3Time - call1Time < MODEL_CACHE_MS, true);
+    expect(call2Time - call1Time < MODEL_CACHE_MS).toBe(true);
+    expect(call3Time - call1Time < MODEL_CACHE_MS).toBe(true);
   });
 
   it("executes calls beyond 2s cache window", async () => {
@@ -27,6 +26,6 @@ describe("Repository - updateModelState cache", () => {
     const call2Time = now + 2500; // 2.5s later
 
     // Beyond 2s window, should execute
-    assert.strictEqual(call2Time - call1Time >= MODEL_CACHE_MS, true);
+    expect(call2Time - call1Time >= MODEL_CACHE_MS).toBe(true);
   });
 });

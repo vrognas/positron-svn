@@ -425,9 +425,14 @@ export class Repository {
     let result: IExecutionResult;
     try {
       result = await this.exec(args);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Handle known SVN errors
-      if (err.stderr) {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "stderr" in err &&
+        typeof err.stderr === "string"
+      ) {
         if (err.stderr.includes("E195012") && err.stderr.includes("binary")) {
           throw new Error(`Cannot blame binary file: ${relativePath}`);
         }
@@ -911,7 +916,7 @@ export class Repository {
       );
     }
 
-    const all = await Promise.all<any>(promises);
+    const all = await Promise.all(promises);
     all.forEach(list => {
       branches.push(...list);
     });

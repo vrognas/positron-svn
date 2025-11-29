@@ -8,6 +8,7 @@ import {
   Disposable,
   Event,
   EventEmitter,
+  FileDecoration,
   ProgressLocation,
   scm,
   SecretStorage,
@@ -99,7 +100,11 @@ export class Repository implements IRemoteRepository {
   private statusService: StatusService;
   private groupManager: ResourceGroupManager;
   private remoteChangeService: RemoteChangeService;
-  private fileDecorationProvider: any; // Imported below to avoid circular dependency
+  private fileDecorationProvider: {
+    provideFileDecoration(uri: Uri): FileDecoration | undefined;
+    refresh(uris?: Uri | Uri[]): void;
+    dispose(): void;
+  };
   private _configCache: RepositoryConfig | undefined;
 
   // Property accessors for backward compatibility
@@ -159,8 +164,8 @@ export class Repository implements IRemoteRepository {
   @memoize
   get onDidChangeOperations(): Event<void> {
     return anyEvent(
-      this.onRunOperation as Event<any>,
-      this.onDidRunOperation as Event<any>
+      this.onRunOperation as unknown as Event<void>,
+      this.onDidRunOperation as unknown as Event<void>
     );
   }
 
@@ -1006,7 +1011,7 @@ export class Repository implements IRemoteRepository {
 
   private async run<T>(
     operation: Operation,
-    runOperation: () => Promise<T> = () => Promise.resolve<any>(null)
+    runOperation: () => Promise<T> = () => Promise.resolve(null as T)
   ): Promise<T> {
     if (this.state !== RepositoryState.Idle) {
       throw new Error("Repository not initialized");
@@ -1053,7 +1058,7 @@ export class Repository implements IRemoteRepository {
   }
 
   private async retryRun<T>(
-    runOperation: () => Promise<T> = () => Promise.resolve<any>(null)
+    runOperation: () => Promise<T> = () => Promise.resolve(null as T)
   ): Promise<T> {
     let attempt = 0;
     // Phase 8.2 perf fix - pre-load accounts before retry loop to avoid blocking

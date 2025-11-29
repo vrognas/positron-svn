@@ -80,8 +80,13 @@ export class SvnFinder {
         }
 
         // must check if XCode is installed
-        cp.execFile("xcode-select", ["-p"], (err: any) => {
-          if (err && err.code === 2) {
+        cp.execFile("xcode-select", ["-p"], (err: unknown) => {
+          if (
+            err &&
+            typeof err === "object" &&
+            "code" in err &&
+            err.code === 2
+          ) {
             // svn is not installed, and launching /usr/bin/svn
             // will prompt the user to install it
 

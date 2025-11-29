@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 
 /**
  * JSON.parse Safety Tests (Phase 20.C)
@@ -25,16 +24,20 @@ describe("Security - Safe JSON.parse (Phase 20.C)", () => {
     // Mock loadStoredAuths behavior with safe parsing
     const safeParseCredentials = (secret: string): unknown[] => {
       try {
-        return JSON.parse(secret);
+        const parsed = JSON.parse(secret);
+        return Array.isArray(parsed) ? parsed : [];
       } catch {
         return [];
       }
     };
 
-    malformedInputs.forEach((input) => {
+    malformedInputs.forEach(input => {
       const result = safeParseCredentials(input);
-      assert.ok(Array.isArray(result), `Should return array for: ${input}`);
-      assert.strictEqual(result.length, 0, `Should return empty array for: ${input}`);
+      expect(
+        Array.isArray(result),
+        `Should return array for: ${input}`
+      ).toBeTruthy();
+      expect(result.length, `Should return empty array for: ${input}`).toBe(0);
     });
   });
 
@@ -49,42 +52,47 @@ describe("Security - Safe JSON.parse (Phase 20.C)", () => {
 
     const safeParseCredentials = (secret: string): unknown[] => {
       try {
-        return JSON.parse(secret);
+        const parsed = JSON.parse(secret);
+        return Array.isArray(parsed) ? parsed : [];
       } catch {
         return [];
       }
     };
 
     const result = safeParseCredentials(validJson);
-    assert.ok(Array.isArray(result));
-    assert.strictEqual(result.length, 2);
-    assert.strictEqual((result[0] as Record<string, unknown>).account, "user1");
+    expect(Array.isArray(result)).toBeTruthy();
+    expect(result.length).toBe(2);
+    expect((result[0] as Record<string, unknown>).account).toBe("user1");
   });
 
   /**
    * Test 3: Malformed URI query returns default params without crash
    */
   it("malformed URI query returns default params without crash", () => {
-    const malformedQueries = [
-      "{invalid}",
-      "not-json-at-all",
-      "{",
-      "null"
-    ];
+    const malformedQueries = ["{invalid}", "not-json-at-all", "{", "null"];
 
     // Mock fromSvnUri behavior with safe parsing
     const safeParseUri = (query: string): unknown => {
       try {
-        return JSON.parse(query);
+        const parsed = JSON.parse(query);
+        return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+          ? parsed
+          : { action: "unknown", fsPath: "", extra: {} };
       } catch {
         return { action: "unknown", fsPath: "", extra: {} };
       }
     };
 
-    malformedQueries.forEach((query) => {
+    malformedQueries.forEach(query => {
       const result = safeParseUri(query);
-      assert.ok(typeof result === "object", `Should return object for: ${query}`);
-      assert.ok((result as Record<string, unknown>).action !== undefined, `Should have action field for: ${query}`);
+      expect(
+        typeof result === "object",
+        `Should return object for: ${query}`
+      ).toBeTruthy();
+      expect(
+        (result as Record<string, unknown>).action !== undefined,
+        `Should have action field for: ${query}`
+      ).toBeTruthy();
     });
   });
 });

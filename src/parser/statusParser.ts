@@ -54,20 +54,26 @@ function processEntry(
   return [r];
 }
 
-function xmlToStatus(xml: any) {
+function xmlToStatus(xml: Record<string, unknown>) {
   const statusList: IFileStatus[] = [];
-  if (xml.target && xml.target.entry) {
-    statusList.push(...processEntry(xml.target.entry));
+  if (xml.target && typeof xml.target === "object") {
+    const target = xml.target as Record<string, unknown>;
+    if (target.entry) {
+      statusList.push(...processEntry(target.entry as IEntry | IEntry[]));
+    }
   }
 
   if (xml.changelist) {
-    if (!Array.isArray(xml.changelist)) {
-      xml.changelist = [xml.changelist];
+    let changelists = xml.changelist;
+    if (!Array.isArray(changelists)) {
+      changelists = [changelists];
     }
 
-    xml.changelist.forEach((change: { entry: IEntry | IEntry[]; name: string }) => {
-      statusList.push(...processEntry(change.entry, change.name));
-    });
+    (changelists as Array<{ entry: IEntry | IEntry[]; name: string }>).forEach(
+      change => {
+        statusList.push(...processEntry(change.entry, change.name));
+      }
+    );
   }
 
   return statusList;
@@ -76,19 +82,24 @@ function xmlToStatus(xml: any) {
 export async function parseStatusXml(content: string): Promise<IFileStatus[]> {
   return new Promise<IFileStatus[]>((resolve, reject) => {
     try {
-      const result = XmlParserAdapter.parse(content, {
+      const parsed = XmlParserAdapter.parse(content, {
         mergeAttrs: true,
         explicitRoot: false,
         explicitArray: false,
         camelcase: true
       });
 
+      const result = parsed as Record<string, unknown>;
       const statusList: IFileStatus[] = xmlToStatus(result);
 
       resolve(statusList);
     } catch (err) {
       logError("parseStatusXml error", err);
-      reject(new Error(`Failed to parse status XML: ${err instanceof Error ? err.message : "Unknown error"}`));
+      reject(
+        new Error(
+          `Failed to parse status XML: ${err instanceof Error ? err.message : "Unknown error"}`
+        )
+      );
     }
   });
 }

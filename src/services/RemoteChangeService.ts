@@ -91,8 +91,8 @@ export class RemoteChangeService implements IRemoteChangeService {
     }
 
     this.interval = setInterval(() => {
-      void Promise.resolve(this.onPoll()).catch((err: any) => {
-        console.error('[RemoteChangeService] Polling failed:', err);
+      void Promise.resolve(this.onPoll()).catch((err: unknown) => {
+        console.error("[RemoteChangeService] Polling failed:", err);
         // Continue polling despite errors
       });
     }, frequencyMs);

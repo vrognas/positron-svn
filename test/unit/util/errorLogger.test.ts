@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 
 /**
  * Error Logging Sanitization Tests (Phase 20.D)
@@ -18,15 +17,17 @@ describe("Security - Error logging sanitization (Phase 20.D)", () => {
       .replace(/user:pass@/, "[REDACTED]@")
       .replace(/password=\w+/, "password=[REDACTED]");
 
-    assert.ok(!sanitized.includes("pass"), "Should not contain 'pass'");
-    assert.ok(sanitized.includes("[REDACTED]"), "Should contain [REDACTED]");
+    expect(!sanitized.includes("pass")).toBeTruthy();
+    expect(sanitized.includes("[REDACTED]")).toBeTruthy();
   });
 
   /**
    * Test 2: logError sanitizes URLs with credentials
    */
   it("logError sanitizes credentials in URLs", () => {
-    const errorWithUrl = new Error("Failed: https://user:secret123@svn.example.com/repo");
+    const errorWithUrl = new Error(
+      "Failed: https://user:secret123@svn.example.com/repo"
+    );
     const message = errorWithUrl.message;
 
     // Should remove credentials from URL
@@ -35,8 +36,8 @@ describe("Security - Error logging sanitization (Phase 20.D)", () => {
       "https://[REDACTED]@"
     );
 
-    assert.ok(!sanitized.includes("secret123"), "Should not contain password");
-    assert.ok(sanitized.includes("[REDACTED]"), "Should contain [REDACTED]");
+    expect(!sanitized.includes("secret123")).toBeTruthy();
+    expect(sanitized.includes("[REDACTED]")).toBeTruthy();
   });
 
   /**
@@ -47,7 +48,8 @@ describe("Security - Error logging sanitization (Phase 20.D)", () => {
       message: "Request failed",
       config: {
         headers: {
-          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+          Authorization:
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
         }
       }
     };
@@ -58,7 +60,7 @@ describe("Security - Error logging sanitization (Phase 20.D)", () => {
       "Bearer [REDACTED]"
     );
 
-    assert.ok(!sanitized.includes("eyJhbG"), "Should not contain token");
-    assert.ok(sanitized.includes("[REDACTED]"), "Should contain [REDACTED]");
+    expect(!sanitized.includes("eyJhbG")).toBeTruthy();
+    expect(sanitized.includes("[REDACTED]")).toBeTruthy();
   });
 });

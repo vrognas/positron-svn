@@ -30,7 +30,12 @@ export function combinedDisposable(disposables: IDisposable[]): IDisposable {
 }
 
 export function anyEvent<T>(...events: Array<Event<T>>): Event<T> {
-  return (listener: (e: T) => any, thisArgs = null, disposables?: IDisposable[]) => {
+  return (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- VSCode Event API
+    listener: (e: T) => any,
+    thisArgs = null,
+    disposables?: IDisposable[]
+  ) => {
     const result = combinedDisposable(
       events.map(event => event((i: T) => listener.call(thisArgs, i)))
     );
@@ -47,12 +52,13 @@ export function filterEvent<T>(
   event: Event<T>,
   filter: (e: T) => boolean
 ): Event<T> {
-  return (listener: (e: T) => any, thisArgs = null, disposables?: IDisposable[]) =>
-    event(
-      (e: T) => filter(e) && listener.call(thisArgs, e),
-      null,
-      disposables
-    );
+  return (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- VSCode Event API
+    listener: (e: T) => any,
+    thisArgs = null,
+    disposables?: IDisposable[]
+  ) =>
+    event((e: T) => filter(e) && listener.call(thisArgs, e), null, disposables);
 }
 
 /**
@@ -60,7 +66,12 @@ export function filterEvent<T>(
  * Collects events and fires the latest after a delay
  */
 export function throttleEvent<T>(event: Event<T>, delay: number): Event<T> {
-  return (listener: (e: T) => any, thisArgs = null, disposables?: IDisposable[]) => {
+  return (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- VSCode Event API
+    listener: (e: T) => any,
+    thisArgs = null,
+    disposables?: IDisposable[]
+  ) => {
     let timer: NodeJS.Timeout | undefined;
     let latestEvent: T | undefined;
 
@@ -96,7 +107,12 @@ export function throttleEvent<T>(event: Event<T>, delay: number): Event<T> {
 }
 
 export function onceEvent<T>(event: Event<T>): Event<T> {
-  return (listener: (e: T) => any, thisArgs = null, disposables?: IDisposable[]) => {
+  return (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- VSCode Event API
+    listener: (e: T) => any,
+    thisArgs = null,
+    disposables?: IDisposable[]
+  ) => {
     const result = event(
       (e: T) => {
         result.dispose();
@@ -166,13 +182,13 @@ export function isDescendant(parent: string, descendant: string): boolean {
 export function camelcase(name: string) {
   // Security: Reject overly long tag names (ReDoS protection)
   if (name.length > 1000) {
-    throw new Error('Tag name too long');
+    throw new Error("Tag name too long");
   }
 
   // Security: Validate character set (allow @, #, . for XML parser compatibility)
   // @ for attribute prefix (@_), _ for text nodes (underscore), . for XML tag names
   if (!/^[a-zA-Z0-9_\-\s@#.:]+$/.test(name)) {
-    throw new Error('Invalid characters in tag name');
+    throw new Error("Invalid characters in tag name");
   }
 
   return name
@@ -193,23 +209,23 @@ export function camelcase(name: string) {
 export function validateSvnPath(path: string): string {
   // Reject empty/null paths
   if (!path || path.trim().length === 0) {
-    throw new Error('Path is empty');
+    throw new Error("Path is empty");
   }
 
   // Reject null bytes
-  if (path.includes('\0')) {
-    throw new Error('Path contains null bytes');
+  if (path.includes("\0")) {
+    throw new Error("Path contains null bytes");
   }
 
   // Reject absolute paths (Windows drive letters or Unix root)
   if (/^([a-zA-Z]:|\/)/.test(path)) {
-    throw new Error('Absolute paths not allowed');
+    throw new Error("Absolute paths not allowed");
   }
 
   // Reject path traversal
   const normalized = path.normalize(path);
-  if (normalized.includes('..')) {
-    throw new Error('Path traversal not allowed');
+  if (normalized.includes("..")) {
+    throw new Error("Path traversal not allowed");
   }
 
   return normalized;
@@ -240,9 +256,7 @@ export function isReadOnly(operation: Operation): boolean {
 export async function deleteDirectory(dirPath: string): Promise<void> {
   if ((await exists(dirPath)) && (await lstat(dirPath)).isDirectory()) {
     await Promise.all(
-      (
-        await readdir(dirPath)
-      ).map(async (entry: string) => {
+      (await readdir(dirPath)).map(async (entry: string) => {
         const entryPath = path.join(dirPath, entry);
         if ((await lstat(entryPath)).isDirectory()) {
           await deleteDirectory(entryPath);

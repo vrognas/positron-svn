@@ -72,17 +72,22 @@ jobs:
             vscode-${{ runner.os }}-stable-
             vscode-${{ runner.os }}-
 
-      - name: Run tests (Linux)
+      # Unit tests with Vitest (fast, no display needed)
+      - name: Run unit tests
+        run: npm run test:unit
+
+      # E2E tests with VS Code (needs display)
+      - name: Run E2E tests (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a npx vscode-test
+        run: xvfb-run -a npm run test:e2e
         env:
           CODE_VERSION: stable
           VSCODE_TEST_VERSION: stable
           NODE_OPTIONS: --max-old-space-size=6144
 
-      - name: Run tests (macOS/Windows)
+      - name: Run E2E tests (macOS/Windows)
         if: runner.os != 'Linux'
-        run: npx vscode-test
+        run: npm run test:e2e
         env:
           CODE_VERSION: stable
           VSCODE_TEST_VERSION: stable

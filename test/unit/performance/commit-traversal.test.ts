@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 
 /**
  * Commit Parent Traversal Performance Tests (Phase 21.A)
@@ -22,8 +21,8 @@ describe("Performance - Commit parent traversal (Phase 21.A)", () => {
     const result = resourceMap.get("/repo/dir1");
     const elapsed = Date.now() - start;
 
-    assert.ok(result, "Should find resource");
-    assert.ok(elapsed < 1, `O(1) lookup should be <1ms, was ${elapsed}ms`);
+    expect(result).toBeTruthy();
+    expect(elapsed < 1).toBeTruthy();
   });
 
   /**
@@ -42,8 +41,8 @@ describe("Performance - Commit parent traversal (Phase 21.A)", () => {
     resources.forEach(r => resourceMap.set(r.fsPath, r));
     const elapsed = Date.now() - start;
 
-    assert.strictEqual(resourceMap.size, 1000, "Should have all resources");
-    assert.ok(elapsed < 10, `O(n) build should be <10ms, was ${elapsed}ms`);
+    expect(resourceMap.size).toBe(1000);
+    expect(elapsed < 10).toBeTruthy();
   });
 
   /**
@@ -77,6 +76,6 @@ describe("Performance - Commit parent traversal (Phase 21.A)", () => {
     const traverseTime = Date.now() - traverseStart;
 
     const totalTime = buildTime + traverseTime;
-    assert.ok(totalTime < 5, `Total time should be <5ms, was ${totalTime}ms`);
+    expect(totalTime < 5).toBeTruthy();
   });
 });

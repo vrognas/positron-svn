@@ -129,7 +129,12 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
       }
     } catch (error) {
       // Suppress "node not found" errors for untracked files (expected)
-      const isUntrackedFile = (error as any)?.stderr?.includes("W155010");
+      const isUntrackedFile =
+        typeof error === "object" &&
+        error !== null &&
+        "stderr" in error &&
+        typeof error.stderr === "string" &&
+        error.stderr.includes("W155010");
       if (!isUntrackedFile) {
         logError("Failed to list SVN file", error);
       }

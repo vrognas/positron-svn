@@ -84,7 +84,11 @@ export function getIconObject(iconName: string): { light: Uri; dark: Uri } {
 }
 
 export async function copyCommitToClipboard(what: string, item: ILogTreeItem) {
-  const clipboard = (env as any).clipboard;
+  const clipboard = (
+    env as unknown as {
+      clipboard?: { writeText: (text: string) => Promise<void> };
+    }
+  ).clipboard;
   if (clipboard === undefined) {
     window.showErrorMessage("Clipboard is supported in VS Code 1.30 and newer");
     return;

@@ -1,9 +1,9 @@
-import * as assert from "assert";
+import { describe, it, expect } from "vitest";
 import { parseSvnBlame } from "../../../src/parser/blameParser";
 
-suite("Blame Parser", () => {
-  suite("Basic Parsing", () => {
-    test("parses single line with all fields", async () => {
+describe("Blame Parser", () => {
+  describe("Basic Parsing", () => {
+    it("parses single line with all fields", async () => {
       const xml = `<?xml version="1.0"?>
 <blame>
   <target path="file.ts">
@@ -18,14 +18,14 @@ suite("Blame Parser", () => {
 
       const result = await parseSvnBlame(xml);
 
-      assert.strictEqual(result.length, 1);
-      assert.strictEqual(result[0].lineNumber, 1);
-      assert.strictEqual(result[0].revision, "123");
-      assert.strictEqual(result[0].author, "john");
-      assert.strictEqual(result[0].date, "2025-11-18T10:00:00.000000Z");
+      expect(result).toHaveLength(1);
+      expect(result[0].lineNumber).toBe(1);
+      expect(result[0].revision).toBe("123");
+      expect(result[0].author).toBe("john");
+      expect(result[0].date).toBe("2025-11-18T10:00:00.000000Z");
     });
 
-    test("parses multiple lines with different revisions", async () => {
+    it("parses multiple lines with different revisions", async () => {
       const xml = `<?xml version="1.0"?>
 <blame>
   <target path="file.ts">
@@ -52,18 +52,18 @@ suite("Blame Parser", () => {
 
       const result = await parseSvnBlame(xml);
 
-      assert.strictEqual(result.length, 3);
-      assert.strictEqual(result[0].revision, "100");
-      assert.strictEqual(result[0].author, "alice");
-      assert.strictEqual(result[1].revision, "150");
-      assert.strictEqual(result[1].author, "bob");
-      assert.strictEqual(result[2].revision, "200");
-      assert.strictEqual(result[2].author, "charlie");
+      expect(result).toHaveLength(3);
+      expect(result[0].revision).toBe("100");
+      expect(result[0].author).toBe("alice");
+      expect(result[1].revision).toBe("150");
+      expect(result[1].author).toBe("bob");
+      expect(result[2].revision).toBe("200");
+      expect(result[2].author).toBe("charlie");
     });
   });
 
-  suite("Edge Cases", () => {
-    test("handles empty file (no entries)", async () => {
+  describe("Edge Cases", () => {
+    it("handles empty file (no entries)", async () => {
       const xml = `<?xml version="1.0"?>
 <blame>
   <target path="empty.txt"/>
@@ -71,10 +71,10 @@ suite("Blame Parser", () => {
 
       const result = await parseSvnBlame(xml);
 
-      assert.strictEqual(result.length, 0);
+      expect(result).toHaveLength(0);
     });
 
-    test("handles uncommitted line (no commit element)", async () => {
+    it("handles uncommitted line (no commit element)", async () => {
       const xml = `<?xml version="1.0"?>
 <blame>
   <target path="file.ts">
@@ -91,15 +91,15 @@ suite("Blame Parser", () => {
 
       const result = await parseSvnBlame(xml);
 
-      assert.strictEqual(result.length, 2);
-      assert.strictEqual(result[0].revision, "100");
-      assert.strictEqual(result[1].lineNumber, 2);
-      assert.strictEqual(result[1].revision, undefined);
-      assert.strictEqual(result[1].author, undefined);
-      assert.strictEqual(result[1].date, undefined);
+      expect(result).toHaveLength(2);
+      expect(result[0].revision).toBe("100");
+      expect(result[1].lineNumber).toBe(2);
+      expect(result[1].revision).toBeUndefined();
+      expect(result[1].author).toBeUndefined();
+      expect(result[1].date).toBeUndefined();
     });
 
-    test("handles merged line with merge info", async () => {
+    it("handles merged line with merge info", async () => {
       const xml = `<?xml version="1.0"?>
 <blame>
   <target path="file.ts">
@@ -120,16 +120,16 @@ suite("Blame Parser", () => {
 
       const result = await parseSvnBlame(xml);
 
-      assert.strictEqual(result.length, 1);
-      assert.strictEqual(result[0].revision, "200");
-      assert.strictEqual(result[0].author, "merger");
-      assert.ok(result[0].merged);
-      assert.strictEqual(result[0].merged?.path, "/branches/feature");
-      assert.strictEqual(result[0].merged?.revision, "150");
-      assert.strictEqual(result[0].merged?.author, "original");
+      expect(result).toHaveLength(1);
+      expect(result[0].revision).toBe("200");
+      expect(result[0].author).toBe("merger");
+      expect(result[0].merged).toBeTruthy();
+      expect(result[0].merged?.path).toBe("/branches/feature");
+      expect(result[0].merged?.revision).toBe("150");
+      expect(result[0].merged?.author).toBe("original");
     });
 
-    test("handles missing author field", async () => {
+    it("handles missing author field", async () => {
       const xml = `<?xml version="1.0"?>
 <blame>
   <target path="file.ts">
@@ -143,53 +143,35 @@ suite("Blame Parser", () => {
 
       const result = await parseSvnBlame(xml);
 
-      assert.strictEqual(result.length, 1);
-      assert.strictEqual(result[0].revision, "123");
-      assert.strictEqual(result[0].author, undefined);
-      assert.strictEqual(result[0].date, "2025-11-18T00:00:00.000000Z");
+      expect(result).toHaveLength(1);
+      expect(result[0].revision).toBe("123");
+      expect(result[0].author).toBeUndefined();
+      expect(result[0].date).toBe("2025-11-18T00:00:00.000000Z");
     });
 
-    test("rejects malformed XML", async () => {
+    it("rejects malformed XML", async () => {
       const xml = `<blame><unclosed>`;
 
-      try {
-        await parseSvnBlame(xml);
-        assert.fail("Should reject malformed XML");
-      } catch (err) {
-        assert.ok(err instanceof Error);
-        assert.ok(err.message.includes("Failed to parse"));
-      }
+      await expect(parseSvnBlame(xml)).rejects.toThrow(/target/);
     });
 
-    test("rejects empty XML", async () => {
+    it("rejects empty XML", async () => {
       const xml = "";
 
-      try {
-        await parseSvnBlame(xml);
-        assert.fail("Should reject empty XML");
-      } catch (err) {
-        assert.ok(err instanceof Error);
-        assert.ok(err.message.includes("empty"));
-      }
+      await expect(parseSvnBlame(xml)).rejects.toThrow(/empty/);
     });
 
-    test("handles missing target element", async () => {
+    it("handles missing target element", async () => {
       const xml = `<?xml version="1.0"?>
 <blame>
 </blame>`;
 
-      try {
-        await parseSvnBlame(xml);
-        assert.fail("Should reject XML without target");
-      } catch (err) {
-        assert.ok(err instanceof Error);
-        assert.ok(err.message.includes("target"));
-      }
+      await expect(parseSvnBlame(xml)).rejects.toThrow(/target/);
     });
   });
 
-  suite("Performance", () => {
-    test("parses large file (1000 lines) quickly", async () => {
+  describe("Performance", () => {
+    it("parses large file (1000 lines) quickly", async () => {
       // Generate XML for 1000 lines
       let xml = `<?xml version="1.0"?>\n<blame>\n<target path="large.ts">\n`;
       for (let i = 1; i <= 1000; i++) {
@@ -206,8 +188,8 @@ suite("Blame Parser", () => {
       const result = await parseSvnBlame(xml);
       const elapsed = Date.now() - start;
 
-      assert.strictEqual(result.length, 1000);
-      assert.ok(elapsed < 100, `Parsing took ${elapsed}ms, expected <100ms`);
+      expect(result).toHaveLength(1000);
+      expect(elapsed).toBeLessThan(100);
     });
   });
 });

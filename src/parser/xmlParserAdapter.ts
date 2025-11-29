@@ -5,6 +5,29 @@
 import { XMLParser } from "fast-xml-parser";
 import { camelcase } from "../util";
 
+/**
+ * Represents a primitive value in parsed XML
+ */
+type XmlPrimitive = string | number | boolean | null;
+
+/**
+ * Represents any value that can appear in parsed XML.
+ * Can be a primitive, object with string keys, or array.
+ */
+type XmlValue = XmlPrimitive | XmlObject | XmlArray;
+
+/**
+ * Represents an object in parsed XML with string keys
+ */
+interface XmlObject {
+  [key: string]: XmlValue;
+}
+
+/**
+ * Represents an array in parsed XML
+ */
+type XmlArray = XmlValue[];
+
 interface ParseOptions {
   mergeAttrs?: boolean;
   explicitArray?: boolean;
@@ -37,7 +60,7 @@ export class XmlParserAdapter {
    */
   private static sanitizeXml(xml: string): string {
     // Remove control characters except tab, CR, LF
-    return xml.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+    return xml.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
   }
 
   /**
@@ -60,7 +83,7 @@ export class XmlParserAdapter {
       numberParseOptions: {
         hex: false,
         leadingZeros: false,
-        skipLike: /./  // Don't parse any numbers, keep as strings
+        skipLike: /./ // Don't parse any numbers, keep as strings
       },
       stopNodes: [], // Parse all nodes
       unpairedTags: [], // No unpaired tags expected
@@ -68,7 +91,8 @@ export class XmlParserAdapter {
       commentPropName: false, // Ignore comments
       isArray: () => false, // Single elements not wrapped in arrays
       tagValueProcessor: (_tagName: string, tagValue: string) => tagValue,
-      attributeValueProcessor: (_attrName: string, attrValue: string) => attrValue,
+      attributeValueProcessor: (_attrName: string, attrValue: string) =>
+        attrValue,
       // Disable strict XML validation to match xml2js permissiveness
       ignorePiTags: true, // Ignore PI tags
       preserveOrder: false // Don't preserve order
@@ -78,9 +102,11 @@ export class XmlParserAdapter {
   /**
    * Recursively transform object keys to camelCase
    */
-  private static toCamelCase(obj: any, depth: number = 0): any {
+  private static toCamelCase(obj: XmlValue, depth: number = 0): XmlValue {
     if (depth > this.MAX_DEPTH) {
-      throw new Error(`Object nesting exceeds maximum depth of ${this.MAX_DEPTH}`);
+      throw new Error(
+        `Object nesting exceeds maximum depth of ${this.MAX_DEPTH}`
+      );
     }
 
     if (typeof obj !== "object" || obj === null) {
@@ -91,7 +117,7 @@ export class XmlParserAdapter {
       return obj.map(item => this.toCamelCase(item, depth + 1));
     }
 
-    const result: any = {};
+    const result: XmlObject = {};
     for (const key in obj) {
       const camelKey = camelcase(key);
       result[camelKey] = this.toCamelCase(obj[key], depth + 1);
@@ -103,9 +129,11 @@ export class XmlParserAdapter {
    * Merge attributes (prefixed with @_) into parent object
    * Mimics xml2js mergeAttrs: true behavior
    */
-  private static mergeAttributes(obj: any, depth: number = 0): any {
+  private static mergeAttributes(obj: XmlValue, depth: number = 0): XmlValue {
     if (depth > this.MAX_DEPTH) {
-      throw new Error(`Object nesting exceeds maximum depth of ${this.MAX_DEPTH}`);
+      throw new Error(
+        `Object nesting exceeds maximum depth of ${this.MAX_DEPTH}`
+      );
     }
 
     if (typeof obj !== "object" || obj === null) {
@@ -116,9 +144,9 @@ export class XmlParserAdapter {
       return obj.map(item => this.mergeAttributes(item, depth + 1));
     }
 
-    const result: any = {};
+    const result: XmlObject = {};
     let hasTextNode = false;
-    let textNodeValue: any = null;
+    let textNodeValue: XmlValue = null;
 
     // First pass: merge attributes and identify text nodes
     for (const key in obj) {
@@ -151,9 +179,11 @@ export class XmlParserAdapter {
    * Normalize arrays based on explicitArray: false behavior
    * Single-element arrays become objects, unless already array
    */
-  private static normalizeArrays(obj: any, depth: number = 0): any {
+  private static normalizeArrays(obj: XmlValue, depth: number = 0): XmlValue {
     if (depth > this.MAX_DEPTH) {
-      throw new Error(`Object nesting exceeds maximum depth of ${this.MAX_DEPTH}`);
+      throw new Error(
+        `Object nesting exceeds maximum depth of ${this.MAX_DEPTH}`
+      );
     }
 
     if (typeof obj !== "object" || obj === null) {
@@ -165,7 +195,7 @@ export class XmlParserAdapter {
       return obj.map(item => this.normalizeArrays(item, depth + 1));
     }
 
-    const result: any = {};
+    const result: XmlObject = {};
     for (const key in obj) {
       const value = obj[key];
 
@@ -186,7 +216,7 @@ export class XmlParserAdapter {
    * Strip root element if explicitRoot: false
    * Mimics xml2js explicitRoot: false behavior
    */
-  private static stripRootElement(obj: any): any {
+  private static stripRootElement(obj: XmlValue): XmlValue {
     if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
       return obj;
     }
@@ -208,6 +238,7 @@ export class XmlParserAdapter {
    * @returns Parsed object matching xml2js structure
    * @throws Error if XML exceeds security limits
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public static parse(xml: string, options: ParseOptions = {}): any {
     // Security: Validate input size
     if (xml.length > this.MAX_XML_SIZE) {
@@ -222,7 +253,7 @@ export class XmlParserAdapter {
 
     // Security: Reject empty input
     if (!xml || xml.trim().length === 0) {
-      throw new Error('XML input is empty');
+      throw new Error("XML input is empty");
     }
 
     // Sanitize XML to remove invalid characters

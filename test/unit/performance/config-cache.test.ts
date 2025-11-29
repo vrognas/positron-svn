@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import { describe, it, expect } from "vitest";
 import { configuration } from "../../../src/helpers/configuration";
 
 /**
@@ -27,7 +27,7 @@ describe("Config Caching", () => {
     disposable.dispose();
 
     // Basic validation that event listener was set up
-    assert.strictEqual(typeof changeCount, "number");
+    expect(typeof changeCount).toBe("number");
   });
 
   /**
@@ -37,11 +37,17 @@ describe("Config Caching", () => {
     // StatusService.getConfiguration() should cache results
     // Multiple calls in same status update shouldn't re-read from VS Code
 
-    const val1 = configuration.get<boolean>("sourceControl.hideUnversioned", false);
-    const val2 = configuration.get<boolean>("sourceControl.hideUnversioned", false);
+    const val1 = configuration.get<boolean>(
+      "sourceControl.hideUnversioned",
+      false
+    );
+    const val2 = configuration.get<boolean>(
+      "sourceControl.hideUnversioned",
+      false
+    );
 
     // Same value returned (configuration helper already caches internally)
-    assert.strictEqual(val1, val2);
+    expect(val1).toBe(val2);
   });
 
   /**
@@ -51,8 +57,8 @@ describe("Config Caching", () => {
     // Validate that our configuration helper properly exposes change events
     // This is infrastructure needed for cache invalidation
 
-    assert.ok(configuration.onDidChange, "onDidChange event should exist");
-    assert.strictEqual(typeof configuration.onDidChange, "function");
+    expect(configuration.onDidChange).toBeTruthy();
+    expect(typeof configuration.onDidChange).toBe("function");
   });
 
   /**
@@ -62,10 +68,16 @@ describe("Config Caching", () => {
     // Validate remoteChanges.checkFrequency is cached
     // Previously called 5+ times per branch/merge + periodic polling
 
-    const freq1 = configuration.get<number>("remoteChanges.checkFrequency", 300);
-    const freq2 = configuration.get<number>("remoteChanges.checkFrequency", 300);
+    const freq1 = configuration.get<number>(
+      "remoteChanges.checkFrequency",
+      300
+    );
+    const freq2 = configuration.get<number>(
+      "remoteChanges.checkFrequency",
+      300
+    );
 
-    assert.strictEqual(freq1, freq2);
-    assert.strictEqual(typeof freq1, "number");
+    expect(freq1).toBe(freq2);
+    expect(typeof freq1).toBe("number");
   });
 });

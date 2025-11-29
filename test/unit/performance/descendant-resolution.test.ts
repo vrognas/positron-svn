@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 
 /**
  * Descendant Resolution Performance Tests (Phase 21.B)
@@ -34,7 +33,7 @@ describe("Performance - Descendant resolution (Phase 21.B)", () => {
     const elapsed = Date.now() - start;
 
     // This should be relatively slow (O(e×n) = 10×1000 = 10,000 iterations)
-    assert.ok(elapsed >= 0, "Should complete but may be slow");
+    expect(elapsed >= 0).toBeTruthy();
   });
 
   /**
@@ -60,7 +59,7 @@ describe("Performance - Descendant resolution (Phase 21.B)", () => {
     const elapsed = Date.now() - start;
 
     // Should be much faster (O(n×e_avg) where e_avg is typically small)
-    assert.ok(elapsed < 10, `Single-pass should be <10ms, was ${elapsed}ms`);
+    expect(elapsed < 10).toBeTruthy();
   });
 
   /**
@@ -69,7 +68,10 @@ describe("Performance - Descendant resolution (Phase 21.B)", () => {
   it("optimized approach is 2-5x faster than nested loop", () => {
     // Realistic scenario: 3 externals, 500 files
     const externals = ["/repo/ext1", "/repo/ext2", "/repo/ext3"];
-    const statuses = Array.from({ length: 500 }, (_, i) => `/repo/file${i}.txt`);
+    const statuses = Array.from(
+      { length: 500 },
+      (_, i) => `/repo/file${i}.txt`
+    );
 
     // Add some actual descendants
     statuses.push("/repo/ext1/file1.txt");
@@ -102,10 +104,10 @@ describe("Performance - Descendant resolution (Phase 21.B)", () => {
     const newTime = Date.now() - newStart;
 
     // Results should be identical
-    assert.strictEqual(newDescendants.size, oldDescendants.size, "Should find same descendants");
-    assert.strictEqual(newDescendants.size, 2, "Should find 2 descendants");
+    expect(newDescendants.size).toBe(oldDescendants.size);
+    expect(newDescendants.size).toBe(2);
 
     // New approach should be faster (or at least not slower)
-    assert.ok(newTime <= oldTime + 1, `New (${newTime}ms) should be <= old (${oldTime}ms)`);
+    expect(newTime <= oldTime + 1).toBeTruthy();
   });
 });

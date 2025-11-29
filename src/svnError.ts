@@ -3,7 +3,10 @@
 // Licensed under MIT License
 
 import { ISvnErrorData } from "./common/types";
-import { sanitizeString, createSanitizedErrorLog } from "./security/errorSanitizer";
+import {
+  sanitizeString,
+  createSanitizedErrorLog
+} from "./security/errorSanitizer";
 
 export default class SvnError {
   public error?: Error;
@@ -35,12 +38,10 @@ export default class SvnError {
   public toString(): string {
     const errorLog = createSanitizedErrorLog(this);
     let result =
-      sanitizeString(this.message) +
-      " " +
-      JSON.stringify(errorLog, null, 2);
+      sanitizeString(this.message) + " " + JSON.stringify(errorLog, null, 2);
 
-    if (this.error) {
-      result += sanitizeString((this.error as any).stack || "");
+    if (this.error && this.error.stack) {
+      result += sanitizeString(this.error.stack);
     }
 
     return result;

@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 import { globalSequentialize } from "../../../src/decorators";
 
 /**
@@ -23,7 +22,7 @@ describe("Decorators - globalSequentialize per-repo (Phase 20.B)", () => {
 
       @globalSequentialize("testOp")
       async operation(id: number, delay: number): Promise<void> {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await new Promise(resolve => setTimeout(resolve, delay));
         this.executionOrder.push(id);
       }
     }
@@ -33,16 +32,16 @@ describe("Decorators - globalSequentialize per-repo (Phase 20.B)", () => {
 
     // Start ops on both repos - they should run in parallel
     const start = Date.now();
-    await Promise.all([
-      repo1.operation(1, 50),
-      repo2.operation(2, 50)
-    ]);
+    await Promise.all([repo1.operation(1, 50), repo2.operation(2, 50)]);
     const elapsed = Date.now() - start;
 
     // Should take ~50ms (parallel), not ~100ms (serialized)
-    assert.ok(elapsed < 80, `Parallel execution should be <80ms, was ${elapsed}ms`);
-    assert.deepStrictEqual(repo1.executionOrder, [1]);
-    assert.deepStrictEqual(repo2.executionOrder, [2]);
+    expect(
+      elapsed < 80,
+      `Parallel execution should be <80ms, was ${elapsed}ms`
+    ).toBeTruthy();
+    expect(repo1.executionOrder).toEqual([1]);
+    expect(repo2.executionOrder).toEqual([2]);
   });
 
   /**
@@ -59,7 +58,7 @@ describe("Decorators - globalSequentialize per-repo (Phase 20.B)", () => {
 
       @globalSequentialize("testOp")
       async operation(id: number, delay: number): Promise<void> {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await new Promise(resolve => setTimeout(resolve, delay));
         this.executionOrder.push(id);
       }
     }
@@ -68,15 +67,15 @@ describe("Decorators - globalSequentialize per-repo (Phase 20.B)", () => {
 
     // Start multiple ops on same repo - they should serialize
     const start = Date.now();
-    await Promise.all([
-      repo.operation(1, 30),
-      repo.operation(2, 30)
-    ]);
+    await Promise.all([repo.operation(1, 30), repo.operation(2, 30)]);
     const elapsed = Date.now() - start;
 
     // Should take ~60ms (serialized), not ~30ms (parallel)
-    assert.ok(elapsed >= 50, `Serialized execution should be >=50ms, was ${elapsed}ms`);
-    assert.deepStrictEqual(repo.executionOrder, [1, 2]);
+    expect(
+      elapsed >= 50,
+      `Serialized execution should be >=50ms, was ${elapsed}ms`
+    ).toBeTruthy();
+    expect(repo.executionOrder).toEqual([1, 2]);
   });
 
   /**
@@ -93,7 +92,7 @@ describe("Decorators - globalSequentialize per-repo (Phase 20.B)", () => {
 
       @globalSequentialize("testOp")
       async operation(delay: number): Promise<void> {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await new Promise(resolve => setTimeout(resolve, delay));
         this.callCount++;
       }
     }
@@ -112,9 +111,12 @@ describe("Decorators - globalSequentialize per-repo (Phase 20.B)", () => {
     const elapsed = Date.now() - start;
 
     // Should take ~40ms (parallel), not ~120ms (fully serialized)
-    assert.ok(elapsed < 80, `Concurrent execution should be <80ms, was ${elapsed}ms`);
-    assert.strictEqual(repo1.callCount, 1);
-    assert.strictEqual(repo2.callCount, 1);
-    assert.strictEqual(repo3.callCount, 1);
+    expect(
+      elapsed < 80,
+      `Concurrent execution should be <80ms, was ${elapsed}ms`
+    ).toBeTruthy();
+    expect(repo1.callCount).toBe(1);
+    expect(repo2.callCount).toBe(1);
+    expect(repo3.callCount).toBe(1);
   });
 });

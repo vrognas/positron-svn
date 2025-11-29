@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 import * as ts from "typescript";
 
 /**
@@ -10,12 +9,7 @@ import * as ts from "typescript";
 
 // Helper to create test source file
 function createTestFile(code: string): ts.SourceFile {
-  return ts.createSourceFile(
-    "test.ts",
-    code,
-    ts.ScriptTarget.Latest,
-    true
-  );
+  return ts.createSourceFile("test.ts", code, ts.ScriptTarget.Latest, true);
 }
 
 // Helper to check if violation exists
@@ -26,7 +20,7 @@ function hasViolation(sourceFile: ts.SourceFile): boolean {
     if (ts.isTryStatement(node) && node.catchClause) {
       const catchBlock = node.catchClause.block;
 
-      ts.forEachChild(catchBlock, (stmt) => {
+      ts.forEachChild(catchBlock, stmt => {
         if (ts.isExpressionStatement(stmt)) {
           const expr = stmt.expression;
 
@@ -43,9 +37,11 @@ function hasViolation(sourceFile: ts.SourceFile): boolean {
                 if (["error", "log", "warn"].includes(prop.text)) {
                   // Check if error variable is passed
                   if (callExpr.arguments.length > 0) {
-                    const hasErrorArg = callExpr.arguments.some((arg) => {
-                      return ts.isIdentifier(arg) &&
-                             ["err", "error", "e", "ex"].includes(arg.text);
+                    const hasErrorArg = callExpr.arguments.some(arg => {
+                      return (
+                        ts.isIdentifier(arg) &&
+                        ["err", "error", "e", "ex"].includes(arg.text)
+                      );
                     });
 
                     if (hasErrorArg) {
@@ -83,7 +79,7 @@ describe("Security Validator - CI catch block scanner (Phase 22.A)", () => {
     const sourceFile = createTestFile(code);
     const violation = hasViolation(sourceFile);
 
-    assert.strictEqual(violation, true, "Should detect console.error(error)");
+    expect(violation).toBe(true);
   });
 
   /**
@@ -101,7 +97,7 @@ describe("Security Validator - CI catch block scanner (Phase 22.A)", () => {
     const sourceFile = createTestFile(code);
     const violation = hasViolation(sourceFile);
 
-    assert.strictEqual(violation, true, "Should detect console.log with err");
+    expect(violation).toBe(true);
   });
 
   /**
@@ -119,6 +115,6 @@ describe("Security Validator - CI catch block scanner (Phase 22.A)", () => {
     const sourceFile = createTestFile(code);
     const violation = hasViolation(sourceFile);
 
-    assert.strictEqual(violation, false, "Should allow static strings");
+    expect(violation).toBe(false);
   });
 });

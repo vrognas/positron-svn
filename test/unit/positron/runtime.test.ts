@@ -1,5 +1,4 @@
-import * as assert from "assert";
-import { describe, it } from "mocha";
+import { describe, it, expect } from "vitest";
 
 /**
  * Positron Runtime Detection Tests (Phase 23.P0)
@@ -17,7 +16,7 @@ describe("Positron Runtime Detection - Phase 23.P0", () => {
     };
 
     const inPositron = typeof mockGlobal.acquirePositronApi !== "undefined";
-    assert.strictEqual(inPositron, true, "Should detect Positron");
+    expect(inPositron).toBe(true);
   });
 
   /**
@@ -27,8 +26,10 @@ describe("Positron Runtime Detection - Phase 23.P0", () => {
     // Mock VS Code environment
     const mockGlobal = {};
 
-    const inPositron = typeof (mockGlobal as unknown as Record<string, unknown>).acquirePositronApi !== "undefined";
-    assert.strictEqual(inPositron, false, "Should detect VS Code");
+    const inPositron =
+      typeof (mockGlobal as unknown as Record<string, unknown>)
+        .acquirePositronApi !== "undefined";
+    expect(inPositron).toBe(false);
   });
 
   /**
@@ -38,6 +39,6 @@ describe("Positron Runtime Detection - Phase 23.P0", () => {
     // Mock VS Code - no acquirePositronApi
     const api = undefined; // Would be globalThis.acquirePositronApi?.() in real code
 
-    assert.strictEqual(api, undefined, "Should return undefined in VS Code");
+    expect(api).toBe(undefined);
   });
 });
