@@ -80,15 +80,17 @@ export class SvnFileDecorationProvider
     const color = this.getColor(status);
     let tooltip = this.getTooltip(status, resource.renameResourceUri);
 
-    // Add lock info to tooltip and badge
+    // Add lock info to tooltip and badge (K=mine, O=others per SVN convention)
     if (resource.locked) {
-      const lockInfo = resource.lockOwner
-        ? `Locked by ${resource.lockOwner}`
-        : "Locked";
+      const lockInfo = resource.hasLockToken
+        ? "Locked by you"
+        : resource.lockOwner
+          ? `Locked by ${resource.lockOwner}`
+          : "Locked by others";
       tooltip = tooltip ? `${tooltip} (${lockInfo})` : lockInfo;
-      // Show lock badge if no other badge (L = Locked, per VS Code convention)
+      // Show lock badge if no other badge
       if (!badge) {
-        badge = "L";
+        badge = resource.hasLockToken ? "K" : "O";
       }
     }
 

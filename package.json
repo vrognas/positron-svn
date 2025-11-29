@@ -437,6 +437,18 @@
         "icon": "$(warning)"
       },
       {
+        "command": "svn.stealLock",
+        "title": "Steal Lock",
+        "category": "SVN",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "svn.toggleNeedsLock",
+        "title": "Toggle Needs Lock",
+        "category": "SVN",
+        "icon": "$(shield)"
+      },
+      {
         "command": "svn.setDepth",
         "title": "Set Folder Depth...",
         "category": "SVN",

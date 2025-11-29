@@ -17,7 +17,8 @@ import { DeleteUnversioned } from "./commands/deleteUnversioned";
 import { FileOpen } from "./commands/fileOpen";
 import { FinishCheckout } from "./commands/finishCheckout";
 import { GetSourceControlManager } from "./commands/get_source_control_manager";
-import { Lock } from "./commands/lock";
+import { Lock, StealLock } from "./commands/lock";
+import { ToggleNeedsLock } from "./commands/needsLock";
 import { Log } from "./commands/log";
 import {
   OpenChangeBase,
@@ -103,6 +104,8 @@ export function registerCommands(
   disposables.push(new Resolve());
   disposables.push(new Resolved());
   disposables.push(new Lock());
+  disposables.push(new StealLock());
+  disposables.push(new ToggleNeedsLock());
   disposables.push(new Log());
   disposables.push(new RevertChange());
   disposables.push(new Close());

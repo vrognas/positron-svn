@@ -335,7 +335,8 @@ export class StatusService implements IStatusService {
         status.props,
         false, // not remote
         status.wcStatus.locked,
-        status.wcStatus.lockOwner
+        status.wcStatus.lockOwner,
+        status.wcStatus.hasLockToken
       );
 
       // Skip normal/unchanged items

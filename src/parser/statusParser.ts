@@ -30,12 +30,15 @@ function processEntry(
     }
   }
 
+  // wcLocked="true" means we hold the lock token locally (K)
+  const hasLockToken =
+    !!entry.wcStatus.wcLocked && entry.wcStatus.wcLocked === "true";
+
   const wcStatus: IWcStatus = {
-    locked:
-      (!!entry.wcStatus.wcLocked && entry.wcStatus.wcLocked === "true") ||
-      !!(entry.reposStatus && entry.reposStatus.lock),
+    locked: hasLockToken || !!(entry.reposStatus && entry.reposStatus.lock),
     switched: !!entry.wcStatus.switched && entry.wcStatus.switched === "true",
-    lockOwner
+    lockOwner,
+    hasLockToken
   };
 
   const r: IFileStatus = {

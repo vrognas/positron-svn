@@ -1453,6 +1453,52 @@ export class Repository {
   }
 
   /**
+   * Check if a file has the svn:needs-lock property set.
+   * Files with this property are read-only until locked.
+   */
+  public async hasNeedsLock(filePath: string): Promise<boolean> {
+    filePath = this.removeAbsolutePath(filePath);
+
+    if (!validateFilePath(filePath)) {
+      throw new Error(`Invalid file path: ${filePath}`);
+    }
+
+    try {
+      const result = await this.exec(["propget", "svn:needs-lock", filePath]);
+      return result.stdout.trim() !== "";
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Set the svn:needs-lock property on a file.
+   * This makes the file read-only until locked.
+   */
+  public async setNeedsLock(filePath: string): Promise<IExecutionResult> {
+    filePath = this.removeAbsolutePath(filePath);
+
+    if (!validateFilePath(filePath)) {
+      throw new Error(`Invalid file path: ${filePath}`);
+    }
+
+    return this.exec(["propset", "svn:needs-lock", "*", filePath]);
+  }
+
+  /**
+   * Remove the svn:needs-lock property from a file.
+   */
+  public async removeNeedsLock(filePath: string): Promise<IExecutionResult> {
+    filePath = this.removeAbsolutePath(filePath);
+
+    if (!validateFilePath(filePath)) {
+      throw new Error(`Invalid file path: ${filePath}`);
+    }
+
+    return this.exec(["propdel", "svn:needs-lock", filePath]);
+  }
+
+  /**
    * Clear all info cache timers (Phase 8.2 perf fix - prevent memory leak)
    * Should be called on repository disposal
    */

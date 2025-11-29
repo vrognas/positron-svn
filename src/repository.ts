@@ -1160,6 +1160,31 @@ export class Repository implements IRemoteRepository {
     );
   }
 
+  /**
+   * Check if file has svn:needs-lock property.
+   */
+  public async hasNeedsLock(filePath: string): Promise<boolean> {
+    return this.repository.hasNeedsLock(filePath);
+  }
+
+  /**
+   * Set svn:needs-lock property on file (makes read-only until locked).
+   */
+  public async setNeedsLock(filePath: string) {
+    return this.run(Operation.Update, () =>
+      this.repository.setNeedsLock(filePath)
+    );
+  }
+
+  /**
+   * Remove svn:needs-lock property from file.
+   */
+  public async removeNeedsLock(filePath: string) {
+    return this.run(Operation.Update, () =>
+      this.repository.removeNeedsLock(filePath)
+    );
+  }
+
   public dispose(): void {
     // Clear auth cooldown timer to prevent memory leak
     if (this.promptAuthCooldownTimer) {

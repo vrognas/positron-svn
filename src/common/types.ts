@@ -145,6 +145,8 @@ export interface IWcStatus {
   switched: boolean;
   /** Lock owner username (from repos-status) */
   lockOwner?: string;
+  /** True if we hold the lock token locally (K), false if locked by others (O) */
+  hasLockToken?: boolean;
 }
 
 export interface IFileStatus {

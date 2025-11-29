@@ -54,7 +54,8 @@ export class Resource implements SourceControlResourceState {
     private _props?: string,
     private _remote: boolean = false,
     private _locked: boolean = false,
-    private _lockOwner?: string
+    private _lockOwner?: string,
+    private _hasLockToken: boolean = false
   ) {}
 
   @memoize
@@ -83,6 +84,11 @@ export class Resource implements SourceControlResourceState {
 
   get lockOwner(): string | undefined {
     return this._lockOwner;
+  }
+
+  /** True if we hold the lock token (K), false if locked by others (O) */
+  get hasLockToken(): boolean {
+    return this._hasLockToken;
   }
 
   get decorations(): SourceControlResourceDecorations {
