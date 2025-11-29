@@ -37,7 +37,7 @@ export class SvnFileDecorationProvider
   provideFileDecoration(uri: Uri): FileDecoration | undefined {
     // Check if this is a historical file from repository log (has action query param)
     const queryParams = new URLSearchParams(uri.query);
-    const action = queryParams.get('action');
+    const action = queryParams.get("action");
 
     if (action) {
       // Historical file from repository log - use action directly
@@ -78,9 +78,17 @@ export class SvnFileDecorationProvider
 
     const badge = this.getBadge(status, resource.renameResourceUri);
     const color = this.getColor(status);
-    const tooltip = this.getTooltip(status, resource.renameResourceUri);
+    let tooltip = this.getTooltip(status, resource.renameResourceUri);
 
-    if (!badge && !color) {
+    // Add lock info to tooltip
+    if (resource.locked) {
+      const lockInfo = resource.lockOwner
+        ? `🔒 Locked by ${resource.lockOwner}`
+        : "🔒 Locked";
+      tooltip = tooltip ? `${tooltip} (${lockInfo})` : lockInfo;
+    }
+
+    if (!badge && !color && !resource.locked) {
       return undefined;
     }
 
@@ -105,13 +113,13 @@ export class SvnFileDecorationProvider
    */
   private actionToStatus(action: string): string | undefined {
     switch (action) {
-      case 'A':
+      case "A":
         return Status.ADDED;
-      case 'M':
+      case "M":
         return Status.MODIFIED;
-      case 'D':
+      case "D":
         return Status.DELETED;
-      case 'R':
+      case "R":
         return Status.REPLACED;
       default:
         return undefined;

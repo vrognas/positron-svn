@@ -21,11 +21,21 @@ function processEntry(
     return list;
   }
 
+  // Extract lock owner from repos-status if available
+  let lockOwner: string | undefined;
+  if (entry.reposStatus?.lock) {
+    const lock = entry.reposStatus.lock as Record<string, unknown>;
+    if (lock.owner && typeof lock.owner === "string") {
+      lockOwner = lock.owner;
+    }
+  }
+
   const wcStatus: IWcStatus = {
     locked:
       (!!entry.wcStatus.wcLocked && entry.wcStatus.wcLocked === "true") ||
       !!(entry.reposStatus && entry.reposStatus.lock),
-    switched: !!entry.wcStatus.switched && entry.wcStatus.switched === "true"
+    switched: !!entry.wcStatus.switched && entry.wcStatus.switched === "true",
+    lockOwner
   };
 
   const r: IFileStatus = {

@@ -25,10 +25,13 @@ import { RemoteChangeService } from "./services/RemoteChangeService";
 import {
   IAuth,
   IFileStatus,
+  ILockOptions,
   IOperations,
   ISvnErrorData,
   ISvnInfo,
+  ISvnLockInfo,
   ISvnResourceGroup,
+  IUnlockOptions,
   Operation,
   RepositoryState,
   Status,
@@ -1113,6 +1116,35 @@ export class Repository implements IRemoteRepository {
         }
       }
     }
+  }
+
+  /**
+   * Lock files/directories to prevent concurrent modifications.
+   * @param files Paths to lock
+   * @param options Lock options (comment, force)
+   */
+  public async lock(files: string[], options: ILockOptions = {}) {
+    return this.run(Operation.Lock, () => this.repository.lock(files, options));
+  }
+
+  /**
+   * Unlock files/directories.
+   * @param files Paths to unlock
+   * @param options Unlock options (force to break others' locks)
+   */
+  public async unlock(files: string[], options: IUnlockOptions = {}) {
+    return this.run(Operation.Unlock, () =>
+      this.repository.unlock(files, options)
+    );
+  }
+
+  /**
+   * Get lock information for a file/directory.
+   * @param filePath Path to check
+   * @returns Lock info or null if not locked
+   */
+  public async getLockInfo(filePath: string): Promise<ISvnLockInfo | null> {
+    return this.repository.getLockInfo(filePath);
   }
 
   public dispose(): void {

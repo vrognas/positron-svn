@@ -115,6 +115,7 @@ export enum Operation {
   CurrentBranch = "CurrentBranch",
   Info = "Info",
   Ignore = "Ignore",
+  Lock = "Lock",
   Log = "Log",
   Merge = "Merge",
   NewBranch = "NewBranch",
@@ -129,6 +130,7 @@ export enum Operation {
   Status = "Status",
   StatusRemote = "StatusRemote",
   SwitchBranch = "SwitchBranch",
+  Unlock = "Unlock",
   Update = "Update",
   List = "List"
 }
@@ -141,6 +143,8 @@ export interface ISvnResourceGroup extends SourceControlResourceGroup {
 export interface IWcStatus {
   locked: boolean;
   switched: boolean;
+  /** Lock owner username (from repos-status) */
+  lockOwner?: string;
 }
 
 export interface IFileStatus {
@@ -343,4 +347,30 @@ export interface LineChange {
   readonly originalEndLineNumber: number;
   readonly modifiedStartLineNumber: number;
   readonly modifiedEndLineNumber: number;
+}
+
+/** SVN lock information from svn info --xml or svn status -u --xml */
+export interface ISvnLockInfo {
+  /** Lock owner username */
+  owner: string;
+  /** Opaque lock token (e.g., "opaquelocktoken:12345-67890") */
+  token: string;
+  /** Optional lock comment */
+  comment?: string;
+  /** ISO 8601 creation timestamp */
+  created: string;
+}
+
+/** Options for svn lock command */
+export interface ILockOptions {
+  /** Lock comment (--message) */
+  comment?: string;
+  /** Force steal lock from another user (--force) */
+  force?: boolean;
+}
+
+/** Options for svn unlock command */
+export interface IUnlockOptions {
+  /** Force break lock owned by another user (--force) */
+  force?: boolean;
 }

@@ -137,7 +137,8 @@ export class StatusService implements IStatusService {
     }
 
     const fileConfig = workspace.getConfiguration("files", Uri.file(this.root));
-    const filesExclude = fileConfig.get<Record<string, boolean>>("exclude") ?? {};
+    const filesExclude =
+      fileConfig.get<Record<string, boolean>>("exclude") ?? {};
 
     this._configCache = {
       combineExternal: configuration.get<boolean>(
@@ -331,7 +332,10 @@ export class StatusService implements IStatusService {
         uri,
         status.status,
         renameUri,
-        status.props
+        status.props,
+        false, // not remote
+        status.wcStatus.locked,
+        status.wcStatus.lockOwner
       );
 
       // Skip normal/unchanged items
@@ -354,11 +358,7 @@ export class StatusService implements IStatusService {
         const matches = status.path.match(
           /(.+?)\.(mine|working|merge-\w+\.r\d+|r\d+)$/
         );
-        if (
-          matches &&
-          matches[1] &&
-          conflictPaths.has(matches[1])
-        ) {
+        if (matches && matches[1] && conflictPaths.has(matches[1])) {
           continue;
         }
 

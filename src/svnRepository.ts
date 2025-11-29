@@ -10,8 +10,11 @@ import {
   ICpOptions,
   IExecutionResult,
   IFileStatus,
+  ILockOptions,
   ISvnInfo,
+  ISvnLockInfo,
   ISvnLogEntry,
+  IUnlockOptions,
   Status,
   SvnDepth,
   ISvnPathChange,
@@ -26,6 +29,7 @@ import { getBranchName } from "./helpers/branch";
 import { configuration } from "./helpers/configuration";
 import { parseInfoXml } from "./parser/infoParser";
 import { parseSvnList } from "./parser/listParser";
+import { parseLockInfo } from "./parser/lockParser";
 import { parseSvnLog } from "./parser/logParser";
 import { parseStatusXml } from "./parser/statusParser";
 import { parseSvnBlame } from "./parser/blameParser";
@@ -1318,6 +1322,83 @@ export class Repository {
     const result = await this.exec(args);
 
     return result.stdout;
+  }
+
+  /**
+   * Lock files or directories to prevent concurrent modifications.
+   * Supports both files and directories.
+   *
+   * @param files Array of file/directory paths to lock
+   * @param options Lock options (comment, force)
+   * @returns SVN lock output
+   */
+  public async lock(
+    files: string[],
+    options: ILockOptions = {}
+  ): Promise<IExecutionResult> {
+    files = files.map(file => this.removeAbsolutePath(file));
+
+    const args = ["lock"];
+
+    if (options.comment) {
+      args.push("--message", options.comment);
+    }
+
+    if (options.force) {
+      args.push("--force");
+    }
+
+    args.push(...files);
+
+    return this.exec(args);
+  }
+
+  /**
+   * Unlock files or directories.
+   * Use force option to break locks owned by other users.
+   *
+   * @param files Array of file/directory paths to unlock
+   * @param options Unlock options (force to break others' locks)
+   * @returns SVN unlock output
+   */
+  public async unlock(
+    files: string[],
+    options: IUnlockOptions = {}
+  ): Promise<IExecutionResult> {
+    files = files.map(file => this.removeAbsolutePath(file));
+
+    const args = ["unlock"];
+
+    if (options.force) {
+      args.push("--force");
+    }
+
+    args.push(...files);
+
+    return this.exec(args);
+  }
+
+  /**
+   * Get lock information for a file or directory.
+   * Returns null if the path is not locked.
+   *
+   * @param filePath Path to check for lock
+   * @returns Lock info or null if not locked
+   */
+  public async getLockInfo(filePath: string): Promise<ISvnLockInfo | null> {
+    filePath = this.removeAbsolutePath(filePath);
+
+    try {
+      const result = await this.exec([
+        "info",
+        "--xml",
+        fixPegRevision(filePath)
+      ]);
+      return parseLockInfo(result.stdout);
+    } catch (err) {
+      logError(`Failed to get lock info for ${filePath}`, err);
+      return null;
+    }
   }
 
   /**

@@ -261,5 +261,16 @@ See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.19
-**Updated**: 2025-11-19 (v2.17.215)
+### File Locking System (v2.24.0)
+
+- **Commands**: `svn.lock`, `svn.unlock`, `svn.breakLock`
+- **Parser**: `lockParser.ts` extracts lock info from `svn info --xml`
+- **Types**: `ISvnLockInfo`, `ILockOptions`, `IUnlockOptions`
+- **API Layer**: `Repository.lock()`, `Repository.unlock()`, `Repository.getLockInfo()`
+- **UI**: Lock status in tooltips (🔒), Explorer context menu integration
+- **Directory Support**: Locks can be applied to both files and directories
+
+---
+
+**Version**: 3.20
+**Updated**: 2025-11-29 (v2.24.0)

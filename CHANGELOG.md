@@ -1,3 +1,19 @@
+## [2.24.0] (2025-11-29)
+
+### FEAT: SVN File Locking System
+
+- **New**: Lock/Unlock commands for files and directories
+  - `SVN: Lock File` - Lock with optional comment
+  - `SVN: Unlock File` - Unlock your own locks
+  - `SVN: Break Lock (Force)` - Break locks owned by others
+- **New**: Lock status display
+  - 🔒 Lock indicator in SCM view tooltips
+  - Lock owner shown in file decorations
+  - Explorer context menu integration
+- **New**: Lock parser (`parseLockInfo`) extracts lock details from `svn info --xml`
+- **Types**: Added `ISvnLockInfo`, `ILockOptions`, `IUnlockOptions` interfaces
+- **API**: Repository methods: `lock()`, `unlock()`, `getLockInfo()`
+
 ## [2.23.1] (2025-11-29)
 
 ### CHORE: Fix TypeScript `any` Type Warnings

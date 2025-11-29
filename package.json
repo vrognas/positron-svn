@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.23.1",
+  "version": "2.24.0",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.74.0",
@@ -417,6 +417,24 @@
         "command": "svn.remove",
         "title": "Remove Selected",
         "category": "SVN"
+      },
+      {
+        "command": "svn.lock",
+        "title": "Lock File",
+        "category": "SVN",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "svn.unlock",
+        "title": "Unlock File",
+        "category": "SVN",
+        "icon": "$(unlock)"
+      },
+      {
+        "command": "svn.breakLock",
+        "title": "Break Lock (Force)",
+        "category": "SVN",
+        "icon": "$(warning)"
       },
       {
         "command": "svn.removeUnversioned",
@@ -1052,6 +1070,21 @@
           "group": "1_modification"
         },
         {
+          "command": "svn.lock",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != remotechanges",
+          "group": "1_modification@5"
+        },
+        {
+          "command": "svn.unlock",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != remotechanges",
+          "group": "1_modification@6"
+        },
+        {
+          "command": "svn.breakLock",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != remotechanges",
+          "group": "1_modification@7"
+        },
+        {
           "command": "svn.commit",
           "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != conflicts && scmResourceGroup != remotechanges",
           "group": "1_modification"
@@ -1154,6 +1187,21 @@
         {
           "command": "svn.revertExplorer",
           "group": "7_modification",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "command": "svn.lock",
+          "group": "9_svn@2",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "command": "svn.unlock",
+          "group": "9_svn@3",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "command": "svn.breakLock",
+          "group": "9_svn@4",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         }
       ]

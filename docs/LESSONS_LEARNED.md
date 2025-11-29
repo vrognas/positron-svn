@@ -1,7 +1,7 @@
 # Lessons Learned
 
-**Version**: v2.18.0
-**Updated**: 2025-11-28
+**Version**: v2.24.0
+**Updated**: 2025-11-29
 
 ---
 
@@ -504,5 +504,41 @@ suite("Extension", () => {
 
 ---
 
-**Document Version**: 2.5
+### 18. SVN Locking for Large Files
+
+**Lesson**: SVN's lock-modify-unlock workflow mitigates "poor SVN usage" in data science repos.
+
+**Problem domains**:
+
+- Monolithic checkouts (sparse checkout needed)
+- Binary bloat (large CSVs, models, datasets)
+- Locking ambiguity (unclear who has lock)
+- Disconnected history (vague commit messages)
+
+**Implementation** (v2.24.0):
+
+- Commands: `lock`, `unlock`, `breakLock`
+- Lock info in tooltips (🔒 Locked by <user>)
+- Explorer context menu integration
+- Directory locking support
+
+**Pattern**:
+
+```typescript
+// Lock with optional comment
+await repository.lock(files, { comment: "Editing dataset" });
+
+// Break lock owned by another user
+await repository.unlock(files, { force: true });
+
+// Check lock status
+const lockInfo = await repository.getLockInfo(filePath);
+if (lockInfo) console.log(`Locked by ${lockInfo.owner}`);
+```
+
+**Rule**: Lock files before editing large binaries. Use lock comments for coordination.
+
+---
+
+**Document Version**: 2.6
 **Last Updated**: 2025-11-29

@@ -17,6 +17,7 @@ import { DeleteUnversioned } from "./commands/deleteUnversioned";
 import { FileOpen } from "./commands/fileOpen";
 import { FinishCheckout } from "./commands/finishCheckout";
 import { GetSourceControlManager } from "./commands/get_source_control_manager";
+import { Lock } from "./commands/lock";
 import { Log } from "./commands/log";
 import {
   OpenChangeBase,
@@ -48,6 +49,7 @@ import { RevertAll } from "./commands/revertAll";
 import { RevertChange } from "./commands/revertChange";
 import { RevertExplorer } from "./commands/revertExplorer";
 import { SwitchBranch } from "./commands/switchBranch";
+import { Unlock, BreakLock } from "./commands/unlock";
 import { Update } from "./commands/update";
 import { Upgrade } from "./commands/upgrade";
 import { SourceControlManager } from "./source_control_manager";
@@ -99,6 +101,7 @@ export function registerCommands(
   disposables.push(new ResolveAll());
   disposables.push(new Resolve());
   disposables.push(new Resolved());
+  disposables.push(new Lock());
   disposables.push(new Log());
   disposables.push(new RevertChange());
   disposables.push(new Close());
@@ -108,6 +111,8 @@ export function registerCommands(
   disposables.push(new AddToIgnoreSCM());
   disposables.push(new AddToIgnoreExplorer());
   disposables.push(new RenameExplorer());
+  disposables.push(new Unlock());
+  disposables.push(new BreakLock());
   disposables.push(new Upgrade());
   disposables.push(new OpenChangePrev());
   disposables.push(new PromptRemove());
