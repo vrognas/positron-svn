@@ -11,6 +11,7 @@ import * as path from "path";
 import { commands, Uri, window, workspace } from "vscode";
 import { logError } from "./errorLogger";
 import { exists } from "../fs";
+import { fixPegRevision } from "../util";
 
 /**
  * Reveal file in OS file explorer
@@ -105,9 +106,11 @@ export async function diffWithExternalTool(
     // Add revision range if provided
     if (oldRevision && newRevision) {
       args.push(`-r${oldRevision}:${newRevision}`);
+      // Add peg revision to handle renamed/moved/deleted files
+      args.push(fixPegRevision(filePath) + "@" + newRevision);
+    } else {
+      args.push(fixPegRevision(filePath));
     }
-
-    args.push(filePath);
 
     // Call svn diff with --diff-cmd pointing to external tool
     await svnExec(workspaceRoot, args);

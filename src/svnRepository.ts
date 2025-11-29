@@ -326,6 +326,15 @@ export class Repository {
       if (!isUrl) {
         file = fixPathSeparator(file);
       }
+      // Add peg revision for non-working-copy revisions to handle renamed/moved/deleted files
+      if (
+        revision &&
+        !["BASE", "COMMITTED", "PREV"].includes(revision.toUpperCase())
+      ) {
+        file = fixPegRevision(file) + "@" + revision;
+      } else {
+        file = fixPegRevision(file);
+      }
       args.push(file);
     }
 
@@ -405,7 +414,12 @@ export class Repository {
       revision
     ];
 
-    args.push(fixPegRevision(relativePath));
+    // Add peg revision for non-HEAD revisions to handle renamed/moved/deleted files
+    if (revision.toUpperCase() !== "HEAD") {
+      args.push(fixPegRevision(relativePath) + "@" + revision);
+    } else {
+      args.push(fixPegRevision(relativePath));
+    }
 
     // Execute SVN command
     let result: IExecutionResult;
@@ -589,6 +603,17 @@ export class Repository {
         target = info.url + "/" + target.replace(/\\/g, "/");
         // TODO move to SvnRI
       }
+    }
+
+    // Add peg revision for non-working-copy revisions to handle renamed/moved/deleted files
+    // SVN syntax: path@revision tells SVN to look at path as it existed at that revision
+    if (
+      revision &&
+      !["BASE", "COMMITTED", "PREV"].includes(revision.toUpperCase())
+    ) {
+      target = fixPegRevision(target) + "@" + revision;
+    } else {
+      target = fixPegRevision(target);
     }
 
     args.push(target);

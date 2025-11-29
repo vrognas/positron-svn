@@ -1,3 +1,33 @@
+## [2.22.4] (2025-11-29)
+
+### FIX: Peg Revision for External Diff Tool
+
+- **Fix**: External diff tool now works for renamed/moved/deleted files
+  - Uses peg revision when comparing historical revisions
+  - Previously failed silently or showed wrong file content
+
+## [2.22.3] (2025-11-28)
+
+### FIX: Peg Revision for Blame and Info Commands
+
+- **Fix**: `svn blame` with specific revision now works on renamed/moved files
+  - Uses peg revision for non-HEAD revisions
+- **Fix**: `svn info` with specific revision now works on renamed/moved files
+  - Uses peg revision for non-working-copy revisions
+
+## [2.22.2] (2025-11-28)
+
+### FIX: Repository Log Diff for Renamed/Moved/Deleted Files
+
+- **Fix**: "Open Diff" now works for files renamed, moved, or deleted after the viewed revision
+  - Uses SVN peg revision (`path@revision`) to find path as it existed at that point
+  - Previously failed with "Failed to execute svn" error (E160013: path not found)
+  - Fixed in both `svn log` queries and `svn cat` (file content) commands
+- **Fix**: Added files (action=A) now show diff against empty file
+  - Title shows "(added in rXXX)" instead of revision range
+  - Previously failed trying to find non-existent previous version
+- **Fix**: Better error handling with user-friendly messages
+
 ## [2.22.1] (2025-11-28)
 
 ### FIX: Auth Input Validation & Timer Cleanup

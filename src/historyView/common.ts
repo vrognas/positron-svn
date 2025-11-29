@@ -287,16 +287,21 @@ async function downloadFile(
 export async function openDiff(
   repo: IRemoteRepository,
   arg1: Uri,
-  r1: string,
+  r1: string | undefined,
   r2: string,
   arg2?: Uri
 ) {
-  const uri1 = await downloadFile(repo, arg1, r1);
+  // For added files (r1 = undefined), create empty temp file
+  const uri1 = r1
+    ? await downloadFile(repo, arg1, r1)
+    : await tempSvnFs.createTempSvnRevisionFile(arg1, "empty", "");
   const uri2 = await downloadFile(repo, arg2 || arg1, r2);
   const opts: TextDocumentShowOptions = {
     preview: true
   };
-  const title = `${path.basename(arg1.path)} (${r1} : ${r2})`;
+  const title = r1
+    ? `${path.basename(arg1.path)} (${r1} : ${r2})`
+    : `${path.basename(arg1.path)} (added in ${r2})`;
   return commands.executeCommand<void>("vscode.diff", uri1, uri2, title, opts);
 }
 

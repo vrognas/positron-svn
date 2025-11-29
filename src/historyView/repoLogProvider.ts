@@ -147,9 +147,21 @@ export class RepoLogProvider
         this.openFileLocal,
         this
       ),
-      commands.registerCommand("svn.repolog.refresh", this.explicitRefreshCmd, this),
-      commands.registerCommand("svn.repolog.revealInExplorer", this.revealInExplorerCmd, this),
-      commands.registerCommand("svn.repolog.diffWithExternalTool", this.diffWithExternalToolCmd, this),
+      commands.registerCommand(
+        "svn.repolog.refresh",
+        this.explicitRefreshCmd,
+        this
+      ),
+      commands.registerCommand(
+        "svn.repolog.revealInExplorer",
+        this.revealInExplorerCmd,
+        this
+      ),
+      commands.registerCommand(
+        "svn.repolog.diffWithExternalTool",
+        this.diffWithExternalToolCmd,
+        this
+      ),
       this.sourceControlManager.onDidChangeRepository(
         async (_e: RepositoryChangeEvent) => {
           // Performance: Skip refresh when view is hidden
@@ -218,9 +230,8 @@ export class RepoLogProvider
         if (rev !== "HEAD" && isNaN(parseInt(rev, 10))) {
           throw new Error("erroneous revision");
         }
-        const remRepo = await this.sourceControlManager.getRemoteRepository(
-          uri
-        );
+        const remRepo =
+          await this.sourceControlManager.getRemoteRepository(uri);
         item.repo = remRepo;
         item.svnTarget = uri;
       } catch (e) {
@@ -310,14 +321,28 @@ export class RepoLogProvider
     const remotePath = item.repo
       .getPathNormalizer()
       .parse(commit._).remoteFullPath;
+
+    // Handle added files - no previous revision exists
+    if (commit.action === "A") {
+      return openDiff(item.repo, remotePath, undefined, parent.revision);
+    }
+
     let prevRev: ISvnLogEntry;
+    try {
+      // Use peg revision to handle files renamed/moved/deleted after this revision
+      // SVN syntax: path@revision tells SVN to look at path as it existed at that revision
+      const pathWithPeg = `${remotePath.toString(true)}@${parent.revision}`;
+      const revs = await item.repo.log(parent.revision, "1", 2, pathWithPeg);
 
-    const revs = await item.repo.log(parent.revision, "1", 2, remotePath);
-
-    if (revs.length === 2) {
-      prevRev = revs[1];
-    } else {
-      window.showWarningMessage("Cannot find previous commit");
+      if (revs.length === 2) {
+        prevRev = revs[1];
+      } else {
+        window.showWarningMessage("Cannot find previous commit");
+        return;
+      }
+    } catch (error) {
+      // File may not exist at the queried path (renamed, moved, etc.)
+      window.showWarningMessage("Cannot find previous revision for this file");
       return;
     }
 
@@ -359,14 +384,20 @@ export class RepoLogProvider
         .getPathNormalizer()
         .parse(commit._).remoteFullPath;
 
-      // Single query - reuse result
-      const revs = await item.repo.log(parent.revision, "1", 2, remotePath);
+      // Handle added files - no previous revision exists
+      if (commit.action === "A") {
+        window.showWarningMessage(
+          "This is the first revision of this file - no previous version to diff"
+        );
+        return;
+      }
+
+      // Use peg revision to handle files renamed/moved/deleted after this revision
+      const pathWithPeg = `${remotePath.toString(true)}@${parent.revision}`;
+      const revs = await item.repo.log(parent.revision, "1", 2, pathWithPeg);
 
       if (revs.length < 2) {
-        const message = commit.action === "A"
-          ? "This is the first revision of this file - no previous version to diff"
-          : "Cannot find previous commit for diff";
-        window.showWarningMessage(message);
+        window.showWarningMessage("Cannot find previous commit for diff");
         return;
       }
 
@@ -375,9 +406,8 @@ export class RepoLogProvider
       // Diff between previous and current revision
       // Use workspaceRoot if available (Repository), otherwise empty string (RemoteRepository)
       // Empty string is handled by svn.exec - uses current process working directory
-      const workspaceRoot = item.repo instanceof Repository
-        ? item.repo.workspaceRoot
-        : "";
+      const workspaceRoot =
+        item.repo instanceof Repository ? item.repo.workspaceRoot : "";
 
       const scm = this.sourceControlManager;
       await diffWithExternalTool(
@@ -394,11 +424,18 @@ export class RepoLogProvider
   }
 
   // Wrapper for explicit user refresh (clears cache)
-  public async explicitRefreshCmd(element?: ILogTreeItem, fetchMoreClick?: boolean) {
+  public async explicitRefreshCmd(
+    element?: ILogTreeItem,
+    fetchMoreClick?: boolean
+  ) {
     return this.refresh(element, fetchMoreClick, true);
   }
 
-  public async refresh(element?: ILogTreeItem, fetchMoreClick?: boolean, explicitRefresh?: boolean) {
+  public async refresh(
+    element?: ILogTreeItem,
+    fetchMoreClick?: boolean,
+    explicitRefresh?: boolean
+  ) {
     if (fetchMoreClick) {
       // Fetch more commits for current repo
       const cached = this.getCached(element);
@@ -434,7 +471,7 @@ export class RepoLogProvider
         if (prev) {
           persisted = prev.persisted;
         }
-        const entries = shouldClearCache ? [] : (savedEntries.get(repoUrl) || []);
+        const entries = shouldClearCache ? [] : savedEntries.get(repoUrl) || [];
         this.logCache.set(repoUrl, {
           entries,
           isComplete: false,
