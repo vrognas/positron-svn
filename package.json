@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.25.0",
+  "version": "2.26.0",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.74.0",
@@ -1280,15 +1280,22 @@
     "configuration": {
       "title": "Svn",
       "properties": {
-        "svn.auth.useSystemKeyring": {
-          "type": "boolean",
-          "description": "Cache credentials in system keyring (gnome-keyring, macOS Keychain, Windows Credential Manager). Enables credential sharing with CLI 'svn' commands. Disable for remote SSH or headless environments.",
-          "default": false
-        },
-        "svn.auth.useExtensionStorage": {
-          "type": "boolean",
-          "description": "Store credentials in VS Code's encrypted SecretStorage. Enables automatic retry with stored accounts when authentication fails. Works reliably in remote/headless environments.",
-          "default": true
+        "svn.auth.credentialMode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "systemKeyring",
+            "extensionStorage",
+            "prompt"
+          ],
+          "enumDescriptions": [
+            "System keyring locally, extension storage remotely (recommended for Windows + SSH)",
+            "Use native credential stores everywhere (Windows auth, gnome-keyring, macOS Keychain)",
+            "Use VS Code SecretStorage everywhere (isolated, works in all environments)",
+            "No credential storage, always prompt for credentials"
+          ],
+          "description": "How SVN credentials are stored and retrieved.",
+          "default": "auto"
         },
         "svn.auth.commandTimeout": {
           "type": "number",

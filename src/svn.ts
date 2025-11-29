@@ -7,6 +7,7 @@ import { EventEmitter } from "events";
 import * as proc from "process";
 import { Readable } from "stream";
 import * as semver from "semver";
+import { env } from "vscode";
 import {
   ConstructorPolicy,
   ICpOptions,
@@ -23,6 +24,48 @@ import { dispose, IDisposable, toDisposable } from "./util";
 import { logError } from "./util/errorLogger";
 import { showSystemKeyringAuthNotification } from "./util/nativeStoreAuthNotification";
 import { iconv } from "./vscodeModules";
+
+/**
+ * Credential storage mode - determines where SVN credentials are stored
+ */
+type CredentialMode = "auto" | "systemKeyring" | "extensionStorage" | "prompt";
+
+/**
+ * Determine if native system keyring should be used based on credential mode and environment.
+ * @returns true if system keyring should be used, false if extension-only mode
+ */
+function shouldUseSystemKeyring(): boolean {
+  const mode = configuration.get<CredentialMode>("auth.credentialMode", "auto");
+  const isRemote = !!env.remoteName; // ssh-remote, wsl, dev-container, etc.
+
+  switch (mode) {
+    case "auto":
+      // System keyring locally, extension storage remotely
+      return !isRemote;
+    case "systemKeyring":
+      // Always use system keyring
+      return true;
+    case "extensionStorage":
+    case "prompt":
+      // Never use system keyring
+      return false;
+    default:
+      return !isRemote; // Default to auto behavior
+  }
+}
+
+/**
+ * Get human-readable auth mode description for logging
+ */
+function getAuthModeDescription(): string {
+  const mode = configuration.get<CredentialMode>("auth.credentialMode", "auto");
+  const isRemote = !!env.remoteName;
+
+  if (mode === "auto") {
+    return isRemote ? "extension storage (remote)" : "system keyring (local)";
+  }
+  return mode;
+}
 
 export const svnErrorCodes: { [key: string]: string } = {
   AuthorizationFailed: "E170001",
@@ -131,14 +174,8 @@ export class Svn {
         );
       }
 
-      // Check if system keyring caching is enabled (gnome-keyring, macOS Keychain, etc)
-      const useSystemKeyring = configuration.get<boolean>(
-        "auth.useSystemKeyring",
-        false
-      );
-
-      // Note: Credential cache file approach removed - realm string varies per server
-      // and we cannot compute the correct hash without server cooperation.
+      // Determine credential mode based on setting and environment
+      const useSystemKeyring = shouldUseSystemKeyring();
 
       if (options.username) {
         args.push("--username", options.username);
@@ -148,35 +185,18 @@ export class Svn {
       const supportsStdinPassword = semver.gte(this.version, "1.10.0");
       let passwordForStdin: string | undefined;
 
-      if (useSystemKeyring) {
-        // System keyring mode: Pass password but keep native stores enabled
-        // SVN will cache credentials in gnome-keyring/macOS Keychain/etc.
-        if (options.password) {
-          if (supportsStdinPassword) {
-            args.push("--password-from-stdin");
-            passwordForStdin = options.password;
-          } else {
-            args.push("--password", options.password);
-          }
+      // Add password if provided
+      if (options.password) {
+        if (supportsStdinPassword) {
+          args.push("--password-from-stdin");
+          passwordForStdin = options.password;
+        } else {
+          args.push("--password", options.password);
         }
-        // Don't disable stores - let SVN cache credentials in system keyring
-      } else {
-        // Extension-only mode: Use --password and disable system keyring caching
-        // Credentials stored only in VS Code's encrypted SecretStorage
-        if (options.password) {
-          if (supportsStdinPassword) {
-            args.push("--password-from-stdin");
-            passwordForStdin = options.password;
-          } else {
-            args.push("--password", options.password);
-          }
-        }
+      }
 
-        // ALWAYS disable native stores when useExtensionStorage=true
-        // This prevents SVN from using stale credentials from TortoiseSVN or other
-        // native credential managers. Without this, first-run auth fails because
-        // SVN tries cached credentials before the extension can prompt.
-        // Configuration format: FILE:SECTION:OPTION=[VALUE]
+      // Disable native credential stores when not using system keyring
+      if (!useSystemKeyring) {
         args.push("--config-option", "config:auth:password-stores=");
         args.push("--config-option", "servers:global:store-auth-creds=no");
       }
@@ -191,32 +211,11 @@ export class Svn {
       );
       const configuredTimeoutMs = timeoutSeconds * 1000;
 
-      // Debug authentication indicators (never expose password values)
-      const authMethod = supportsStdinPassword ? "stdin" : "--password";
-      if (useSystemKeyring && options.password && options.log !== false) {
-        this.logOutput(`[auth: system keyring + ${authMethod}]\n`);
-      } else if (useSystemKeyring && options.log !== false) {
-        this.logOutput(`[auth: system keyring]\n`);
-      } else if (
-        !useSystemKeyring &&
-        options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(`[auth: extension-only (${authMethod})]\n`);
-      } else if (
-        options.username &&
-        !options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(`[auth: username only]\n`);
-      } else if (
-        !options.username &&
-        !options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(
-          `[auth: extension-only (no creds yet, native stores disabled)]\n`
-        );
+      // Log auth mode
+      if (options.log !== false) {
+        const modeDesc = getAuthModeDescription();
+        const hasCreds = options.password ? " + credentials" : "";
+        this.logOutput(`[auth: ${modeDesc}${hasCreds}]\n`);
       }
 
       let encoding: string | undefined | null = options.encoding;
@@ -412,14 +411,8 @@ export class Svn {
         );
       }
 
-      // Check if system keyring caching is enabled (gnome-keyring, macOS Keychain, etc)
-      const useSystemKeyring = configuration.get<boolean>(
-        "auth.useSystemKeyring",
-        false
-      );
-
-      // Note: Credential cache file approach removed - realm string varies per server
-      // and we cannot compute the correct hash without server cooperation.
+      // Determine credential mode based on setting and environment
+      const useSystemKeyring = shouldUseSystemKeyring();
 
       if (options.username) {
         args.push("--username", options.username);
@@ -429,35 +422,18 @@ export class Svn {
       const supportsStdinPassword = semver.gte(this.version, "1.10.0");
       let passwordForStdin: string | undefined;
 
-      if (useSystemKeyring) {
-        // System keyring mode: Pass password but keep native stores enabled
-        // SVN will cache credentials in gnome-keyring/macOS Keychain/etc.
-        if (options.password) {
-          if (supportsStdinPassword) {
-            args.push("--password-from-stdin");
-            passwordForStdin = options.password;
-          } else {
-            args.push("--password", options.password);
-          }
+      // Add password if provided
+      if (options.password) {
+        if (supportsStdinPassword) {
+          args.push("--password-from-stdin");
+          passwordForStdin = options.password;
+        } else {
+          args.push("--password", options.password);
         }
-        // Don't disable stores - let SVN cache credentials in system keyring
-      } else {
-        // Extension-only mode: Use --password and disable system keyring caching
-        // Credentials stored only in VS Code's encrypted SecretStorage
-        if (options.password) {
-          if (supportsStdinPassword) {
-            args.push("--password-from-stdin");
-            passwordForStdin = options.password;
-          } else {
-            args.push("--password", options.password);
-          }
-        }
+      }
 
-        // ALWAYS disable native stores when useExtensionStorage=true
-        // This prevents SVN from using stale credentials from TortoiseSVN or other
-        // native credential managers. Without this, first-run auth fails because
-        // SVN tries cached credentials before the extension can prompt.
-        // Configuration format: FILE:SECTION:OPTION=[VALUE]
+      // Disable native credential stores when not using system keyring
+      if (!useSystemKeyring) {
         args.push("--config-option", "config:auth:password-stores=");
         args.push("--config-option", "servers:global:store-auth-creds=no");
       }
@@ -472,32 +448,11 @@ export class Svn {
       );
       const configuredTimeoutMs = timeoutSeconds * 1000;
 
-      // Debug authentication indicators (never expose password values)
-      const authMethod = supportsStdinPassword ? "stdin" : "--password";
-      if (useSystemKeyring && options.password && options.log !== false) {
-        this.logOutput(`[auth: system keyring + ${authMethod}]\n`);
-      } else if (useSystemKeyring && options.log !== false) {
-        this.logOutput(`[auth: system keyring]\n`);
-      } else if (
-        !useSystemKeyring &&
-        options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(`[auth: extension-only (${authMethod})]\n`);
-      } else if (
-        options.username &&
-        !options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(`[auth: username only]\n`);
-      } else if (
-        !options.username &&
-        !options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(
-          `[auth: extension-only (no creds yet, native stores disabled)]\n`
-        );
+      // Log auth mode
+      if (options.log !== false) {
+        const modeDesc = getAuthModeDescription();
+        const hasCreds = options.password ? " + credentials" : "";
+        this.logOutput(`[auth: ${modeDesc}${hasCreds}]\n`);
       }
 
       const defaults: cp.SpawnOptions = {

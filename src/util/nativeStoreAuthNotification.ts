@@ -23,24 +23,24 @@ export async function showSystemKeyringAuthNotification(): Promise<void> {
   notificationShownThisSession = true;
 
   const openTerminal = "Open Terminal";
-  const disableKeyring = "Disable Keyring";
+  const changeMode = "Change Credential Mode";
 
   const message =
     "SVN authentication failed. System keyring may need unlock. " +
-    "Run 'svn info <url>' in terminal, or disable keyring in settings.";
+    "Run 'svn info <url>' in terminal, or change credential mode in settings.";
 
   const result = await window.showWarningMessage(
     message,
     openTerminal,
-    disableKeyring
+    changeMode
   );
 
   if (result === openTerminal) {
     await commands.executeCommand("workbench.action.terminal.new");
-  } else if (result === disableKeyring) {
+  } else if (result === changeMode) {
     await commands.executeCommand(
       "workbench.action.openSettings",
-      "svn.auth.useSystemKeyring"
+      "svn.auth.credentialMode"
     );
   }
 }
