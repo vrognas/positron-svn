@@ -420,19 +420,19 @@
       },
       {
         "command": "svn.lock",
-        "title": "Lock File",
+        "title": "Lock",
         "category": "SVN",
         "icon": "$(lock)"
       },
       {
         "command": "svn.unlock",
-        "title": "Unlock File",
+        "title": "Unlock",
         "category": "SVN",
         "icon": "$(unlock)"
       },
       {
         "command": "svn.breakLock",
-        "title": "Break Lock (Force)",
+        "title": "Break Lock",
         "category": "SVN",
         "icon": "$(warning)"
       },
@@ -440,11 +440,11 @@
         "command": "svn.stealLock",
         "title": "Steal Lock",
         "category": "SVN",
-        "icon": "$(lock)"
+        "icon": "$(key)"
       },
       {
         "command": "svn.toggleNeedsLock",
-        "title": "Toggle Needs Lock",
+        "title": "Toggle Needs-Lock Property",
         "category": "SVN",
         "icon": "$(shield)"
       },
@@ -1098,6 +1098,16 @@
           "group": "1_modification@6"
         },
         {
+          "command": "svn.stealLock",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != remotechanges",
+          "group": "1_modification@7"
+        },
+        {
+          "command": "svn.toggleNeedsLock",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != remotechanges",
+          "group": "1_modification@8"
+        },
+        {
           "command": "svn.commit",
           "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != conflicts && scmResourceGroup != remotechanges",
           "group": "1_modification"
@@ -1211,6 +1221,11 @@
           "command": "svn.unlock",
           "group": "9_svn@3",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "command": "svn.toggleNeedsLock",
+          "group": "9_svn@4",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0 && !explorerResourceIsFolder"
         },
         {
           "command": "svn.setDepth",
