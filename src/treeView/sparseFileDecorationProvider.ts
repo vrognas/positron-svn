@@ -36,7 +36,9 @@ export class SparseFileDecorationProvider
     return {
       badge: "☁",
       tooltip: "Not checked out (on server only)",
-      color: new ThemeColor("gitDecoration.ignoredResourceForeground")
+      // Use list.deemphasizedForeground - VS Code's semantic color for
+      // de-emphasized tree items (readable but visually secondary)
+      color: new ThemeColor("list.deemphasizedForeground")
     };
   }
 }
