@@ -2,6 +2,13 @@
 
 ### FIX: Sparse Checkout List Performance
 
+- **New**: Metadata display in sparse checkout tree
+  - Shows revision, author, date, and file size in description
+  - Format: `r{rev} | {author} | YYYY-MM-DD HH:MM:SS | {size}`
+  - Rich tooltip with all metadata (hover for details)
+  - Lock indicator (🔒K/O/B/T) for locked files
+  - Lock owner and comment shown in tooltip
+
 - **Fix**: Infinite loop when expanding folders in sparse checkout tree
   - Previously: Expanding folders caused spinner to spin indefinitely
   - Root cause: Full tree refresh from getChildren() caused rebuild loop

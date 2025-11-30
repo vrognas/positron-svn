@@ -17,7 +17,7 @@ import {
   window,
   workspace
 } from "vscode";
-import { ISparseItem, SparseDepthKey } from "../../common/types";
+import { ISparseItem, ISvnListItem, SparseDepthKey } from "../../common/types";
 import { checkoutDepthOptions } from "../../commands/setDepth";
 import { readdir, stat } from "../../fs";
 import { SourceControlManager } from "../../source_control_manager";
@@ -79,10 +79,7 @@ export default class SparseCheckoutProvider
   private _disposables: Disposable[] = [];
 
   /** Cache for server list results to avoid repeated network calls */
-  private serverListCache = new Map<
-    string,
-    CacheEntry<{ name: string; kind: "file" | "dir" }[]>
-  >();
+  private serverListCache = new Map<string, CacheEntry<ISvnListItem[]>>();
 
   /** Cache for folder depth to avoid repeated svn info calls */
   private depthCache = new Map<
@@ -204,6 +201,9 @@ export default class SparseCheckoutProvider
     // NOW get depth for tracked directories only (safe - they exist in SVN)
     await this.populateDepths(repo, trackedLocalItems);
 
+    // Add lock status from repository status (fast, uses existing data)
+    this.populateLockStatus(repo, trackedLocalItems);
+
     // Always compute ghosts - even with infinity depth, individual items may be excluded
     const ghosts = this.computeGhosts(
       trackedLocalItems,
@@ -220,15 +220,30 @@ export default class SparseCheckoutProvider
    */
   private filterToTrackedItems(
     localItems: ISparseItem[],
-    serverItems: { name: string; kind: "file" | "dir" }[]
+    serverItems: ISvnListItem[]
   ): ISparseItem[] {
-    // Case-insensitive Set for Windows/macOS compatibility
-    const serverNamesLower = new Set(
-      serverItems.map(s => s.name.toLowerCase())
-    );
-    return localItems.filter(item =>
-      serverNamesLower.has(item.name.toLowerCase())
-    );
+    // Build lookup for server metadata (case-insensitive)
+    const serverByName = new Map<string, ISvnListItem>();
+    for (const s of serverItems) {
+      serverByName.set(s.name.toLowerCase(), s);
+    }
+
+    // Filter and enrich local items with server metadata
+    return localItems
+      .filter(item => serverByName.has(item.name.toLowerCase()))
+      .map(item => {
+        const serverData = serverByName.get(item.name.toLowerCase());
+        if (serverData?.commit) {
+          return {
+            ...item,
+            revision: serverData.commit.revision,
+            author: serverData.commit.author,
+            date: serverData.commit.date,
+            size: serverData.size
+          };
+        }
+        return item;
+      });
   }
 
   /**
@@ -291,6 +306,24 @@ export default class SparseCheckoutProvider
     });
   }
 
+  /**
+   * Enrich local items with lock status from repository status.
+   * Only items that appear in SCM status will have lock info.
+   */
+  private populateLockStatus(repo: Repository, items: ISparseItem[]): void {
+    for (const item of items) {
+      if (item.isGhost) continue; // Ghosts don't have local lock status
+
+      const fullPath = path.join(repo.root, item.path);
+      const resource = repo.getResourceFromFile(fullPath);
+      if (resource?.lockStatus) {
+        item.lockStatus = resource.lockStatus;
+        item.lockOwner = resource.lockOwner;
+        // Note: lockComment not available from status, would need svn info
+      }
+    }
+  }
+
   private async getDepth(
     repo: Repository,
     folderPath: string
@@ -338,7 +371,7 @@ export default class SparseCheckoutProvider
   private async getServerItems(
     repo: Repository,
     folderPath: string
-  ): Promise<{ name: string; kind: "file" | "dir" }[]> {
+  ): Promise<ISvnListItem[]> {
     const cacheKey = `${repo.root}:${folderPath}`;
     const now = Date.now();
 
@@ -353,21 +386,16 @@ export default class SparseCheckoutProvider
       this.evictExpiredCacheEntries(now);
     }
 
-    // Fetch from server
+    // Fetch from server (returns full ISvnListItem with commit metadata)
     const listItems = await repo.list(folderPath);
-
-    const result = listItems.map(item => ({
-      name: item.name,
-      kind: (item.kind === "dir" ? "dir" : "file") as "file" | "dir"
-    }));
 
     // Cache result
     this.serverListCache.set(cacheKey, {
-      data: result,
+      data: listItems,
       expires: now + CACHE_TTL_MS
     });
 
-    return result;
+    return listItems;
   }
 
   /** Remove expired cache entries */
@@ -381,7 +409,7 @@ export default class SparseCheckoutProvider
 
   private computeGhosts(
     localItems: ISparseItem[],
-    serverItems: { name: string; kind: "file" | "dir" }[],
+    serverItems: ISvnListItem[],
     relativeFolder: string
   ): ISparseItem[] {
     // Case-insensitive Set for Windows/macOS compatibility
@@ -391,8 +419,13 @@ export default class SparseCheckoutProvider
       .map(s => ({
         name: s.name,
         path: relativeFolder ? path.join(relativeFolder, s.name) : s.name,
-        kind: s.kind,
-        isGhost: true
+        kind: (s.kind === "dir" ? "dir" : "file") as "file" | "dir",
+        isGhost: true,
+        // Include commit metadata from server
+        revision: s.commit?.revision,
+        author: s.commit?.author,
+        date: s.commit?.date,
+        size: s.size
       }));
   }
 

@@ -374,6 +374,16 @@ export interface ISparseItem {
   isGhost: boolean;
   /** True if folder contains excluded children (ghosts) */
   hasExcludedChildren?: boolean;
+  /** Commit metadata (from svn list) */
+  revision?: string;
+  author?: string;
+  date?: string;
+  /** File size in bytes (files only) */
+  size?: string;
+  /** Lock status for local items */
+  lockStatus?: LockStatus;
+  lockOwner?: string;
+  lockComment?: string;
 }
 
 export interface LineChange {

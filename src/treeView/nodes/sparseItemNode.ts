@@ -9,7 +9,7 @@ import {
   ThemeColor,
   Uri
 } from "vscode";
-import { ISparseItem, SparseDepthKey } from "../../common/types";
+import { ISparseItem, LockStatus, SparseDepthKey } from "../../common/types";
 import BaseNode from "./baseNode";
 
 type ChildrenLoader = (path: string) => Promise<ISparseItem[]>;
@@ -23,6 +23,45 @@ const depthLabels: Record<SparseDepthKey, string> = {
   immediates: "Shallow",
   infinity: "Full"
 };
+
+/** Format SVN date (ISO 8601) to YYYY-MM-DD HH:MM:SS */
+function formatDate(isoDate?: string): string {
+  if (!isoDate) return "";
+  try {
+    const d = new Date(isoDate);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  } catch {
+    return isoDate.slice(0, 19).replace("T", " ");
+  }
+}
+
+/** Format file size in human-readable form */
+function formatSize(bytes?: string): string {
+  if (!bytes) return "";
+  const n = parseInt(bytes, 10);
+  if (isNaN(n)) return bytes;
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(n / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+/** Get lock status tooltip */
+function getLockTooltip(status?: LockStatus, owner?: string): string {
+  switch (status) {
+    case LockStatus.K:
+      return "Locked by you";
+    case LockStatus.O:
+      return owner ? `Locked by ${owner}` : "Locked by others";
+    case LockStatus.B:
+      return "Lock broken";
+    case LockStatus.T:
+      return owner ? `Lock stolen by ${owner}` : "Lock stolen";
+    default:
+      return "";
+  }
+}
 
 export default class SparseItemNode extends BaseNode {
   constructor(
@@ -52,33 +91,88 @@ export default class SparseItemNode extends BaseNode {
       ? baseUri.with({ query: "sparse=ghost" })
       : baseUri;
 
-    // Add tooltip with full path
-    treeItem.tooltip = this.item.path;
+    // Build rich tooltip with metadata
+    treeItem.tooltip = this.buildTooltip();
+
+    // Build description with metadata
+    const descParts: string[] = [];
 
     if (this.item.isGhost) {
-      // Ghost item: decoration provider de-emphasizes, no description needed
+      // Ghost item: decoration provider de-emphasizes
       treeItem.contextValue = isDir ? "sparseGhostDir" : "sparseGhostFile";
     } else {
-      // Local item: let VS Code file icon theme show based on resourceUri
+      // Local item
       if (isDir && this.item.depth) {
         // Show partial indicator if folder has excluded children
         if (this.item.hasExcludedChildren) {
-          // Use descriptionForeground - partial is informational, not a warning
+          // Use descriptionForeground - partial is informational
           treeItem.iconPath = new ThemeIcon(
             "folder",
             new ThemeColor("descriptionForeground")
           );
           const label = depthLabels[this.item.depth] || this.item.depth;
-          treeItem.description = `${label} (partial)`;
+          descParts.push(`${label} (partial)`);
         } else {
-          treeItem.description =
-            depthLabels[this.item.depth] || this.item.depth;
+          descParts.push(depthLabels[this.item.depth] || this.item.depth);
         }
       }
       treeItem.contextValue = isDir ? "sparseLocalDir" : "sparseLocalFile";
     }
 
+    // Add metadata to description (for both local and ghost items)
+    if (this.item.revision) {
+      descParts.push(`r${this.item.revision}`);
+    }
+    if (this.item.author) {
+      descParts.push(this.item.author);
+    }
+    if (this.item.date) {
+      descParts.push(formatDate(this.item.date));
+    }
+    if (!isDir && this.item.size) {
+      descParts.push(formatSize(this.item.size));
+    }
+    // Lock indicator
+    if (this.item.lockStatus) {
+      descParts.push(`🔒${this.item.lockStatus}`);
+    }
+
+    if (descParts.length > 0) {
+      treeItem.description = descParts.join(" | ");
+    }
+
     return treeItem;
+  }
+
+  /** Build rich tooltip with all metadata */
+  private buildTooltip(): string {
+    const lines: string[] = [this.item.path];
+
+    if (this.item.revision) {
+      lines.push(`Revision: ${this.item.revision}`);
+    }
+    if (this.item.author) {
+      lines.push(`Author: ${this.item.author}`);
+    }
+    if (this.item.date) {
+      lines.push(`Date: ${formatDate(this.item.date)}`);
+    }
+    if (this.item.kind === "file" && this.item.size) {
+      lines.push(`Size: ${formatSize(this.item.size)}`);
+    }
+    if (this.item.lockStatus) {
+      lines.push(
+        `Lock: ${getLockTooltip(this.item.lockStatus, this.item.lockOwner)}`
+      );
+      if (this.item.lockComment) {
+        lines.push(`Comment: ${this.item.lockComment}`);
+      }
+    }
+    if (this.item.isGhost) {
+      lines.push("(Not checked out - on server only)");
+    }
+
+    return lines.join("\n");
   }
 
   public async getChildren(): Promise<BaseNode[]> {
