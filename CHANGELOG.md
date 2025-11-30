@@ -18,6 +18,11 @@
 - **Fix**: "Change depth" now works from sparse checkout tree
   - Previously: Command expected Uri, failed with "No SVN repository found"
   - Now: Accepts both Uri (explorer) and SparseItemNode (tree view)
+- **New**: Multi-select support in sparse checkout tree
+  - Shift/Ctrl-click to select multiple files or folders
+  - Checkout or exclude all selected items in one operation
+  - Single depth prompt for all selected directories
+  - Progress indicator shows batch operation status
 - **New**: Partial checkout indicator for folders with excluded children
   - Folders with depth "infinity" that contain excluded items now show warning icon
   - Description shows "Full (partial)" to indicate incomplete checkout
