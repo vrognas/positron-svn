@@ -118,7 +118,7 @@ export default class SparseCheckoutProvider
 
   /**
    * Get items for a folder: only server items, marked as local or ghost.
-   * Untracked local items (like .vscode, .idea) are excluded when server is available.
+   * Untracked local items (like .vscode, .idea, .claude) are excluded when server is available.
    */
   public async getItems(
     repo: Repository,
@@ -126,9 +126,10 @@ export default class SparseCheckoutProvider
   ): Promise<ISparseItem[]> {
     const relativeFolder = path.relative(repo.root, folderPath);
 
-    // Fetch local items, depth, and server items in parallel for speed
-    const [localItems, depth, serverResult] = await Promise.all([
-      this.getLocalItems(repo, folderPath),
+    // First, get local items WITHOUT depth (fast, no svn calls)
+    // and server items in parallel
+    const [localItemsRaw, depth, serverResult] = await Promise.all([
+      this.getLocalItemsRaw(repo, folderPath),
       this.getDepth(repo, folderPath),
       this.getServerItems(repo, folderPath).catch(err => {
         // Server list failed (offline, etc.) - log and continue
@@ -138,15 +139,19 @@ export default class SparseCheckoutProvider
     ]);
 
     // If server fetch failed, fall back to showing local items (no filtering)
+    // Don't try to get depth for potentially untracked items
     if (!serverResult) {
-      return this.mergeItems(localItems, []);
+      return this.mergeItems(localItemsRaw, []);
     }
 
-    // Filter local items to only those on server (exclude untracked like .vscode)
+    // Filter local items to only those on server (exclude untracked like .vscode, .claude)
     const trackedLocalItems = this.filterToTrackedItems(
-      localItems,
+      localItemsRaw,
       serverResult
     );
+
+    // NOW get depth for tracked directories only (safe - they exist in SVN)
+    await this.populateDepths(repo, trackedLocalItems);
 
     // If depth is infinity, no ghosts needed
     if (depth === "infinity") {
@@ -173,12 +178,15 @@ export default class SparseCheckoutProvider
     return localItems.filter(item => serverNames.has(item.name));
   }
 
-  private async getLocalItems(
+  /**
+   * Get local items WITHOUT fetching depth (fast, pure filesystem)
+   * Depth is populated later only for tracked items to avoid svn info on untracked folders
+   */
+  private async getLocalItemsRaw(
     repo: Repository,
     folderPath: string
   ): Promise<ISparseItem[]> {
     const items: ISparseItem[] = [];
-    const dirPaths: { index: number; fullPath: string }[] = [];
 
     try {
       const entries = await readdir(folderPath);
@@ -199,30 +207,35 @@ export default class SparseCheckoutProvider
             depth: undefined,
             isGhost: false
           });
-
-          // Track directories for batch depth fetch
-          if (kind === "dir") {
-            dirPaths.push({ index: items.length - 1, fullPath });
-          }
         } catch {
           // stat failed, skip
         }
-      }
-
-      // Batch fetch depths for all directories in parallel
-      if (dirPaths.length > 0) {
-        const depths = await Promise.all(
-          dirPaths.map(d => this.getDepth(repo, d.fullPath))
-        );
-        dirPaths.forEach((d, i) => {
-          items[d.index].depth = depths[i];
-        });
       }
     } catch {
       // readdir failed
     }
 
     return items;
+  }
+
+  /**
+   * Populate depth for tracked directory items only.
+   * Called AFTER filtering to tracked items to avoid svn info on untracked folders.
+   */
+  private async populateDepths(
+    repo: Repository,
+    items: ISparseItem[]
+  ): Promise<void> {
+    const dirItems = items.filter(i => i.kind === "dir");
+    if (dirItems.length === 0) return;
+
+    const depths = await Promise.all(
+      dirItems.map(d => this.getDepth(repo, path.join(repo.root, d.path)))
+    );
+
+    dirItems.forEach((item, i) => {
+      item.depth = depths[i];
+    });
   }
 
   private async getDepth(

@@ -1,3 +1,12 @@
+## [2.26.5] (2025-11-30)
+
+### FIX: Sparse Checkout with Untracked Folders
+
+- **Fix**: Sparse checkout tree now works with untracked folders (.claude, .vscode, etc.)
+  - Previously: `svn info` was called on all local folders, failing for untracked ones
+  - Now: Only tracked folders get depth queries, untracked are filtered first
+  - Fixes "No folders showing" issue for repos with local-only folders
+
 ## [2.26.4] (2025-11-30)
 
 ### FEAT: Scoped Status Fetching
