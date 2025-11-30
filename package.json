@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.26.6",
+  "version": "2.26.7",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.74.0",
@@ -1458,6 +1458,13 @@
           "type": "boolean",
           "description": "Show confirmation dialog before excluding items from working copy",
           "default": true
+        },
+        "svn.sparse.largeFileWarningMb": {
+          "type": "number",
+          "description": "Warn before checking out files larger than this size (in MB). Set to 0 to disable.",
+          "default": 10,
+          "minimum": 0,
+          "maximum": 1000
         },
         "svn.commit.changes.selectedAll": {
           "type": "boolean",

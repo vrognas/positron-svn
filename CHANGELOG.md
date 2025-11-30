@@ -1,3 +1,19 @@
+## [2.26.7] (2025-11-30)
+
+### UX: Checkout Progress and Large File Warning
+
+- **New**: Cancellation support for checkout operations
+  - Progress notification shows cancel button
+  - Cancelled checkouts report completed vs skipped items
+- **New**: Large file warning before checkout
+  - Warns when checking out files larger than threshold (default 10MB)
+  - Shows file names and total size in modal dialog
+  - New setting: `svn.sparse.largeFileWarningMb` (0 to disable)
+- **New**: Total size estimate shown in progress notification
+  - Format: "Checking out 5 items (125.3 MB)"
+- **UX**: Always use notification (not status bar) for checkout progress
+  - Required for cancellation button visibility
+
 ## [2.26.6] (2025-11-30)
 
 ### FIX: Sparse Checkout List Performance

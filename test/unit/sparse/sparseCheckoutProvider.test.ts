@@ -539,4 +539,150 @@ describe("Sparse Checkout Provider", () => {
       expect(label).toBe("project");
     });
   });
+
+  describe("large file warning", () => {
+    const LARGE_FILE_THRESHOLD = 10 * 1024 * 1024; // 10MB
+
+    function parseSizeToBytes(size?: string): number {
+      if (!size) return 0;
+      const n = parseInt(size, 10);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function findLargeFiles(
+      items: { name: string; size?: string; kind: "file" | "dir" }[],
+      threshold: number = LARGE_FILE_THRESHOLD
+    ): { name: string; size: number }[] {
+      return items
+        .filter(i => i.kind === "file")
+        .map(i => ({ name: i.name, size: parseSizeToBytes(i.size) }))
+        .filter(f => f.size > threshold);
+    }
+
+    it("detects files over 10MB threshold", () => {
+      const items = [
+        { name: "small.txt", size: "1024", kind: "file" as const },
+        { name: "large.bin", size: "20971520", kind: "file" as const }, // 20MB
+        { name: "medium.csv", size: "5242880", kind: "file" as const } // 5MB
+      ];
+
+      const large = findLargeFiles(items);
+
+      expect(large).toHaveLength(1);
+      expect(large[0].name).toBe("large.bin");
+      expect(large[0].size).toBe(20971520);
+    });
+
+    it("returns empty for files under threshold", () => {
+      const items = [
+        { name: "a.txt", size: "1000", kind: "file" as const },
+        { name: "b.txt", size: "5000000", kind: "file" as const } // ~5MB
+      ];
+
+      const large = findLargeFiles(items);
+
+      expect(large).toHaveLength(0);
+    });
+
+    it("ignores directories", () => {
+      const items = [
+        { name: "big-folder", size: "999999999", kind: "dir" as const }
+      ];
+
+      const large = findLargeFiles(items);
+
+      expect(large).toHaveLength(0);
+    });
+
+    it("handles missing size gracefully", () => {
+      const items = [
+        { name: "no-size.txt", kind: "file" as const },
+        { name: "has-size.txt", size: "100", kind: "file" as const }
+      ];
+
+      const large = findLargeFiles(items);
+
+      expect(large).toHaveLength(0);
+    });
+  });
+
+  describe("checkout cancellation", () => {
+    interface CancellationToken {
+      isCancellationRequested: boolean;
+    }
+
+    async function checkoutWithCancellation(
+      items: string[],
+      token: CancellationToken,
+      onItem: (item: string) => Promise<void>
+    ): Promise<{ completed: number; cancelled: boolean }> {
+      let completed = 0;
+      for (const item of items) {
+        if (token.isCancellationRequested) {
+          return { completed, cancelled: true };
+        }
+        await onItem(item);
+        completed++;
+      }
+      return { completed, cancelled: false };
+    }
+
+    it("completes all items when not cancelled", async () => {
+      const items = ["file1", "file2", "file3"];
+      const token = { isCancellationRequested: false };
+      const processed: string[] = [];
+
+      const result = await checkoutWithCancellation(
+        items,
+        token,
+        async item => {
+          processed.push(item);
+        }
+      );
+
+      expect(result.completed).toBe(3);
+      expect(result.cancelled).toBe(false);
+      expect(processed).toEqual(["file1", "file2", "file3"]);
+    });
+
+    it("stops early when cancelled", async () => {
+      const items = ["file1", "file2", "file3"];
+      const token = { isCancellationRequested: false };
+      const processed: string[] = [];
+
+      const result = await checkoutWithCancellation(
+        items,
+        token,
+        async item => {
+          processed.push(item);
+          if (item === "file2") {
+            token.isCancellationRequested = true;
+          }
+        }
+      );
+
+      // file3 should NOT be processed
+      expect(result.completed).toBe(2);
+      expect(result.cancelled).toBe(true);
+      expect(processed).toEqual(["file1", "file2"]);
+    });
+
+    it("returns immediately if cancelled before start", async () => {
+      const items = ["file1", "file2"];
+      const token = { isCancellationRequested: true };
+      const processed: string[] = [];
+
+      const result = await checkoutWithCancellation(
+        items,
+        token,
+        async item => {
+          processed.push(item);
+        }
+      );
+
+      expect(result.completed).toBe(0);
+      expect(result.cancelled).toBe(true);
+      expect(processed).toHaveLength(0);
+    });
+  });
 });

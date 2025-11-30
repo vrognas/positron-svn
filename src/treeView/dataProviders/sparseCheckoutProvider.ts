@@ -3,6 +3,7 @@
 
 import * as path from "path";
 import {
+  CancellationToken,
   commands,
   Disposable,
   Event,
@@ -76,6 +77,25 @@ const MAX_CACHE_SIZE = 100;
 
 /** Debounce delay for visual refresh (ms) - longer to avoid race with context menu */
 const REFRESH_DEBOUNCE_MS = 500;
+
+/** Default large file warning threshold in MB (configurable via svn.sparse.largeFileWarningMb) */
+const DEFAULT_LARGE_FILE_WARNING_MB = 10;
+
+/** Parse size string to bytes */
+function parseSizeToBytes(size?: string): number {
+  if (!size) return 0;
+  const n = parseInt(size, 10);
+  return isNaN(n) ? 0 : n;
+}
+
+/** Format bytes as human-readable string */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024)
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
 
 export default class SparseCheckoutProvider
   implements TreeDataProvider<BaseNode>, Disposable
@@ -520,6 +540,8 @@ export default class SparseCheckoutProvider
 
   /**
    * Checkout multiple items (restore from server)
+   * - Shows progress with cancellation support
+   * - Warns about large files (>10MB)
    */
   private async checkoutItems(nodes: SparseItemNode[]): Promise<void> {
     // Filter valid nodes
@@ -536,6 +558,41 @@ export default class SparseCheckoutProvider
     if (!firstRepo) {
       window.showErrorMessage("No SVN repository found for selected items");
       return;
+    }
+
+    // Get configurable threshold for large file warning
+    const thresholdMb = workspace
+      .getConfiguration("svn.sparse")
+      .get<number>("largeFileWarningMb", DEFAULT_LARGE_FILE_WARNING_MB);
+    const thresholdBytes = thresholdMb * 1024 * 1024;
+
+    // Calculate total size of selected files
+    const fileSizes = this.getFileSizes(validNodes);
+    const totalSize = fileSizes.reduce((sum, f) => sum + f.size, 0);
+
+    // Check for large files and warn user (if threshold > 0)
+    if (thresholdMb > 0) {
+      const largeFiles = fileSizes.filter(f => f.size > thresholdBytes);
+      if (largeFiles.length > 0) {
+        const largeTotal = largeFiles.reduce((sum, f) => sum + f.size, 0);
+        const fileList = largeFiles
+          .slice(0, 3)
+          .map(f => `• ${f.name} (${formatBytes(f.size)})`)
+          .join("\n");
+        const more =
+          largeFiles.length > 3
+            ? `\n... and ${largeFiles.length - 3} more`
+            : "";
+
+        const proceed = await window.showWarningMessage(
+          `Large files detected (total ${formatBytes(largeTotal)}):\n${fileList}${more}\n\nProceed with checkout?`,
+          { modal: true },
+          "Continue",
+          "Cancel"
+        );
+
+        if (proceed !== "Continue") return;
+      }
     }
 
     // Determine if we need to ask for depth (any dirs selected?)
@@ -559,23 +616,31 @@ export default class SparseCheckoutProvider
         ? `"${path.basename(validNodes[0].fullPath)}"`
         : `${validNodes.length} items`;
 
+    // Include size estimate in title if known
+    const sizeLabel = totalSize > 0 ? ` (${formatBytes(totalSize)})` : "";
+
     try {
-      // Use status bar for single items, notification for batches
+      // Use notification for cancellation support
       const isBatch = validNodes.length > 1;
 
       const result = await window.withProgress(
         {
-          location: isBatch
-            ? ProgressLocation.Notification
-            : ProgressLocation.Window,
-          title: `Checking out ${label}...`,
-          cancellable: false
+          location: ProgressLocation.Notification,
+          title: `Checking out ${label}${sizeLabel}`,
+          cancellable: true
         },
-        async progress => {
+        async (progress, token: CancellationToken) => {
           let success = 0;
           let failed = 0;
+          let cancelled = false;
 
           for (let i = 0; i < validNodes.length; i++) {
+            // Check cancellation before each item
+            if (token.isCancellationRequested) {
+              cancelled = true;
+              break;
+            }
+
             const node = validNodes[i];
             const repo = this.sourceControlManager.getRepository(
               Uri.file(node.fullPath)
@@ -585,12 +650,12 @@ export default class SparseCheckoutProvider
               continue;
             }
 
-            if (isBatch) {
-              progress.report({
-                message: `(${i + 1}/${validNodes.length}) ${path.basename(node.fullPath)}`,
-                increment: 100 / validNodes.length
-              });
-            }
+            progress.report({
+              message: isBatch
+                ? `(${i + 1}/${validNodes.length}) ${path.basename(node.fullPath)}`
+                : path.basename(node.fullPath),
+              increment: 100 / validNodes.length
+            });
 
             try {
               const res = await repo.setDepth(node.fullPath, depth, {
@@ -606,13 +671,18 @@ export default class SparseCheckoutProvider
             }
           }
 
-          return { success, failed };
+          return { success, failed, cancelled };
         }
       );
 
       this.refresh();
 
-      if (result.failed > 0) {
+      // Show appropriate message based on outcome
+      if (result.cancelled) {
+        window.showInformationMessage(
+          `Checkout cancelled. ${result.success} completed, ${validNodes.length - result.success - result.failed} skipped.`
+        );
+      } else if (result.failed > 0) {
         window.showWarningMessage(
           `Checkout: ${result.success} succeeded, ${result.failed} failed`
         );
@@ -627,6 +697,21 @@ export default class SparseCheckoutProvider
           }
         });
     }
+  }
+
+  /**
+   * Get file sizes for ghost files (server-only items with known size)
+   */
+  private getFileSizes(
+    nodes: SparseItemNode[]
+  ): { name: string; size: number }[] {
+    return nodes
+      .filter(n => n.kind === "file" && n.isGhost)
+      .map(n => ({
+        name: path.basename(n.fullPath),
+        size: parseSizeToBytes(n.size)
+      }))
+      .filter(f => f.size > 0);
   }
 
   /**

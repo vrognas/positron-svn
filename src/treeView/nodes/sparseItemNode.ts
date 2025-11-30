@@ -236,4 +236,8 @@ export default class SparseItemNode extends BaseNode {
   public get kind(): "file" | "dir" {
     return this.item.kind;
   }
+
+  public get size(): string | undefined {
+    return this.item.size;
+  }
 }
