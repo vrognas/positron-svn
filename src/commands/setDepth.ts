@@ -362,8 +362,14 @@ export class SetDepth extends Command {
                     }
                   }
 
+                  // Show size-based or file-count-based progress
+                  const progressLabel =
+                    expectedTotalSize > 0
+                      ? `${formatBytes(stats.size)}/${formatBytes(expectedTotalSize)}`
+                      : `${stats.count}/${expectedFileCount} files`;
+
                   progress.report({
-                    message: `${folderName}: ${formatBytes(stats.size)}/${formatBytes(expectedTotalSize)} (${pct}%)${speedEtaLabel}`
+                    message: `${folderName}: ${progressLabel} (${pct}%)${speedEtaLabel}`
                   });
                 }, POLL_INTERVAL_MS);
               } else {
@@ -394,10 +400,13 @@ export class SetDepth extends Command {
                 pollInterval = setInterval(() => {
                   const stats = getFolderStats(uri.fsPath);
                   const removedSize = initialTotalSize - stats.size;
+                  const removedCount = initialFileCount - stats.count;
                   const pct =
                     initialTotalSize > 0
                       ? Math.round((removedSize / initialTotalSize) * 100)
-                      : 0;
+                      : initialFileCount > 0
+                        ? Math.round((removedCount / initialFileCount) * 100)
+                        : 0;
 
                   // Calculate smoothed speed with exponential moving average
                   const now = Date.now();
@@ -416,7 +425,7 @@ export class SetDepth extends Command {
                   lastRemovedSize = removedSize;
                   lastTime = now;
 
-                  if (removedSize > 0) {
+                  if (removedSize > 0 || removedCount > 0) {
                     // Build progress message with speed and ETA
                     let speedEtaLabel = "";
                     if (smoothedSpeed > 0) {
@@ -428,8 +437,14 @@ export class SetDepth extends Command {
                       }
                     }
 
+                    // Show size-based or file-count-based progress
+                    const progressLabel =
+                      initialTotalSize > 0
+                        ? `${formatBytes(removedSize)}/${formatBytes(initialTotalSize)}`
+                        : `${removedCount}/${initialFileCount} files`;
+
                     progress.report({
-                      message: `${actionLabel}: ${formatBytes(removedSize)}/${formatBytes(initialTotalSize)} (${pct}%)${speedEtaLabel}`
+                      message: `${actionLabel}: ${progressLabel} (${pct}%)${speedEtaLabel}`
                     });
                   }
                 }, POLL_INTERVAL_MS);
