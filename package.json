@@ -455,7 +455,7 @@
       },
       {
         "command": "svn.setDepth",
-        "title": "Sparse Checkout...",
+        "title": "Change Depth...",
         "category": "SVN",
         "icon": "$(folder)"
       },
@@ -886,14 +886,24 @@
           "group": "inline"
         },
         {
+          "command": "svn.sparse.checkout",
+          "when": "viewItem =~ /sparseGhost/",
+          "group": "1_sparse@1"
+        },
+        {
           "command": "svn.sparse.exclude",
           "when": "viewItem =~ /sparseLocal/",
           "group": "inline"
         },
         {
+          "command": "svn.sparse.exclude",
+          "when": "viewItem =~ /sparseLocal/",
+          "group": "1_sparse@2"
+        },
+        {
           "command": "svn.setDepth",
           "when": "viewItem == sparseLocalDir",
-          "group": "1_sparse"
+          "group": "1_sparse@3"
         },
         {
           "command": "svn.openHEADFile",
