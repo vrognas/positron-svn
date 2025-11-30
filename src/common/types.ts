@@ -372,6 +372,8 @@ export interface ISparseItem {
   kind: "file" | "dir";
   depth?: SparseDepthKey;
   isGhost: boolean;
+  /** True if folder contains excluded children (ghosts) */
+  hasExcludedChildren?: boolean;
 }
 
 export interface LineChange {

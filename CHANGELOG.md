@@ -2,6 +2,13 @@
 
 ### FIX: Sparse Checkout List Performance
 
+- **New**: Partial checkout indicator for folders with excluded children
+  - Folders with depth "infinity" that contain excluded items now show warning icon
+  - Description shows "Full (partial)" to indicate incomplete checkout
+  - Indicator appears after expanding the folder
+- **Perf**: Cache depth queries to reduce `svn info` calls
+  - Depth queries now cached with 5-minute TTL (same as server list)
+  - Significantly reduces network traffic when navigating sparse tree
 - **Fix**: Can now checkout files within excluded folders
   - Previously: Checking out a file in an excluded parent folder failed with E155007
   - Now: Uses `--parents` flag to automatically restore parent folders

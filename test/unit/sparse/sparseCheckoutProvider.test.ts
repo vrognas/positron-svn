@@ -8,6 +8,7 @@ interface ISparseItem {
   kind: "file" | "dir";
   depth?: string;
   isGhost: boolean;
+  hasExcludedChildren?: boolean;
 }
 
 interface MockRepository {

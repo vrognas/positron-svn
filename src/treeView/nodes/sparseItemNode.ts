@@ -2,11 +2,18 @@
 // Licensed under MIT License
 
 import * as path from "path";
-import { TreeItem, TreeItemCollapsibleState, ThemeIcon, Uri } from "vscode";
+import {
+  TreeItem,
+  TreeItemCollapsibleState,
+  ThemeIcon,
+  ThemeColor,
+  Uri
+} from "vscode";
 import { ISparseItem, SparseDepthKey } from "../../common/types";
 import BaseNode from "./baseNode";
 
 type ChildrenLoader = (path: string) => Promise<ISparseItem[]>;
+type RefreshCallback = () => void;
 
 const depthLabels: Record<SparseDepthKey, string> = {
   exclude: "Excluded",
@@ -20,7 +27,8 @@ export default class SparseItemNode extends BaseNode {
   constructor(
     private item: ISparseItem,
     private repoRoot: string,
-    private loadChildren: ChildrenLoader
+    private loadChildren: ChildrenLoader,
+    private onRefresh?: RefreshCallback
   ) {
     super();
   }
@@ -51,7 +59,18 @@ export default class SparseItemNode extends BaseNode {
       // Local item: let VS Code file icon theme show based on resourceUri
       // Don't set iconPath - VS Code will use the file/folder icon theme
       if (isDir && this.item.depth) {
-        treeItem.description = depthLabels[this.item.depth] || this.item.depth;
+        // Show partial indicator if folder has excluded children
+        if (this.item.hasExcludedChildren) {
+          treeItem.iconPath = new ThemeIcon(
+            "folder",
+            new ThemeColor("list.warningForeground")
+          );
+          const label = depthLabels[this.item.depth] || this.item.depth;
+          treeItem.description = `${label} (partial)`;
+        } else {
+          treeItem.description =
+            depthLabels[this.item.depth] || this.item.depth;
+        }
       }
       treeItem.contextValue = isDir ? "sparseLocalDir" : "sparseLocalFile";
     }
@@ -65,12 +84,22 @@ export default class SparseItemNode extends BaseNode {
     }
     const fullPath = path.join(this.repoRoot, this.item.path);
     const items = await this.loadChildren(fullPath);
+
+    // Check if any children are ghosts (excluded)
+    const hasGhosts = items.some(i => i.isGhost);
+    if (hasGhosts && !this.item.hasExcludedChildren) {
+      this.item.hasExcludedChildren = true;
+      // Trigger refresh to update this node's icon/description
+      this.onRefresh?.();
+    }
+
     return items.map(
       i =>
         new SparseItemNode(
           i, // Path is already correct from getItems()
           this.repoRoot,
-          this.loadChildren
+          this.loadChildren,
+          this.onRefresh
         )
     );
   }

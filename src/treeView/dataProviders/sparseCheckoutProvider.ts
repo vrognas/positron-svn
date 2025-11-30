@@ -44,8 +44,11 @@ class RepositoryRootNode extends BaseNode {
     const items = await this.provider.getItems(this.repo, this.repo.root);
     return items.map(
       item =>
-        new SparseItemNode(item, this.repo.root, p =>
-          this.provider.getItems(this.repo, p)
+        new SparseItemNode(
+          item,
+          this.repo.root,
+          p => this.provider.getItems(this.repo, p),
+          () => this.provider.triggerRefresh()
         )
     );
   }
@@ -101,6 +104,11 @@ export default class SparseCheckoutProvider
     // Clear caches on manual refresh
     this.serverListCache.clear();
     this.depthCache.clear();
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  /** Trigger tree refresh without clearing caches (for visual updates) */
+  public triggerRefresh(): void {
     this._onDidChangeTreeData.fire(undefined);
   }
 
