@@ -14,7 +14,8 @@ import {
   TreeView,
   ThemeIcon,
   Uri,
-  window
+  window,
+  workspace
 } from "vscode";
 import { ISparseItem, SparseDepthKey } from "../../common/types";
 import { checkoutDepthOptions } from "../../commands/setDepth";
@@ -466,9 +467,14 @@ export default class SparseCheckoutProvider
         : `${validNodes.length} items`;
 
     try {
+      // Use status bar for single items, notification for batches
+      const isBatch = validNodes.length > 1;
+
       const result = await window.withProgress(
         {
-          location: ProgressLocation.Notification,
+          location: isBatch
+            ? ProgressLocation.Notification
+            : ProgressLocation.Window,
           title: `Checking out ${label}...`,
           cancellable: false
         },
@@ -486,10 +492,12 @@ export default class SparseCheckoutProvider
               continue;
             }
 
-            progress.report({
-              message: `(${i + 1}/${validNodes.length}) ${path.basename(node.fullPath)}`,
-              increment: 100 / validNodes.length
-            });
+            if (isBatch) {
+              progress.report({
+                message: `(${i + 1}/${validNodes.length}) ${path.basename(node.fullPath)}`,
+                increment: 100 / validNodes.length
+              });
+            }
 
             try {
               const res = await repo.setDepth(node.fullPath, depth, {
@@ -518,7 +526,13 @@ export default class SparseCheckoutProvider
       }
     } catch (err) {
       logError("Sparse checkout failed", err);
-      window.showErrorMessage(`Checkout failed: ${err}`);
+      window
+        .showErrorMessage(`Checkout failed: ${err}`, "Show Output")
+        .then(choice => {
+          if (choice === "Show Output") {
+            commands.executeCommand("svn.showOutputChannel");
+          }
+        });
     }
   }
 
@@ -533,25 +547,44 @@ export default class SparseCheckoutProvider
       return;
     }
 
-    // Build confirmation message
+    // Build label for messages
     const label =
       validNodes.length === 1
         ? `"${path.basename(validNodes[0].fullPath)}"`
         : `${validNodes.length} items`;
 
-    const confirm = await window.showWarningMessage(
-      `Exclude ${label}? This will remove locally. Files remain on server.`,
-      { modal: true },
-      "Exclude",
-      "Cancel"
-    );
+    // Check if confirmation is enabled
+    const confirmEnabled = workspace
+      .getConfiguration("svn.sparse")
+      .get<boolean>("confirmExclude", true);
 
-    if (confirm !== "Exclude") return;
+    if (confirmEnabled) {
+      const confirm = await window.showWarningMessage(
+        `Exclude ${label}? This will remove locally. Files remain on server.`,
+        { modal: true },
+        "Exclude",
+        "Don't Ask Again"
+      );
+
+      if (!confirm) return;
+
+      // If user chose "Don't Ask Again", disable the setting
+      if (confirm === "Don't Ask Again") {
+        await workspace
+          .getConfiguration("svn.sparse")
+          .update("confirmExclude", false, true);
+      }
+    }
 
     try {
+      // Use status bar for single items, notification for batches
+      const isBatch = validNodes.length > 1;
+
       const result = await window.withProgress(
         {
-          location: ProgressLocation.Notification,
+          location: isBatch
+            ? ProgressLocation.Notification
+            : ProgressLocation.Window,
           title: `Excluding ${label}...`,
           cancellable: false
         },
@@ -569,10 +602,12 @@ export default class SparseCheckoutProvider
               continue;
             }
 
-            progress.report({
-              message: `(${i + 1}/${validNodes.length}) ${path.basename(node.fullPath)}`,
-              increment: 100 / validNodes.length
-            });
+            if (isBatch) {
+              progress.report({
+                message: `(${i + 1}/${validNodes.length}) ${path.basename(node.fullPath)}`,
+                increment: 100 / validNodes.length
+              });
+            }
 
             try {
               const res = await repo.setDepth(node.fullPath, "exclude");
@@ -599,7 +634,13 @@ export default class SparseCheckoutProvider
       }
     } catch (err) {
       logError("Sparse exclude failed", err);
-      window.showErrorMessage(`Exclude failed: ${err}`);
+      window
+        .showErrorMessage(`Exclude failed: ${err}`, "Show Output")
+        .then(choice => {
+          if (choice === "Show Output") {
+            commands.executeCommand("svn.showOutputChannel");
+          }
+        });
     }
   }
 

@@ -56,18 +56,17 @@ export default class SparseItemNode extends BaseNode {
     treeItem.tooltip = this.item.path;
 
     if (this.item.isGhost) {
-      // Ghost item: let theme icon show, decoration provider will gray out
-      treeItem.description = "(not checked out)";
+      // Ghost item: decoration provider de-emphasizes, no description needed
       treeItem.contextValue = isDir ? "sparseGhostDir" : "sparseGhostFile";
     } else {
       // Local item: let VS Code file icon theme show based on resourceUri
-      // Don't set iconPath - VS Code will use the file/folder icon theme
       if (isDir && this.item.depth) {
         // Show partial indicator if folder has excluded children
         if (this.item.hasExcludedChildren) {
+          // Use descriptionForeground - partial is informational, not a warning
           treeItem.iconPath = new ThemeIcon(
             "folder",
-            new ThemeColor("list.warningForeground")
+            new ThemeColor("descriptionForeground")
           );
           const label = depthLabels[this.item.depth] || this.item.depth;
           treeItem.description = `${label} (partial)`;

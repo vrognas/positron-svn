@@ -12,7 +12,7 @@ import {
 
 /**
  * Provides file decorations for sparse checkout tree items.
- * Ghost items (not checked out) are grayed out with a cloud badge.
+ * Ghost items (not checked out) are visually de-emphasized.
  */
 export class SparseFileDecorationProvider
   implements FileDecorationProvider, Disposable
@@ -34,10 +34,8 @@ export class SparseFileDecorationProvider
     }
 
     return {
-      badge: "☁",
       tooltip: "Not checked out (on server only)",
-      // Use list.deemphasizedForeground - VS Code's semantic color for
-      // de-emphasized tree items (readable but visually secondary)
+      // De-emphasize without badge - color alone provides visual distinction
       color: new ThemeColor("list.deemphasizedForeground")
     };
   }

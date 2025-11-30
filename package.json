@@ -180,6 +180,13 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "sparseCheckout",
+        "contents": "Manage which folders and files are checked out from the repository.\n\nExpand folders to see server contents. De-emphasized items exist on server but aren't checked out locally.\n\n[Refresh](command:svn.sparse.refresh)",
+        "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+      }
+    ],
     "commands": [
       {
         "command": "svn.add",
@@ -1445,6 +1452,11 @@
         "svn.blame.inline.currentLineOnly": {
           "type": "boolean",
           "description": "Show inline blame only for current line (cursor position)",
+          "default": true
+        },
+        "svn.sparse.confirmExclude": {
+          "type": "boolean",
+          "description": "Show confirmation dialog before excluding items from working copy",
           "default": true
         },
         "svn.commit.changes.selectedAll": {
