@@ -1,3 +1,10 @@
+## [2.26.23] (2025-11-30)
+
+### Fix: Exclude Items Status Suppression
+
+- **Fix**: `excludeItems` now suppresses `svn info` during exclude operations
+- **Fix**: Prevents working copy lock conflicts when excluding multiple items
+
 ## [2.26.22] (2025-11-30)
 
 ### Fix: Set Depth Command Progress & Cancellation

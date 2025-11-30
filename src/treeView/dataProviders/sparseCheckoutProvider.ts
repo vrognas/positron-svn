@@ -1261,6 +1261,23 @@ export default class SparseCheckoutProvider
       }
     }
 
+    // Build repo map for status suppression
+    const repoMap = new Map<string, Repository>();
+    for (const node of validNodes) {
+      const repo = this.sourceControlManager.getRepository(
+        Uri.file(node.fullPath)
+      );
+      if (repo) {
+        repoMap.set(node.fullPath, repo);
+      }
+    }
+
+    // Suppress status updates during exclude (prevents WC lock conflicts)
+    const affectedRepos = new Set(repoMap.values());
+    for (const repo of affectedRepos) {
+      repo.sparseDownloadInProgress = true;
+    }
+
     try {
       // Use status bar for single items, notification for batches
       const isBatch = validNodes.length > 1;
@@ -1279,9 +1296,7 @@ export default class SparseCheckoutProvider
 
           for (let i = 0; i < validNodes.length; i++) {
             const node = validNodes[i];
-            const repo = this.sourceControlManager.getRepository(
-              Uri.file(node.fullPath)
-            );
+            const repo = repoMap.get(node.fullPath);
             if (!repo) {
               failed++;
               continue;
@@ -1326,6 +1341,11 @@ export default class SparseCheckoutProvider
             commands.executeCommand("svn.showOutputChannel");
           }
         });
+    } finally {
+      // Re-enable status updates after exclude completes
+      for (const repo of affectedRepos) {
+        repo.sparseDownloadInProgress = false;
+      }
     }
   }
 
