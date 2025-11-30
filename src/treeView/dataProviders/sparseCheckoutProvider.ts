@@ -59,6 +59,9 @@ interface CacheEntry<T> {
 /** Cache TTL in milliseconds (30 seconds) */
 const CACHE_TTL_MS = 30000;
 
+/** Max cache entries before forced cleanup */
+const MAX_CACHE_SIZE = 100;
+
 export default class SparseCheckoutProvider
   implements TreeDataProvider<BaseNode>, Disposable
 {
@@ -221,6 +224,11 @@ export default class SparseCheckoutProvider
       return cached.data;
     }
 
+    // Evict expired entries if cache is large
+    if (this.serverListCache.size >= MAX_CACHE_SIZE) {
+      this.evictExpiredCacheEntries(now);
+    }
+
     // Fetch from server
     const listItems = await repo.list(folderPath);
     const result = listItems.map(item => ({
@@ -235,6 +243,15 @@ export default class SparseCheckoutProvider
     });
 
     return result;
+  }
+
+  /** Remove expired cache entries */
+  private evictExpiredCacheEntries(now: number): void {
+    for (const [key, entry] of this.serverListCache) {
+      if (entry.expires <= now) {
+        this.serverListCache.delete(key);
+      }
+    }
   }
 
   private computeGhosts(

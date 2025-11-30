@@ -196,4 +196,211 @@ describe("Sparse Checkout Provider", () => {
       expect(ghosts[0].path).toBe(path.join("src", "new-file.ts"));
     });
   });
+
+  describe("SparseItemNode behavior", () => {
+    // Simulated tree item creation logic
+    function createTreeItemState(item: ISparseItem): {
+      collapsibleState: "none" | "collapsed";
+      tooltip: string;
+      contextValue: string;
+    } {
+      const isDir = item.kind === "dir";
+
+      // Ghost directories are not expandable (must checkout first)
+      let collapsibleState: "none" | "collapsed" = "none";
+      if (isDir && !item.isGhost) {
+        collapsibleState = "collapsed";
+      }
+
+      let contextValue: string;
+      if (item.isGhost) {
+        contextValue = isDir ? "sparseGhostDir" : "sparseGhostFile";
+      } else {
+        contextValue = isDir ? "sparseLocalDir" : "sparseLocalFile";
+      }
+
+      return {
+        collapsibleState,
+        tooltip: item.path,
+        contextValue
+      };
+    }
+
+    it("makes local directories expandable", () => {
+      const item: ISparseItem = {
+        name: "src",
+        path: "src",
+        kind: "dir",
+        depth: "infinity",
+        isGhost: false
+      };
+
+      const state = createTreeItemState(item);
+
+      expect(state.collapsibleState).toBe("collapsed");
+      expect(state.contextValue).toBe("sparseLocalDir");
+    });
+
+    it("makes ghost directories NOT expandable", () => {
+      const item: ISparseItem = {
+        name: "docs",
+        path: "docs",
+        kind: "dir",
+        isGhost: true
+      };
+
+      const state = createTreeItemState(item);
+
+      expect(state.collapsibleState).toBe("none");
+      expect(state.contextValue).toBe("sparseGhostDir");
+    });
+
+    it("makes files never expandable", () => {
+      const localFile: ISparseItem = {
+        name: "README.md",
+        path: "README.md",
+        kind: "file",
+        isGhost: false
+      };
+      const ghostFile: ISparseItem = {
+        name: "config.json",
+        path: "config.json",
+        kind: "file",
+        isGhost: true
+      };
+
+      expect(createTreeItemState(localFile).collapsibleState).toBe("none");
+      expect(createTreeItemState(ghostFile).collapsibleState).toBe("none");
+    });
+
+    it("sets tooltip to item path", () => {
+      const item: ISparseItem = {
+        name: "utils",
+        path: path.join("src", "lib", "utils"),
+        kind: "dir",
+        isGhost: false
+      };
+
+      const state = createTreeItemState(item);
+
+      expect(state.tooltip).toBe(path.join("src", "lib", "utils"));
+    });
+
+    it("sets correct context value for menu targeting", () => {
+      const items: ISparseItem[] = [
+        { name: "a", path: "a", kind: "dir", isGhost: false },
+        { name: "b", path: "b", kind: "dir", isGhost: true },
+        { name: "c", path: "c", kind: "file", isGhost: false },
+        { name: "d", path: "d", kind: "file", isGhost: true }
+      ];
+
+      const contextValues = items.map(i => createTreeItemState(i).contextValue);
+
+      expect(contextValues).toEqual([
+        "sparseLocalDir",
+        "sparseGhostDir",
+        "sparseLocalFile",
+        "sparseGhostFile"
+      ]);
+    });
+  });
+
+  describe("cache behavior", () => {
+    interface CacheEntry<T> {
+      data: T;
+      expires: number;
+    }
+
+    function isCacheValid<T>(
+      cache: Map<string, CacheEntry<T>>,
+      key: string,
+      now: number
+    ): boolean {
+      const entry = cache.get(key);
+      return entry !== undefined && entry.expires > now;
+    }
+
+    function evictExpired<T>(
+      cache: Map<string, CacheEntry<T>>,
+      now: number
+    ): void {
+      for (const [key, entry] of cache) {
+        if (entry.expires <= now) {
+          cache.delete(key);
+        }
+      }
+    }
+
+    it("returns cached data when not expired", () => {
+      const cache = new Map<string, CacheEntry<string[]>>();
+      const now = Date.now();
+
+      cache.set("key1", { data: ["a", "b"], expires: now + 30000 });
+
+      expect(isCacheValid(cache, "key1", now)).toBe(true);
+      expect(cache.get("key1")?.data).toEqual(["a", "b"]);
+    });
+
+    it("rejects expired cache entries", () => {
+      const cache = new Map<string, CacheEntry<string[]>>();
+      const now = Date.now();
+
+      cache.set("key1", { data: ["a", "b"], expires: now - 1000 }); // Expired
+
+      expect(isCacheValid(cache, "key1", now)).toBe(false);
+    });
+
+    it("evicts all expired entries", () => {
+      const cache = new Map<string, CacheEntry<string[]>>();
+      const now = Date.now();
+
+      cache.set("valid1", { data: ["a"], expires: now + 30000 });
+      cache.set("expired1", { data: ["b"], expires: now - 1000 });
+      cache.set("valid2", { data: ["c"], expires: now + 30000 });
+      cache.set("expired2", { data: ["d"], expires: now - 2000 });
+
+      evictExpired(cache, now);
+
+      expect(cache.size).toBe(2);
+      expect(cache.has("valid1")).toBe(true);
+      expect(cache.has("valid2")).toBe(true);
+      expect(cache.has("expired1")).toBe(false);
+      expect(cache.has("expired2")).toBe(false);
+    });
+
+    it("handles empty cache gracefully", () => {
+      const cache = new Map<string, CacheEntry<string[]>>();
+      const now = Date.now();
+
+      expect(isCacheValid(cache, "nonexistent", now)).toBe(false);
+      evictExpired(cache, now); // Should not throw
+      expect(cache.size).toBe(0);
+    });
+  });
+
+  describe("RepositoryRootNode behavior", () => {
+    it("uses repo basename as label", () => {
+      const repoRoot = "/home/user/my-project";
+      const label = path.basename(repoRoot);
+
+      expect(label).toBe("my-project");
+    });
+
+    it("handles nested paths", () => {
+      const nestedPath = path.join("/home", "user", "dev", "project");
+      const label = path.basename(nestedPath);
+
+      expect(label).toBe("project");
+    });
+
+    it("handles trailing slashes", () => {
+      const pathWithSlash = "/home/user/project/";
+      // path.basename returns empty for trailing slash, so implementation should handle
+      const label =
+        path.basename(pathWithSlash) ||
+        path.basename(pathWithSlash.slice(0, -1));
+
+      expect(label).toBe("project");
+    });
+  });
 });

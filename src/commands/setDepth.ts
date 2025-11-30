@@ -129,6 +129,8 @@ export class SetDepth extends Command {
         window.showInformationMessage(
           successMessages[selected.depth] || `Checkout depth changed`
         );
+        // Refresh sparse checkout tree to reflect changes
+        commands.executeCommand("svn.sparse.refresh");
       } else {
         window.showErrorMessage(
           `Failed to change checkout: ${result.stderr || "Unknown error"}`
