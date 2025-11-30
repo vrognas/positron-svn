@@ -353,10 +353,13 @@ export class Repository implements IRemoteRepository {
       // Clear runtime credentials and caches when auth mode changes
       // Forces re-authentication with new storage mode
       if (e.affectsConfiguration("svn.auth.credentialMode")) {
-        this.username = undefined;
-        this.password = undefined;
-        this.canSaveAuth = false;
-        this.storedAuthsCache = undefined;
+        // Wait for any in-flight save to complete before clearing
+        this.saveAuthLock.then(() => {
+          this.username = undefined;
+          this.password = undefined;
+          this.canSaveAuth = false;
+          this.storedAuthsCache = undefined;
+        });
       }
     });
 
