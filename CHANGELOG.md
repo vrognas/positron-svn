@@ -1,3 +1,11 @@
+## [2.26.2] (2025-11-30)
+
+### PERF: Large Repository Support
+
+- **Fix**: Increase XML tag limit from 100k to 500k for large repos
+- **Fix**: Increase XML size limit from 10MB to 50MB
+- **Fix**: Sparse checkout tree now falls back to local items when server unavailable
+
 ## [2.26.1] (2025-11-30)
 
 ### FIX: Sparse Checkout Tree View

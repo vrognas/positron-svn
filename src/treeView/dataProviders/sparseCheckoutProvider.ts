@@ -118,7 +118,7 @@ export default class SparseCheckoutProvider
 
   /**
    * Get items for a folder: only server items, marked as local or ghost.
-   * Untracked local items (like .vscode, .idea) are excluded.
+   * Untracked local items (like .vscode, .idea) are excluded when server is available.
    */
   public async getItems(
     repo: Repository,
@@ -137,9 +137,9 @@ export default class SparseCheckoutProvider
       })
     ]);
 
-    // If server fetch failed, can't determine what's tracked - show nothing
+    // If server fetch failed, fall back to showing local items (no filtering)
     if (!serverResult) {
-      return [];
+      return this.mergeItems(localItems, []);
     }
 
     // Filter local items to only those on server (exclude untracked like .vscode)

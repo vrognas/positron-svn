@@ -45,14 +45,14 @@ interface ParseOptions {
  * - camelcase: Transform tag and attribute names to camelCase
  *
  * Security limits:
- * - Max XML size: 10MB (DoS protection)
- * - Max tag count: 100,000 (entity expansion protection)
+ * - Max XML size: 50MB (DoS protection, supports large repos)
+ * - Max tag count: 500,000 (supports large repos, entity expansion disabled)
  * - Max recursion depth: 100 levels (stack overflow protection)
  */
 export class XmlParserAdapter {
   // Security limits
-  private static readonly MAX_XML_SIZE = 10 * 1024 * 1024; // 10MB
-  private static readonly MAX_TAG_COUNT = 100000;
+  private static readonly MAX_XML_SIZE = 50 * 1024 * 1024; // 50MB for large repos
+  private static readonly MAX_TAG_COUNT = 500000; // 500k tags for large repos
   private static readonly MAX_DEPTH = 100;
   /**
    * Sanitize XML string by removing invalid characters
