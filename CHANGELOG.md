@@ -2,6 +2,11 @@
 
 ### FIX: Sparse Checkout List Performance
 
+- **Fix**: Infinite loop when expanding folders in sparse checkout tree
+  - Previously: Expanding folders caused spinner to spin indefinitely
+  - Root cause: Refresh callback in getChildren() caused tree rebuild loop
+  - Now: Partial indicator updates on manual refresh only (no auto-refresh)
+- **Fix**: Guard against undefined node when tree refreshes during context menu
 - **Fix**: Case-insensitive name comparison for Windows/macOS
   - Previously: Files with different case (README.md vs readme.md) could be filtered incorrectly
   - Now: Uses case-insensitive comparison for tracked item detection and ghost computation
