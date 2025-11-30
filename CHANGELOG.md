@@ -1,3 +1,10 @@
+## [2.26.24] (2025-11-30)
+
+### Fix: File Watcher svn info Suppression
+
+- **Fix**: `onDidAnyFileChanged` now respects `sparseDownloadInProgress` flag
+- **Fix**: Prevents svn info calls from file watcher during downloads
+
 ## [2.26.23] (2025-11-30)
 
 ### Fix: Exclude Items Status Suppression

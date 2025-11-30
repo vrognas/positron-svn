@@ -419,6 +419,10 @@ export class Repository implements IRemoteRepository {
 
   @debounce(500)
   private async onDidAnyFileChanged(e: Uri) {
+    // Skip during sparse checkout downloads to prevent svn info spam
+    if (this._sparseDownloadInProgress) {
+      return;
+    }
     await this.repository.updateInfo();
     this._onDidChangeRepository.fire(e);
   }
