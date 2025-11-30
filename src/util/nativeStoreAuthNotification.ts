@@ -22,26 +22,26 @@ export async function showSystemKeyringAuthNotification(): Promise<void> {
 
   notificationShownThisSession = true;
 
+  const useExtStorage = "Use Extension Storage";
   const openTerminal = "Open Terminal";
-  const changeMode = "Change Credential Mode";
 
   const message =
-    "SVN authentication failed. System keyring may need unlock. " +
-    "Run 'svn info <url>' in terminal, or change credential mode in settings.";
+    "SVN authentication failed. Your OS password manager may be locked or unavailable. " +
+    "Switch to extension storage, or run 'svn info <url>' in terminal to unlock.";
 
   const result = await window.showWarningMessage(
     message,
-    openTerminal,
-    changeMode
+    useExtStorage,
+    openTerminal
   );
 
-  if (result === openTerminal) {
-    await commands.executeCommand("workbench.action.terminal.new");
-  } else if (result === changeMode) {
+  if (result === useExtStorage) {
     await commands.executeCommand(
       "workbench.action.openSettings",
       "svn.auth.credentialMode"
     );
+  } else if (result === openTerminal) {
+    await commands.executeCommand("workbench.action.terminal.new");
   }
 }
 
