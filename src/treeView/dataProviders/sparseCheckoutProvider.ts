@@ -617,15 +617,25 @@ export default class SparseCheckoutProvider
     local: ISparseItem[],
     ghosts: ISparseItem[]
   ): ISparseItem[] {
-    return [...local, ...ghosts].sort((a, b) => {
+    const items = [...local, ...ghosts];
+
+    // Pre-compute extensions once O(n) instead of O(n log n) in comparator
+    const extensions = new Map<ISparseItem, string>();
+    for (const item of items) {
+      if (item.kind === "file") {
+        extensions.set(item, this.getExtension(item.name));
+      }
+    }
+
+    return items.sort((a, b) => {
       // Dirs first
       if (a.kind !== b.kind) {
         return a.kind === "dir" ? -1 : 1;
       }
       // For files: sort by extension, then alphabetical
       if (a.kind === "file") {
-        const extA = this.getExtension(a.name);
-        const extB = this.getExtension(b.name);
+        const extA = extensions.get(a) ?? "";
+        const extB = extensions.get(b) ?? "";
         if (extA !== extB) {
           return extA.localeCompare(extB);
         }

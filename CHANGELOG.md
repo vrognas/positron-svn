@@ -1,3 +1,9 @@
+## [2.26.14] (2025-11-30)
+
+### Perf: Sort Extension Pre-Computation
+
+- **Perf**: Pre-compute file extensions before sort (O(n) vs O(n log n) in comparator)
+
 ## [2.26.13] (2025-11-30)
 
 ### Fix: Progress & Cancellation Bugs
