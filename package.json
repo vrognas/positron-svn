@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.26.2",
+  "version": "2.26.3",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.74.0",
@@ -1318,6 +1318,13 @@
           "type": "boolean",
           "description": "Whether auto refreshing is enabled",
           "default": true
+        },
+        "svn.performance.maxXmlTags": {
+          "type": "number",
+          "description": "Maximum XML tags to parse (increase for very large repos with 100k+ files). Set to 0 for unlimited.",
+          "default": 500000,
+          "minimum": 0,
+          "maximum": 10000000
         },
         "svn.blame.enabled": {
           "type": "boolean",

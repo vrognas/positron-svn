@@ -1,3 +1,12 @@
+## [2.26.3] (2025-11-30)
+
+### FEAT: Configurable XML Limits
+
+- **New**: `svn.performance.maxXmlTags` setting for very large repos
+  - Default: 500,000 tags (supports repos with ~100k files)
+  - Set to 0 for unlimited (use with caution)
+  - Increase for repos with 200k+ files
+
 ## [2.26.2] (2025-11-30)
 
 ### PERF: Large Repository Support

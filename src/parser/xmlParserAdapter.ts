@@ -3,6 +3,7 @@
 // Licensed under MIT License
 
 import { XMLParser } from "fast-xml-parser";
+import { configuration } from "../helpers/configuration";
 import { camelcase } from "../util";
 
 /**
@@ -46,7 +47,7 @@ interface ParseOptions {
  *
  * Security limits:
  * - Max XML size: 50MB (DoS protection, supports large repos)
- * - Max tag count: 500,000 (supports large repos, entity expansion disabled)
+ * - Max tag count: Configurable via svn.performance.maxXmlTags (default 500k, 0=unlimited)
  * - Max recursion depth: 100 levels (stack overflow protection)
  */
 export class XmlParserAdapter {
@@ -245,10 +246,16 @@ export class XmlParserAdapter {
       throw new Error(`XML exceeds maximum size of ${this.MAX_XML_SIZE} bytes`);
     }
 
-    // Security: Validate tag count (rough estimate)
-    const tagCount = (xml.match(/<[^>]+>/g) || []).length;
-    if (tagCount > this.MAX_TAG_COUNT) {
-      throw new Error(`XML exceeds maximum tag count of ${this.MAX_TAG_COUNT}`);
+    // Security: Validate tag count (configurable, 0 = unlimited)
+    const maxTags = configuration.get<number>(
+      "performance.maxXmlTags",
+      this.MAX_TAG_COUNT
+    );
+    if (maxTags > 0) {
+      const tagCount = (xml.match(/<[^>]+>/g) || []).length;
+      if (tagCount > maxTags) {
+        throw new Error(`XML exceeds maximum tag count of ${maxTags}`);
+      }
     }
 
     // Security: Reject empty input
