@@ -7,6 +7,7 @@ import {
   Disposable,
   Event,
   EventEmitter,
+  ProgressLocation,
   TreeDataProvider,
   TreeItem,
   TreeItemCollapsibleState,
@@ -56,8 +57,8 @@ interface CacheEntry<T> {
   expires: number;
 }
 
-/** Cache TTL in milliseconds (30 seconds) */
-const CACHE_TTL_MS = 30000;
+/** Cache TTL in milliseconds (5 minutes) */
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 /** Max cache entries before forced cleanup */
 const MAX_CACHE_SIZE = 100;
@@ -122,29 +123,26 @@ export default class SparseCheckoutProvider
     repo: Repository,
     folderPath: string
   ): Promise<ISparseItem[]> {
-    const localItems = await this.getLocalItems(repo, folderPath);
-    const depth = await this.getDepth(repo, folderPath);
     const relativeFolder = path.relative(repo.root, folderPath);
 
-    // If depth is infinity, no ghosts possible
-    if (depth === "infinity") {
+    // Fetch local items, depth, and server items in parallel for speed
+    const [localItems, depth, serverResult] = await Promise.all([
+      this.getLocalItems(repo, folderPath),
+      this.getDepth(repo, folderPath),
+      this.getServerItems(repo, folderPath).catch(err => {
+        // Server list failed (offline, etc.) - log and continue
+        logError("Failed to fetch server items for sparse view", err);
+        return null;
+      })
+    ]);
+
+    // If depth is infinity or server fetch failed, no ghosts
+    if (depth === "infinity" || !serverResult) {
       return localItems;
     }
 
-    // Fetch server items to find ghosts
-    try {
-      const serverItems = await this.getServerItems(repo, folderPath);
-      const ghosts = this.computeGhosts(
-        localItems,
-        serverItems,
-        relativeFolder
-      );
-      return this.mergeItems(localItems, ghosts);
-    } catch (err) {
-      // Server list failed (offline, etc.) - just show local
-      logError("Failed to fetch server items for sparse view", err);
-      return localItems;
-    }
+    const ghosts = this.computeGhosts(localItems, serverResult, relativeFolder);
+    return this.mergeItems(localItems, ghosts);
   }
 
   private async getLocalItems(
@@ -307,13 +305,19 @@ export default class SparseCheckoutProvider
       depth = selected.depth;
     }
 
+    const itemName = path.basename(fullPath);
+
     try {
-      // For ghost items, we need to update the parent folder to include this item
-      // SVN doesn't have a direct "add this excluded path" command
-      // We use: svn update --set-depth <depth> <path>
-      const result = await repo.setDepth(fullPath, depth);
+      const result = await window.withProgress(
+        {
+          location: ProgressLocation.Notification,
+          title: `Checking out "${itemName}"...`,
+          cancellable: false
+        },
+        async () => repo.setDepth(fullPath, depth)
+      );
+
       if (result.exitCode === 0) {
-        const itemName = path.basename(fullPath);
         window.showInformationMessage(`"${itemName}" checked out`);
         this.refresh();
       } else {
@@ -347,7 +351,15 @@ export default class SparseCheckoutProvider
     if (confirm !== "Exclude") return;
 
     try {
-      const result = await repo.setDepth(fullPath, "exclude");
+      const result = await window.withProgress(
+        {
+          location: ProgressLocation.Notification,
+          title: `Excluding "${itemName}"...`,
+          cancellable: false
+        },
+        async () => repo.setDepth(fullPath, "exclude")
+      );
+
       if (result.exitCode === 0) {
         window.showInformationMessage(`"${itemName}" excluded`);
         this.refresh();
