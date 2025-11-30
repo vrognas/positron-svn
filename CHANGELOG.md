@@ -1,3 +1,16 @@
+## [2.26.0] (2025-11-29)
+
+### BREAKING: Simplified Credential Mode Setting
+
+- **Removed**: `svn.auth.useSystemKeyring` and `svn.auth.useExtensionStorage`
+- **New**: Single `svn.auth.credentialMode` dropdown with options:
+  - `auto` (default): System keyring locally, extension storage remotely
+  - `systemKeyring`: Native credential stores everywhere (Windows auth, gnome-keyring)
+  - `extensionStorage`: VS Code SecretStorage everywhere
+  - `prompt`: No storage, always prompt for credentials
+- **Auto-detection**: Uses `vscode.env.remoteName` to detect SSH/WSL/DevContainer
+- **Benefit**: No manual config needed for Windows + Remote SSH workflows
+
 ## [2.25.0] (2025-11-29)
 
 ### FEAT: Sparse Checkout Manager Tree View

@@ -6,6 +6,7 @@ import * as path from "path";
 import {
   commands,
   Disposable,
+  env,
   Event,
   EventEmitter,
   FileDecoration,
@@ -19,6 +20,35 @@ import {
   window,
   workspace
 } from "vscode";
+
+/**
+ * Credential storage mode - determines where SVN credentials are stored
+ */
+type CredentialMode = "auto" | "systemKeyring" | "extensionStorage" | "prompt";
+
+/**
+ * Determine if extension storage should be used for credentials.
+ * @returns true if extension storage should be used
+ */
+function shouldUseExtensionStorage(): boolean {
+  const mode = configuration.get<CredentialMode>("auth.credentialMode", "auto");
+  const isRemote = !!env.remoteName;
+
+  switch (mode) {
+    case "auto":
+      // Extension storage only when remote
+      return isRemote;
+    case "extensionStorage":
+      // Always use extension storage
+      return true;
+    case "systemKeyring":
+    case "prompt":
+      // Never use extension storage
+      return false;
+    default:
+      return isRemote;
+  }
+}
 import { StatusService } from "./services/StatusService";
 import { ResourceGroupManager } from "./services/ResourceGroupManager";
 import { RemoteChangeService } from "./services/RemoteChangeService";
@@ -135,6 +165,7 @@ export class Repository implements IRemoteRepository {
   private saveAuthLock: Promise<void> = Promise.resolve();
   private promptAuthCooldown: boolean = false;
   private promptAuthCooldownTimer?: ReturnType<typeof setTimeout>;
+  private storedAuthsCache?: { accounts: IStoredAuth[]; expiry: number };
 
   private _fsWatcher: RepositoryFilesWatcher;
   public get fsWatcher() {
@@ -317,6 +348,18 @@ export class Repository implements IRemoteRepository {
       if (e.affectsConfiguration("svn.remoteChanges.checkFrequency")) {
         this.remoteChangeService.restart();
         this.updateRemoteChangedFiles();
+      }
+
+      // Clear runtime credentials and caches when auth mode changes
+      // Forces re-authentication with new storage mode
+      if (e.affectsConfiguration("svn.auth.credentialMode")) {
+        // Wait for any in-flight save to complete before clearing
+        this.saveAuthLock.then(() => {
+          this.username = undefined;
+          this.password = undefined;
+          this.canSaveAuth = false;
+          this.storedAuthsCache = undefined;
+        });
       }
     });
 
@@ -863,9 +906,15 @@ export class Repository implements IRemoteRepository {
   }
 
   public async loadStoredAuths(): Promise<Array<IStoredAuth>> {
-    // Skip if extension storage disabled
-    if (!configuration.get<boolean>("auth.useExtensionStorage", true)) {
+    // Skip if extension storage disabled for this environment
+    if (!shouldUseExtensionStorage()) {
       return [];
+    }
+
+    // Return cached if valid (60s TTL)
+    const now = Date.now();
+    if (this.storedAuthsCache && now < this.storedAuthsCache.expiry) {
+      return this.storedAuthsCache.accounts;
     }
 
     // Prevent multiple prompts for auth
@@ -873,32 +922,37 @@ export class Repository implements IRemoteRepository {
       await this.lastPromptAuth;
     }
 
-    const secret = await this.secrets.get(this.getCredentialServiceName());
-
-    if (secret === undefined) {
-      return [];
-    }
-
-    // Safe JSON.parse with runtime type validation
     try {
+      const secret = await this.secrets.get(this.getCredentialServiceName());
+
+      if (secret === undefined) {
+        this.storedAuthsCache = { accounts: [], expiry: now + 60000 };
+        return [];
+      }
+
+      // Safe JSON.parse with runtime type validation
       const parsed = JSON.parse(secret);
       if (!Array.isArray(parsed)) {
+        this.storedAuthsCache = { accounts: [], expiry: now + 60000 };
         return [];
       }
       // Filter to only valid credential entries
-      return parsed.filter(
+      const accounts = parsed.filter(
         (c): c is IStoredAuth =>
           c && typeof c.account === "string" && typeof c.password === "string"
       );
+      this.storedAuthsCache = { accounts, expiry: now + 60000 };
+      return accounts;
     } catch (error) {
-      logError("Failed to parse stored credentials", error);
+      // SecretStorage can fail if keyring is locked/unavailable
+      logError("Failed to load stored credentials", error);
       return [];
     }
   }
 
   public async saveAuth(): Promise<void> {
-    // Skip if extension storage disabled
-    if (!configuration.get<boolean>("auth.useExtensionStorage", true)) {
+    // Skip if extension storage disabled for this environment
+    if (!shouldUseExtensionStorage()) {
       return;
     }
 
@@ -912,38 +966,49 @@ export class Repository implements IRemoteRepository {
     this.canSaveAuth = false;
 
     this.saveAuthLock = this.saveAuthLock.then(async () => {
-      const secret = await this.secrets.get(this.getCredentialServiceName());
-      let credentials: Array<IStoredAuth> = [];
+      try {
+        const secret = await this.secrets.get(this.getCredentialServiceName());
+        let credentials: Array<IStoredAuth> = [];
 
-      if (typeof secret === "string") {
-        try {
-          const parsed = JSON.parse(secret);
-          if (Array.isArray(parsed)) {
-            credentials = parsed.filter(
-              (c): c is IStoredAuth =>
-                c &&
-                typeof c.account === "string" &&
-                typeof c.password === "string"
-            );
+        if (typeof secret === "string") {
+          try {
+            const parsed = JSON.parse(secret);
+            if (Array.isArray(parsed)) {
+              credentials = parsed.filter(
+                (c): c is IStoredAuth =>
+                  c &&
+                  typeof c.account === "string" &&
+                  typeof c.password === "string"
+              );
+            }
+          } catch (error) {
+            logError("Failed to parse stored credentials", error);
+            credentials = [];
           }
-        } catch (error) {
-          logError("Failed to parse stored credentials", error);
-          credentials = [];
         }
-      }
 
-      // Deduplicate: update existing entry or add new
-      const existingIndex = credentials.findIndex(c => c.account === username);
-      if (existingIndex >= 0) {
-        credentials[existingIndex].password = password;
-      } else {
-        credentials.push({ account: username, password });
-      }
+        // Deduplicate: update existing entry or add new
+        const existingIndex = credentials.findIndex(
+          c => c.account === username
+        );
+        if (existingIndex >= 0) {
+          credentials[existingIndex].password = password;
+        } else {
+          credentials.push({ account: username, password });
+        }
 
-      await this.secrets.store(
-        this.getCredentialServiceName(),
-        JSON.stringify(credentials)
-      );
+        await this.secrets.store(
+          this.getCredentialServiceName(),
+          JSON.stringify(credentials)
+        );
+        // Invalidate cache after save
+        this.storedAuthsCache = undefined;
+      } catch (error) {
+        // SecretStorage can fail if keyring is locked/unavailable
+        // Reset canSaveAuth so user can retry on next successful operation
+        this.canSaveAuth = true;
+        logError("Failed to save credentials", error);
+      }
     });
 
     return this.saveAuthLock;
@@ -972,7 +1037,13 @@ export class Repository implements IRemoteRepository {
       return undefined; // During cooldown, skip prompting
     }
 
-    this.lastPromptAuth = commands.executeCommand("svn.promptAuth");
+    const repoUrl = this.repository.info?.url;
+    this.lastPromptAuth = commands.executeCommand(
+      "svn.promptAuth",
+      undefined,
+      undefined,
+      repoUrl
+    );
     const result = await this.lastPromptAuth;
 
     if (result) {
@@ -1082,6 +1153,7 @@ export class Repository implements IRemoteRepository {
         return result;
       } catch (err) {
         const svnError = err as ISvnErrorData;
+
         if (
           svnError.svnErrorCode === svnErrorCodes.RepositoryIsLocked &&
           attempt <= 10
@@ -1092,8 +1164,8 @@ export class Repository implements IRemoteRepository {
           svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&
           attempt <= accounts.length
         ) {
-          // Backoff before trying next stored account (prevent server hammering)
-          await timeout(500);
+          // Backoff with jitter before trying next stored account
+          await timeout(400 + Math.random() * 200); // 400-600ms
           // Fix Bug 1: Cycle through stored accounts properly
           // attempt 1 failed with accounts[0], try accounts[1], etc.
           const index = attempt;
@@ -1105,8 +1177,8 @@ export class Repository implements IRemoteRepository {
           svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&
           attempt <= 3 + accounts.length
         ) {
-          // Backoff before prompting user (prevent server hammering)
-          await timeout(1000);
+          // Backoff with jitter before prompting user
+          await timeout(800 + Math.random() * 400); // 800-1200ms
           const result = await this.promptAuth();
           if (!result) {
             throw err;

@@ -89,12 +89,14 @@ export class AuthService {
    */
   public async promptForCredentials(
     prevUsername?: string,
-    prevPassword?: string
+    prevPassword?: string,
+    repoUrl?: string
   ): Promise<IAuth | null> {
     const result = await commands.executeCommand<IAuth | undefined>(
       "svn.promptAuth",
       prevUsername,
-      prevPassword
+      prevPassword,
+      repoUrl
     );
 
     return result ?? null;

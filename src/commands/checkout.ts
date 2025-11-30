@@ -119,7 +119,9 @@ export class Checkout extends Command {
         ) {
           const auth = (await commands.executeCommand(
             "svn.promptAuth",
-            opt.username
+            opt.username,
+            undefined,
+            url
           )) as IAuth;
           if (auth) {
             opt.username = auth.username;

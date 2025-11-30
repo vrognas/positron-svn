@@ -399,44 +399,34 @@ for (const code of errorCodes) { ... } // Generic codes
   3. Without cached credentials, SVN rejected `--password` on command line
   4. Auth failed, prompted again → infinite loop
 
-**Fix**:
+**Fix** (v2.26.0 - simplified):
 
 ```typescript
-// BEFORE: Always disabled native stores
-args.push("--config-option", "config:auth:password-stores=");
-args.push("--config-option", "servers:global:store-auth-creds=no");
+// Use credentialMode setting with auto-detection
+const mode = configuration.get("auth.credentialMode", "auto");
+const isRemote = !!env.remoteName;
+const useSystemKeyring =
+  mode === "systemKeyring" || (mode === "auto" && !isRemote);
 
-// AFTER: Let native stores work by default
-const useNativeStore = configuration.get("auth.useNativeStore", true);
-if (!useNativeStore) {
+if (!useSystemKeyring) {
   args.push("--config-option", "config:auth:password-stores=");
   args.push("--config-option", "servers:global:store-auth-creds=no");
 }
 ```
 
-**Why native stores matter**:
+**Why auto mode works**:
 
-- gpg-agent caches SVN passwords per-realm (configurable TTL)
-- Works seamlessly in SSH sessions when `GPG_TTY=$(tty)` is set
-- No chicken-egg problem - SVN handles auth before extension needs info
+- Detects local vs remote (SSH/WSL/container) automatically
+- Local: Uses system keyring (gpg-agent, Keychain, Credential Manager)
+- Remote: Uses VS Code SecretStorage (no keyring setup needed)
 
-**Additional fix** (v2.18.2):
+**Security** (v2.26.0):
 
-- Native store mode must STILL pass `--password` for initial caching
-- Without password, gpg-agent has nothing to cache on first auth
-- After initial cache, subsequent operations use cached credentials
+- SVN 1.10+ uses `--password-from-stdin` (hides from process list)
+- SVN < 1.10: Password NOT passed - must use system keyring
+- Removed insecure `--password` command-line fallback
 
-```typescript
-// Pass password in native store mode to enable caching
-if (useNativeStore && options.password) {
-  args.push("--password", options.password);
-  // Don't disable stores - let gpg-agent cache for future use
-}
-```
-
-**Workaround**: If native stores still fail, set `svn.auth.useNativeStore: false` to use extension-managed credentials.
-
-**Rule**: Default to native credential stores. Extension-managed credentials are fallback.
+**Rule**: Default to `auto` mode - it handles most scenarios correctly.
 
 ---
 

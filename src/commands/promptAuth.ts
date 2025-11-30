@@ -11,10 +11,15 @@ export class PromptAuth extends Command {
     super("svn.promptAuth");
   }
 
-  public async execute(prevUsername?: string, prevPassword?: string) {
+  public async execute(
+    prevUsername?: string,
+    prevPassword?: string,
+    repoUrl?: string
+  ) {
+    const urlHint = repoUrl ? ` for ${repoUrl}` : "";
     const username = await window.showInputBox({
-      placeHolder: "Svn repository username",
-      prompt: "Please enter your username",
+      placeHolder: "SVN username",
+      prompt: `Enter username${urlHint}`,
       ignoreFocusOut: true,
       value: prevUsername,
       validateInput: value => {
@@ -30,8 +35,8 @@ export class PromptAuth extends Command {
     }
 
     const password = await window.showInputBox({
-      placeHolder: "Svn repository password",
-      prompt: "Please enter your password",
+      placeHolder: "SVN password",
+      prompt: `Enter password${urlHint}`,
       value: prevPassword,
       ignoreFocusOut: true,
       password: true,

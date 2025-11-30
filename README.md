@@ -327,46 +327,53 @@ svn info <your-repo-url>
 
 For security vulnerabilities, use [GitHub Security Advisories](https://github.com/vrognas/positron-svn/security/advisories).
 
-### Remote SSH Development
+### Credential Storage
 
-When using the extension over Remote SSH, authentication can behave differently than local development.
+The extension supports multiple credential storage modes via `svn.auth.credentialMode`:
 
-#### Native Store Mode (Default)
+| Mode | Description |
+|------|-------------|
+| `auto` (default) | System keyring locally, extension storage remotely |
+| `systemKeyring` | Always use OS credential manager |
+| `extensionStorage` | Always use VS Code SecretStorage |
+| `prompt` | Never store credentials |
 
-By default (`svn.auth.useNativeStore: true`), the extension uses system credential managers:
-- **Linux:** gpg-agent, gnome-keyring
+#### Auto Mode (Recommended)
+
+The default `auto` mode automatically selects the best storage:
+- **Local development**: Uses system keyring (macOS Keychain, Windows Credential Manager, gnome-keyring)
+- **Remote SSH/WSL/Containers**: Uses VS Code SecretStorage (works without keyring setup)
+
+#### System Keyring Mode
+
+Uses native credential managers:
 - **macOS:** Keychain
 - **Windows:** Credential Manager
+- **Linux:** gnome-keyring, gpg-agent
 
-For gpg-agent to work in SSH sessions, ensure `GPG_TTY` is set:
+For gpg-agent in SSH sessions, set `GPG_TTY`:
 
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
 export GPG_TTY=$(tty)
 ```
 
-If prompted for credentials, run `svn info <url>` in terminal first to cache in gpg-agent.
+#### Troubleshooting Auth
 
-#### Troubleshooting Remote Auth
+If password prompts cycle endlessly:
 
-If password prompts cycle endlessly, try:
-
-1. Set `svn.auth.useNativeStore: false` to use extension-managed credentials
-2. Restart the extension host (Ctrl+Shift+P → "Developer: Restart Extension Host")
+1. Try `extensionStorage` mode:
+   ```json
+   { "svn.auth.credentialMode": "extensionStorage" }
+   ```
+2. Restart extension host (Ctrl+Shift+P → "Developer: Restart Extension Host")
 3. Re-enter credentials when prompted
-
-```json
-{
-  "svn.auth.useNativeStore": false
-}
-```
 
 #### Auth Method Indicators
 
-In remote sessions, watch the Output panel for auth method:
-- `[auth: native store (gpg-agent/keyring)]` - Using system credential manager
-- `[auth: native store + password (will cache)]` - Password provided, will be cached
-- `[auth: credential cache]` - Extension-managed credentials
+Watch the Output panel (SVN) for current mode:
+- `[auth: system keyring (local)]` - Using OS credential manager
+- `[auth: extension storage (remote)]` - Using VS Code SecretStorage
 
 ## Settings
 Here are all of the extension settings with their default values. To change any of these, add the relevant Config key and value to your VSCode settings.json file. Alternatively search for the config key in the settings UI to change its value.

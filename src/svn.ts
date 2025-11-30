@@ -7,6 +7,7 @@ import { EventEmitter } from "events";
 import * as proc from "process";
 import { Readable } from "stream";
 import * as semver from "semver";
+import { env } from "vscode";
 import {
   ConstructorPolicy,
   ICpOptions,
@@ -23,6 +24,71 @@ import { dispose, IDisposable, toDisposable } from "./util";
 import { logError } from "./util/errorLogger";
 import { showSystemKeyringAuthNotification } from "./util/nativeStoreAuthNotification";
 import { iconv } from "./vscodeModules";
+
+/**
+ * Credential storage mode - determines where SVN credentials are stored
+ */
+type CredentialMode = "auto" | "systemKeyring" | "extensionStorage" | "prompt";
+
+// Auth config cache - avoids repeated config reads per command
+let authConfigCache: {
+  useSystemKeyring: boolean;
+  modeDescription: string;
+  expiry: number;
+} | null = null;
+
+const AUTH_CACHE_TTL = 5000; // 5 seconds
+
+function getAuthConfig(): {
+  useSystemKeyring: boolean;
+  modeDescription: string;
+} {
+  const now = Date.now();
+  if (authConfigCache && now < authConfigCache.expiry) {
+    return authConfigCache;
+  }
+
+  const mode = configuration.get<CredentialMode>("auth.credentialMode", "auto");
+  const isRemote = !!env.remoteName;
+
+  let useSystemKeyring: boolean;
+  let modeDescription: string;
+
+  switch (mode) {
+    case "auto":
+      useSystemKeyring = !isRemote;
+      modeDescription = isRemote
+        ? "extension storage (remote)"
+        : "system keyring (local)";
+      break;
+    case "systemKeyring":
+      useSystemKeyring = true;
+      modeDescription = mode;
+      break;
+    case "extensionStorage":
+    case "prompt":
+      useSystemKeyring = false;
+      modeDescription = mode;
+      break;
+    default:
+      useSystemKeyring = !isRemote;
+      modeDescription = "auto";
+  }
+
+  authConfigCache = {
+    useSystemKeyring,
+    modeDescription,
+    expiry: now + AUTH_CACHE_TTL
+  };
+  return authConfigCache;
+}
+
+// Invalidate cache when config changes
+configuration.onDidChange(e => {
+  if (e.affectsConfiguration("svn.auth.credentialMode")) {
+    authConfigCache = null;
+  }
+});
 
 export const svnErrorCodes: { [key: string]: string } = {
   AuthorizationFailed: "E170001",
@@ -131,14 +197,9 @@ export class Svn {
         );
       }
 
-      // Check if system keyring caching is enabled (gnome-keyring, macOS Keychain, etc)
-      const useSystemKeyring = configuration.get<boolean>(
-        "auth.useSystemKeyring",
-        false
-      );
-
-      // Note: Credential cache file approach removed - realm string varies per server
-      // and we cannot compute the correct hash without server cooperation.
+      // Determine credential mode based on setting and environment (cached)
+      const authConfig = getAuthConfig();
+      const useSystemKeyring = authConfig.useSystemKeyring;
 
       if (options.username) {
         args.push("--username", options.username);
@@ -148,36 +209,27 @@ export class Svn {
       const supportsStdinPassword = semver.gte(this.version, "1.10.0");
       let passwordForStdin: string | undefined;
 
-      if (useSystemKeyring) {
-        // System keyring mode: Pass password but keep native stores enabled
-        // SVN will cache credentials in gnome-keyring/macOS Keychain/etc.
-        if (options.password) {
-          if (supportsStdinPassword) {
-            args.push("--password-from-stdin");
-            passwordForStdin = options.password;
-          } else {
-            args.push("--password", options.password);
-          }
+      // Add password if provided
+      // SECURITY: Only use --password-from-stdin (SVN 1.10+) to avoid exposing password in process list
+      // For older SVN versions, password is not passed - user must use system keyring
+      if (options.password) {
+        if (supportsStdinPassword) {
+          args.push("--password-from-stdin");
+          passwordForStdin = options.password;
+        } else {
+          // SVN < 1.10: Don't pass password via --password (visible in ps/top)
+          // Log warning - auth will fail if system keyring doesn't have credentials
+          this.logOutput(
+            `[SECURITY] SVN ${this.version} < 1.10 does not support --password-from-stdin. ` +
+              `Password not passed to avoid process list exposure. Use system keyring or upgrade SVN.\n`
+          );
         }
-        // Don't disable stores - let SVN cache credentials in system keyring
-      } else {
-        // Extension-only mode: Use --password and disable system keyring caching
-        // Credentials stored only in VS Code's encrypted SecretStorage
-        if (options.password) {
-          if (supportsStdinPassword) {
-            args.push("--password-from-stdin");
-            passwordForStdin = options.password;
-          } else {
-            args.push("--password", options.password);
-          }
-        }
+      }
 
-        if (options.username || options.password) {
-          // Configuration format: FILE:SECTION:OPTION=[VALUE]
-          // Disable all password stores to prevent credential confusion
-          args.push("--config-option", "config:auth:password-stores=");
-          args.push("--config-option", "servers:global:store-auth-creds=no");
-        }
+      // Disable native credential stores when not using system keyring
+      if (!useSystemKeyring) {
+        args.push("--config-option", "config:auth:password-stores=");
+        args.push("--config-option", "servers:global:store-auth-creds=no");
       }
 
       // Force non interactive environment
@@ -190,30 +242,9 @@ export class Svn {
       );
       const configuredTimeoutMs = timeoutSeconds * 1000;
 
-      // Debug authentication indicators (never expose password values)
-      const authMethod = supportsStdinPassword ? "stdin" : "--password";
-      if (useSystemKeyring && options.password && options.log !== false) {
-        this.logOutput(`[auth: system keyring + ${authMethod}]\n`);
-      } else if (useSystemKeyring && options.log !== false) {
-        this.logOutput(`[auth: system keyring]\n`);
-      } else if (
-        !useSystemKeyring &&
-        options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(`[auth: extension-only (${authMethod})]\n`);
-      } else if (
-        options.username &&
-        !options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(`[auth: username only]\n`);
-      } else if (
-        !options.username &&
-        !options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(`[auth: none - will prompt if needed]\n`);
+      // Log auth mode (don't log credential presence for security)
+      if (options.log !== false) {
+        this.logOutput(`[auth: ${authConfig.modeDescription}]\n`);
       }
 
       let encoding: string | undefined | null = options.encoding;
@@ -241,8 +272,14 @@ export class Svn {
       // Write password via stdin if using --password-from-stdin (SVN 1.10+)
       // This hides password from process list (ps aux)
       if (passwordForStdin && process.stdin) {
-        process.stdin.write(passwordForStdin);
-        process.stdin.end();
+        try {
+          process.stdin.write(passwordForStdin);
+          process.stdin.end();
+        } catch (err) {
+          // stdin write can fail if process exits early (EPIPE)
+          // SVN will fail with auth error, retry logic will handle it
+          logError("stdin write failed", err);
+        }
       }
 
       const disposables: IDisposable[] = [];
@@ -409,14 +446,9 @@ export class Svn {
         );
       }
 
-      // Check if system keyring caching is enabled (gnome-keyring, macOS Keychain, etc)
-      const useSystemKeyring = configuration.get<boolean>(
-        "auth.useSystemKeyring",
-        false
-      );
-
-      // Note: Credential cache file approach removed - realm string varies per server
-      // and we cannot compute the correct hash without server cooperation.
+      // Determine credential mode based on setting and environment (cached)
+      const authConfig = getAuthConfig();
+      const useSystemKeyring = authConfig.useSystemKeyring;
 
       if (options.username) {
         args.push("--username", options.username);
@@ -426,36 +458,27 @@ export class Svn {
       const supportsStdinPassword = semver.gte(this.version, "1.10.0");
       let passwordForStdin: string | undefined;
 
-      if (useSystemKeyring) {
-        // System keyring mode: Pass password but keep native stores enabled
-        // SVN will cache credentials in gnome-keyring/macOS Keychain/etc.
-        if (options.password) {
-          if (supportsStdinPassword) {
-            args.push("--password-from-stdin");
-            passwordForStdin = options.password;
-          } else {
-            args.push("--password", options.password);
-          }
+      // Add password if provided
+      // SECURITY: Only use --password-from-stdin (SVN 1.10+) to avoid exposing password in process list
+      // For older SVN versions, password is not passed - user must use system keyring
+      if (options.password) {
+        if (supportsStdinPassword) {
+          args.push("--password-from-stdin");
+          passwordForStdin = options.password;
+        } else {
+          // SVN < 1.10: Don't pass password via --password (visible in ps/top)
+          // Log warning - auth will fail if system keyring doesn't have credentials
+          this.logOutput(
+            `[SECURITY] SVN ${this.version} < 1.10 does not support --password-from-stdin. ` +
+              `Password not passed to avoid process list exposure. Use system keyring or upgrade SVN.\n`
+          );
         }
-        // Don't disable stores - let SVN cache credentials in system keyring
-      } else {
-        // Extension-only mode: Use --password and disable system keyring caching
-        // Credentials stored only in VS Code's encrypted SecretStorage
-        if (options.password) {
-          if (supportsStdinPassword) {
-            args.push("--password-from-stdin");
-            passwordForStdin = options.password;
-          } else {
-            args.push("--password", options.password);
-          }
-        }
+      }
 
-        if (options.username || options.password) {
-          // Configuration format: FILE:SECTION:OPTION=[VALUE]
-          // Disable all password stores to prevent credential confusion
-          args.push("--config-option", "config:auth:password-stores=");
-          args.push("--config-option", "servers:global:store-auth-creds=no");
-        }
+      // Disable native credential stores when not using system keyring
+      if (!useSystemKeyring) {
+        args.push("--config-option", "config:auth:password-stores=");
+        args.push("--config-option", "servers:global:store-auth-creds=no");
       }
 
       // Force non interactive environment
@@ -468,30 +491,9 @@ export class Svn {
       );
       const configuredTimeoutMs = timeoutSeconds * 1000;
 
-      // Debug authentication indicators (never expose password values)
-      const authMethod = supportsStdinPassword ? "stdin" : "--password";
-      if (useSystemKeyring && options.password && options.log !== false) {
-        this.logOutput(`[auth: system keyring + ${authMethod}]\n`);
-      } else if (useSystemKeyring && options.log !== false) {
-        this.logOutput(`[auth: system keyring]\n`);
-      } else if (
-        !useSystemKeyring &&
-        options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(`[auth: extension-only (${authMethod})]\n`);
-      } else if (
-        options.username &&
-        !options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(`[auth: username only]\n`);
-      } else if (
-        !options.username &&
-        !options.password &&
-        options.log !== false
-      ) {
-        this.logOutput(`[auth: none - will prompt if needed]\n`);
+      // Log auth mode (don't log credential presence for security)
+      if (options.log !== false) {
+        this.logOutput(`[auth: ${authConfig.modeDescription}]\n`);
       }
 
       const defaults: cp.SpawnOptions = {
@@ -511,8 +513,14 @@ export class Svn {
       // Write password via stdin if using --password-from-stdin (SVN 1.10+)
       // This hides password from process list (ps aux)
       if (passwordForStdin && process.stdin) {
-        process.stdin.write(passwordForStdin);
-        process.stdin.end();
+        try {
+          process.stdin.write(passwordForStdin);
+          process.stdin.end();
+        } catch (err) {
+          // stdin write can fail if process exits early (EPIPE)
+          // SVN will fail with auth error, retry logic will handle it
+          logError("stdin write failed", err);
+        }
       }
 
       const disposables: IDisposable[] = [];

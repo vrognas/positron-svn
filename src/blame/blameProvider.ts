@@ -6,6 +6,7 @@
 
 import {
   ColorThemeKind,
+  commands,
   ConfigurationChangeEvent,
   DecorationOptions,
   Disposable,
@@ -746,6 +747,34 @@ export class BlameProvider implements Disposable {
       return data;
     } catch (err) {
       logError("BlameProvider: Failed to fetch blame data", err);
+
+      // Show user-friendly notification for auth failures
+      const errorMsg =
+        err instanceof Error ? err.message : String(err) || "Unknown error";
+      if (
+        errorMsg.includes("Authentication failed") ||
+        errorMsg.includes("No more credentials") ||
+        errorMsg.includes("E170001") ||
+        errorMsg.includes("E215004")
+      ) {
+        window
+          .showWarningMessage(
+            "SVN authentication required. Use 'SVN: Authenticate' command or check credentials.",
+            "Authenticate"
+          )
+          .then(choice => {
+            if (choice === "Authenticate") {
+              const repoUrl = this.repository.repository.info?.url;
+              commands.executeCommand(
+                "svn.promptAuth",
+                undefined,
+                undefined,
+                repoUrl
+              );
+            }
+          });
+      }
+
       return undefined;
     }
   }
