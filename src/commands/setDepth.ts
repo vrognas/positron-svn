@@ -1,6 +1,8 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
+import * as fs from "fs";
+import * as path from "path";
 import {
   CancellationToken,
   commands,
@@ -16,6 +18,51 @@ import { SourceControlManager } from "../source_control_manager";
 
 /** Default download timeout in minutes */
 const DEFAULT_DOWNLOAD_TIMEOUT_MINUTES = 10;
+
+/** Pre-scan timeout in seconds */
+const PRE_SCAN_TIMEOUT_SECONDS = 30;
+
+/** Progress poll interval in ms */
+const POLL_INTERVAL_MS = 500;
+
+/** Max recursion depth for file counting */
+const MAX_RECURSION_DEPTH = 100;
+
+/**
+ * Count files recursively in a directory.
+ * Used for tracking folder download progress.
+ */
+function countFilesInFolder(
+  folderPath: string,
+  visited = new Set<string>(),
+  depth = 0
+): number {
+  if (depth > MAX_RECURSION_DEPTH) return 0;
+
+  let count = 0;
+  try {
+    const folderStats = fs.statSync(folderPath);
+    const inode = `${folderStats.dev}:${folderStats.ino}`;
+    if (visited.has(inode)) return 0;
+    visited.add(inode);
+
+    const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name === ".svn") continue;
+      if (entry.isSymbolicLink()) continue;
+
+      const fullPath = path.join(folderPath, entry.name);
+      if (entry.isDirectory()) {
+        count += countFilesInFolder(fullPath, visited, depth + 1);
+      } else if (entry.isFile()) {
+        count++;
+      }
+    }
+  } catch {
+    // Folder may not exist yet
+  }
+  return count;
+}
 
 export interface DepthQuickPickItem extends QuickPickItem {
   depth: keyof typeof SvnDepth;
@@ -168,7 +215,58 @@ export class SetDepth extends Command {
             return { exitCode: -1, cancelled: true, stderr: "" };
           }
 
+          let pollInterval: ReturnType<typeof setInterval> | undefined;
+          let expectedFileCount = 0;
+
           try {
+            // For downloads, pre-scan to get file count for progress
+            if (isDownload) {
+              progress.report({ message: `Scanning ${folderName}...` });
+
+              try {
+                // Get relative path for listRecursive
+                const relativePath = repository.repository.removeAbsolutePath(
+                  uri.fsPath
+                );
+                const items = await repository.listRecursive(
+                  relativePath,
+                  PRE_SCAN_TIMEOUT_SECONDS * 1000
+                );
+                expectedFileCount = items.filter(i => i.kind === "file").length;
+
+                if (token.isCancellationRequested) {
+                  return { exitCode: -1, cancelled: true, stderr: "" };
+                }
+
+                progress.report({
+                  message: `Found ${expectedFileCount} files in ${folderName}`
+                });
+              } catch {
+                // Pre-scan failed, continue without progress tracking
+                expectedFileCount = 0;
+              }
+
+              // Start progress polling if we have expected count
+              if (expectedFileCount > 0) {
+                progress.report({
+                  message: `Downloading ${folderName} (0/${expectedFileCount} files)...`
+                });
+
+                pollInterval = setInterval(() => {
+                  if (token.isCancellationRequested) return;
+                  const currentCount = countFilesInFolder(uri.fsPath);
+                  const pct = Math.round(
+                    (currentCount / expectedFileCount) * 100
+                  );
+                  progress.report({
+                    message: `${folderName}: ${currentCount}/${expectedFileCount} files (${pct}%)`
+                  });
+                }, POLL_INTERVAL_MS);
+              } else {
+                progress.report({ message: `Downloading ${folderName}...` });
+              }
+            }
+
             const res = await repository.setDepth(uri.fsPath, selected.depth, {
               parents: true,
               timeout: downloadTimeoutMs
@@ -186,6 +284,10 @@ export class SetDepth extends Command {
               cancelled: token.isCancellationRequested,
               stderr: String(err)
             };
+          } finally {
+            if (pollInterval) {
+              clearInterval(pollInterval);
+            }
           }
         }
       );

@@ -1,3 +1,11 @@
+## [2.26.25] (2025-11-30)
+
+### Feature: Set Depth Command Progress
+
+- **New**: Pre-scan folder with `svn list` to count expected files
+- **New**: Real-time progress: "folder: 42/150 files (28%)"
+- **UX**: Shows "Scanning folder..." during pre-scan phase
+
 ## [2.26.24] (2025-11-30)
 
 ### Fix: File Watcher svn info Suppression
