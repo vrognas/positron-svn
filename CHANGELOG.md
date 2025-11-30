@@ -1,3 +1,18 @@
+## [2.26.9] (2025-11-30)
+
+### UX: Download ETA and Speed Tracking
+
+- **New**: Dynamic ETA displayed during checkout downloads
+  - Shows estimated time remaining: "~2m left"
+  - Calculates speed from bytes downloaded during operation
+  - Updates in real-time as download progresses
+- **New**: Speed tracking with historical averaging
+  - Stores last 5 download speeds for future estimates
+  - Initial ETA uses historical average (or 1 MB/s default)
+  - Subsequent downloads get more accurate estimates
+- **UX**: Initial ETA shown in progress title when starting download
+  - Format: "Downloading 5 items (125 MB ~2m)"
+
 ## [2.26.8] (2025-11-30)
 
 ### UX: Checkout Progress Polish

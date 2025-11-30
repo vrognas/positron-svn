@@ -81,6 +81,19 @@ const REFRESH_DEBOUNCE_MS = 500;
 /** Default large file warning threshold in MB (configurable via svn.sparse.largeFileWarningMb) */
 const DEFAULT_LARGE_FILE_WARNING_MB = 10;
 
+/** Default download speed estimate (bytes/sec) - conservative 1 MB/s */
+const DEFAULT_SPEED_BPS = 1 * 1024 * 1024;
+
+/** Max speed samples to keep for averaging */
+const MAX_SPEED_SAMPLES = 5;
+
+/** Format duration in human-readable form */
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  return `${Math.round(seconds / 3600)}h ${Math.round((seconds % 3600) / 60)}m`;
+}
+
 /** Parse size string to bytes */
 function parseSizeToBytes(size?: string): number {
   if (!size) return 0;
@@ -114,6 +127,9 @@ export default class SparseCheckoutProvider
 
   /** Pending debounced refresh timeout */
   private refreshTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  /** Recent download speeds (bytes/sec) for ETA estimation */
+  private speedSamples: number[] = [];
 
   public readonly onDidChangeTreeData: Event<BaseNode | undefined> =
     this._onDidChangeTreeData.event;
@@ -629,8 +645,16 @@ export default class SparseCheckoutProvider
         ? `"${path.basename(validNodes[0].fullPath)}"`
         : `${validNodes.length} items`;
 
-    // Include size estimate in title if known
-    const sizeLabel = totalSize > 0 ? ` (${formatBytes(totalSize)})` : "";
+    // Include size and ETA estimate in title if known
+    const avgSpeed = this.getAverageSpeed();
+    const etaSeconds = totalSize > 0 ? totalSize / avgSpeed : 0;
+    const etaLabel =
+      totalSize > 0 && etaSeconds > 5 ? ` ~${formatDuration(etaSeconds)}` : "";
+    const sizeLabel =
+      totalSize > 0 ? ` (${formatBytes(totalSize)}${etaLabel})` : "";
+
+    // Track start time for speed calculation
+    const startTime = Date.now();
 
     try {
       // Use notification for cancellation support
@@ -646,6 +670,7 @@ export default class SparseCheckoutProvider
           let success = 0;
           let failed = 0;
           let cancelled = false;
+          let bytesDownloaded = 0;
 
           for (let i = 0; i < nodeRepos.length; i++) {
             // Check cancellation before each item
@@ -660,12 +685,31 @@ export default class SparseCheckoutProvider
               continue;
             }
 
+            // Calculate dynamic ETA based on current progress
+            const elapsed = (Date.now() - startTime) / 1000;
+            const currentSpeed =
+              elapsed > 0 && bytesDownloaded > 0
+                ? bytesDownloaded / elapsed
+                : avgSpeed;
+            const remainingBytes = totalSize - bytesDownloaded;
+            const etaRemaining =
+              remainingBytes > 0 && currentSpeed > 0
+                ? remainingBytes / currentSpeed
+                : 0;
+            const etaText =
+              etaRemaining > 3 ? ` ~${formatDuration(etaRemaining)} left` : "";
+
             progress.report({
               message: isBatch
-                ? `(${i + 1}/${nodeRepos.length}) ${path.basename(node.fullPath)}`
-                : path.basename(node.fullPath),
+                ? `(${i + 1}/${nodeRepos.length}) ${path.basename(node.fullPath)}${etaText}`
+                : `${path.basename(node.fullPath)}${etaText}`,
               increment: 100 / nodeRepos.length
             });
+
+            // Get file size for tracking
+            const fileSize = fileSizes.find(
+              f => f.name === path.basename(node.fullPath)
+            );
 
             try {
               const res = await repo.setDepth(node.fullPath, depth, {
@@ -673,6 +717,9 @@ export default class SparseCheckoutProvider
               });
               if (res.exitCode === 0) {
                 success++;
+                if (fileSize) {
+                  bytesDownloaded += fileSize.size;
+                }
               } else {
                 failed++;
               }
@@ -681,9 +728,19 @@ export default class SparseCheckoutProvider
             }
           }
 
-          return { success, failed, cancelled };
+          return { success, failed, cancelled, bytesDownloaded };
         }
       );
+
+      // Track download speed for future ETA estimates (only if we had size data)
+      if (totalSize > 0 && result.success > 0 && !result.cancelled) {
+        const elapsedMs = Date.now() - startTime;
+        if (elapsedMs > 1000) {
+          // Only track if >1s to avoid noise
+          const speed = totalSize / (elapsedMs / 1000);
+          this.recordDownloadSpeed(speed);
+        }
+      }
 
       this.refresh();
 
@@ -737,6 +794,28 @@ export default class SparseCheckoutProvider
         size: parseSizeToBytes(n.size)
       }))
       .filter(f => f.size > 0);
+  }
+
+  /**
+   * Get average download speed from recent samples (bytes/sec)
+   */
+  private getAverageSpeed(): number {
+    if (this.speedSamples.length === 0) {
+      return DEFAULT_SPEED_BPS;
+    }
+    const sum = this.speedSamples.reduce((a, b) => a + b, 0);
+    return sum / this.speedSamples.length;
+  }
+
+  /**
+   * Record a download speed sample for future ETA estimates
+   */
+  private recordDownloadSpeed(bytesPerSec: number): void {
+    this.speedSamples.push(bytesPerSec);
+    // Keep only recent samples
+    if (this.speedSamples.length > MAX_SPEED_SAMPLES) {
+      this.speedSamples.shift();
+    }
   }
 
   /**
