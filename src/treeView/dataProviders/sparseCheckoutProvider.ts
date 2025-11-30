@@ -10,6 +10,7 @@ import {
   QuickPickItem,
   TreeDataProvider,
   TreeItem,
+  TreeItemCollapsibleState,
   Uri,
   window
 } from "vscode";
@@ -32,7 +33,7 @@ class RepositoryRootNode extends BaseNode {
 
   public getTreeItem(): TreeItem {
     const repoName = path.basename(this.repo.root);
-    return new TreeItem(repoName);
+    return new TreeItem(repoName, TreeItemCollapsibleState.Collapsed);
   }
 
   public async getChildren(): Promise<BaseNode[]> {
