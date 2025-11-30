@@ -354,22 +354,26 @@ export default class SparseCheckoutProvider
       serverByName.set(s.name.toLowerCase(), s);
     }
 
-    // Filter and enrich local items with server metadata
-    return localItems
-      .filter(item => serverByName.has(item.name.toLowerCase()))
-      .map(item => {
-        const serverData = serverByName.get(item.name.toLowerCase());
-        if (serverData?.commit) {
-          return {
-            ...item,
-            revision: serverData.commit.revision,
-            author: serverData.commit.author,
-            date: serverData.commit.date,
-            size: serverData.size
-          };
-        }
-        return item;
-      });
+    // Single pass: filter + enrich (avoid 2× toLowerCase per item)
+    const result: ISparseItem[] = [];
+    for (const item of localItems) {
+      const lowerName = item.name.toLowerCase();
+      const serverData = serverByName.get(lowerName);
+      if (!serverData) continue;
+
+      if (serverData.commit) {
+        result.push({
+          ...item,
+          revision: serverData.commit.revision,
+          author: serverData.commit.author,
+          date: serverData.commit.date,
+          size: serverData.size
+        });
+      } else {
+        result.push(item);
+      }
+    }
+    return result;
   }
 
   /**

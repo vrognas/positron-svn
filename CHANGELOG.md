@@ -1,3 +1,9 @@
+## [2.26.15] (2025-11-30)
+
+### Perf: Filter Single-Pass Optimization
+
+- **Perf**: filterToTrackedItems uses single pass (avoids 2× toLowerCase per item)
+
 ## [2.26.14] (2025-11-30)
 
 ### Perf: Sort Extension Pre-Computation
