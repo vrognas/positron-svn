@@ -29,7 +29,7 @@ import { getBranchName } from "./helpers/branch";
 import { configuration } from "./helpers/configuration";
 import { parseInfoXml } from "./parser/infoParser";
 import { parseSvnList } from "./parser/listParser";
-import { parseLockInfo } from "./parser/lockParser";
+import { parseBatchLockInfo, parseLockInfo } from "./parser/lockParser";
 import { parseSvnLog } from "./parser/logParser";
 import { parseStatusXml } from "./parser/statusParser";
 import { parseSvnBlame } from "./parser/blameParser";
@@ -1453,6 +1453,31 @@ export class Repository {
     } catch (err) {
       logError(`Failed to get lock info for ${filePath}`, err);
       return null;
+    }
+  }
+
+  /**
+   * Get lock information for multiple URLs in a single SVN call.
+   * Efficient batch operation for checking locks on remote files.
+   *
+   * @param urls Array of repository URLs to check
+   * @returns Map from URL to lock info (null if not locked)
+   */
+  public async getBatchLockInfo(
+    urls: string[]
+  ): Promise<Map<string, ISvnLockInfo | null>> {
+    if (urls.length === 0) {
+      return new Map();
+    }
+
+    try {
+      // svn info can take multiple URLs at once
+      const args = ["info", "--xml", ...urls.map(u => fixPegRevision(u))];
+      const result = await this.exec(args);
+      return parseBatchLockInfo(result.stdout);
+    } catch (err) {
+      logError("Failed to get batch lock info", err);
+      return new Map();
     }
   }
 

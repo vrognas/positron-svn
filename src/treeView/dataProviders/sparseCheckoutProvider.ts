@@ -17,7 +17,12 @@ import {
   window,
   workspace
 } from "vscode";
-import { ISparseItem, ISvnListItem, SparseDepthKey } from "../../common/types";
+import {
+  ISparseItem,
+  ISvnListItem,
+  LockStatus,
+  SparseDepthKey
+} from "../../common/types";
 import { checkoutDepthOptions } from "../../commands/setDepth";
 import { readdir, stat } from "../../fs";
 import { SourceControlManager } from "../../source_control_manager";
@@ -210,6 +215,10 @@ export default class SparseCheckoutProvider
       serverResult,
       relativeFolder
     );
+
+    // Fetch lock status for ghost files (batch SVN info call)
+    await this.populateGhostLockStatus(repo, ghosts);
+
     return this.mergeItems(trackedLocalItems, ghosts);
   }
 
@@ -321,6 +330,51 @@ export default class SparseCheckoutProvider
         item.lockOwner = resource.lockOwner;
         // Note: lockComment not available from status, would need svn info
       }
+    }
+  }
+
+  /**
+   * Fetch lock status for ghost files via batch svn info.
+   * Only fetches for files (directories don't have locks).
+   */
+  private async populateGhostLockStatus(
+    repo: Repository,
+    ghosts: ISparseItem[]
+  ): Promise<void> {
+    // Filter to ghost files only (dirs don't have locks)
+    const ghostFiles = ghosts.filter(g => g.isGhost && g.kind === "file");
+    if (ghostFiles.length === 0) return;
+
+    try {
+      // Get repo URL from info
+      const info = await repo.getInfo(repo.root);
+      const baseUrl = info.url;
+      if (!baseUrl) return;
+
+      // Build URLs for each ghost file
+      const urls = ghostFiles.map(g => {
+        // Convert Windows backslashes to forward slashes
+        const urlPath = g.path.replace(/\\/g, "/");
+        return `${baseUrl}/${urlPath}`;
+      });
+
+      // Batch fetch lock info
+      const lockInfoMap = await repo.getBatchLockInfo(urls);
+
+      // Apply lock info to ghost items
+      for (let i = 0; i < ghostFiles.length; i++) {
+        const url = urls[i];
+        const lockInfo = lockInfoMap.get(url);
+        if (lockInfo) {
+          ghostFiles[i].lockOwner = lockInfo.owner;
+          ghostFiles[i].lockComment = lockInfo.comment;
+          // Ghost files don't have local lock status, use 'O' for "other" lock
+          ghostFiles[i].lockStatus = LockStatus.O;
+        }
+      }
+    } catch (err) {
+      // Lock fetch failed - not critical, just log
+      logError("Failed to fetch ghost lock status", err);
     }
   }
 

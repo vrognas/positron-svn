@@ -1225,6 +1225,18 @@ export class Repository implements IRemoteRepository {
   }
 
   /**
+   * Get lock information for multiple URLs in a single SVN call.
+   * Efficient batch operation for checking locks on remote files.
+   */
+  public async getBatchLockInfo(
+    urls: string[]
+  ): Promise<Map<string, ISvnLockInfo | null>> {
+    return this.run(Operation.Info, () =>
+      this.repository.getBatchLockInfo(urls)
+    );
+  }
+
+  /**
    * Set depth of a folder for sparse checkouts.
    * @param folderPath Path to folder
    * @param depth One of: exclude, empty, files, immediates, infinity

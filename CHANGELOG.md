@@ -8,6 +8,7 @@
   - Rich tooltip with all metadata (hover for details)
   - Lock indicator (🔒K/O/B/T) for locked files
   - Lock owner and comment shown in tooltip
+  - Lock status fetched for server-only files via batch `svn info`
 
 - **Fix**: Infinite loop when expanding folders in sparse checkout tree
   - Previously: Expanding folders caused spinner to spin indefinitely
