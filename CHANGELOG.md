@@ -4,6 +4,7 @@
 
 - **New**: Pre-scan folder with `svn list` to count expected files
 - **New**: Real-time progress: "folder: 42/150 files (28%)"
+- **New**: Exclusion progress: "Excluding: 10/50 removed"
 - **UX**: Shows "Scanning folder..." during pre-scan phase
 
 ## [2.26.24] (2025-11-30)

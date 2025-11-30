@@ -207,7 +207,7 @@ export class SetDepth extends Command {
         async (progress, token: CancellationToken) => {
           // Immediate feedback
           progress.report({
-            message: isDownload ? "Starting download..." : "Applying changes..."
+            message: isDownload ? "Starting download..." : "Preparing..."
           });
 
           // Check for cancellation before starting
@@ -217,14 +217,14 @@ export class SetDepth extends Command {
 
           let pollInterval: ReturnType<typeof setInterval> | undefined;
           let expectedFileCount = 0;
+          let initialFileCount = 0;
 
           try {
-            // For downloads, pre-scan to get file count for progress
             if (isDownload) {
+              // For downloads, pre-scan server to get expected file count
               progress.report({ message: `Scanning ${folderName}...` });
 
               try {
-                // Get relative path for listRecursive
                 const relativePath = repository.repository.removeAbsolutePath(
                   uri.fsPath
                 );
@@ -242,11 +242,10 @@ export class SetDepth extends Command {
                   message: `Found ${expectedFileCount} files in ${folderName}`
                 });
               } catch {
-                // Pre-scan failed, continue without progress tracking
                 expectedFileCount = 0;
               }
 
-              // Start progress polling if we have expected count
+              // Start progress polling for downloads
               if (expectedFileCount > 0) {
                 progress.report({
                   message: `Downloading ${folderName} (0/${expectedFileCount} files)...`
@@ -265,6 +264,29 @@ export class SetDepth extends Command {
               } else {
                 progress.report({ message: `Downloading ${folderName}...` });
               }
+            } else {
+              // For removals (exclude, empty, files, immediates), count existing files
+              initialFileCount = countFilesInFolder(uri.fsPath);
+
+              if (initialFileCount > 0) {
+                const actionLabel =
+                  selected.depth === "exclude" ? "Excluding" : "Removing files";
+                progress.report({
+                  message: `${actionLabel} (${initialFileCount} files)...`
+                });
+
+                pollInterval = setInterval(() => {
+                  const remaining = countFilesInFolder(uri.fsPath);
+                  const removed = initialFileCount - remaining;
+                  if (removed > 0) {
+                    progress.report({
+                      message: `${actionLabel}: ${removed}/${initialFileCount} removed`
+                    });
+                  }
+                }, POLL_INTERVAL_MS);
+              } else {
+                progress.report({ message: "Applying changes..." });
+              }
             }
 
             const res = await repository.setDepth(uri.fsPath, selected.depth, {
@@ -272,7 +294,6 @@ export class SetDepth extends Command {
               timeout: downloadTimeoutMs
             });
 
-            // Check if cancelled during operation
             if (token.isCancellationRequested) {
               return { ...res, cancelled: true };
             }
