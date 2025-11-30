@@ -7,6 +7,9 @@
   - Root cause: Refresh callback in getChildren() caused tree rebuild loop
   - Now: Partial indicator updates on manual refresh only (no auto-refresh)
 - **Fix**: Guard against undefined node when tree refreshes during context menu
+- **Fix**: Memory leak in SVN tree view from undisposed subscriptions
+  - RepositoryNode subscribed to status changes but never disposed
+  - Nodes are now tracked and reused, disposed when repo closes
 - **Fix**: Case-insensitive name comparison for Windows/macOS
   - Previously: Files with different case (README.md vs readme.md) could be filtered incorrectly
   - Now: Uses case-insensitive comparison for tracked item detection and ghost computation
