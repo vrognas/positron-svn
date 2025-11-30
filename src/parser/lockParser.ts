@@ -14,6 +14,7 @@ interface ParsedLock {
 
 interface ParsedEntry {
   path?: string;
+  url?: string;
   lock?: ParsedLock;
 }
 
@@ -70,8 +71,8 @@ export function parseLockInfo(content: string): ISvnLockInfo | null {
 }
 
 /**
- * Parse lock information for multiple paths from svn info --xml output.
- * Returns a map from path to lock info (null if not locked).
+ * Parse lock information for multiple URLs from svn info --xml output.
+ * Returns a map from URL to lock info (null if not locked).
  */
 export function parseBatchLockInfo(
   content: string
@@ -98,13 +99,14 @@ export function parseBatchLockInfo(
     const entries = Array.isArray(parsed.entry) ? parsed.entry : [parsed.entry];
 
     for (const entry of entries) {
-      if (!entry.path) continue;
+      // Use URL as key (matches what we pass to svn info)
+      if (!entry.url) continue;
 
       const lock = entry.lock;
       if (!lock || !lock.owner || !lock.token || !lock.created) {
-        result.set(entry.path, null);
+        result.set(entry.url, null);
       } else {
-        result.set(entry.path, {
+        result.set(entry.url, {
           owner: lock.owner,
           token: lock.token,
           comment: lock.comment,
