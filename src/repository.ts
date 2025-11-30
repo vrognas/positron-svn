@@ -222,6 +222,19 @@ export class Repository implements IRemoteRepository {
     this.needCleanUp = false;
   }
 
+  /**
+   * Flag to suppress status updates during sparse checkout downloads.
+   * When true, file watcher events won't trigger SVN status commands,
+   * preventing working copy lock conflicts on Windows.
+   */
+  private _sparseDownloadInProgress = false;
+  get sparseDownloadInProgress(): boolean {
+    return this._sparseDownloadInProgress;
+  }
+  set sparseDownloadInProgress(value: boolean) {
+    this._sparseDownloadInProgress = value;
+  }
+
   get root(): string {
     return this.repository.root;
   }
@@ -535,6 +548,12 @@ export class Repository implements IRemoteRepository {
 
   @globalSequentialize("updateModelState")
   public async updateModelState(checkRemoteChanges: boolean = false) {
+    // Skip status updates during sparse checkout downloads
+    // Prevents working copy lock conflicts on Windows
+    if (this._sparseDownloadInProgress) {
+      return;
+    }
+
     // Short-term cache: skip if called within 2s
     // Note: @throttle removed (Phase 15) - cache already handles throttling
     const now = Date.now();

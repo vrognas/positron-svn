@@ -903,6 +903,18 @@ export default class SparseCheckoutProvider
     // Track start time for speed calculation
     const startTime = Date.now();
 
+    // Collect unique repos for status suppression (prevents WC lock conflicts)
+    const affectedRepos = new Set(
+      nodeRepos
+        .map(nr => nr.repo)
+        .filter((r): r is Repository => r !== undefined)
+    );
+
+    // Suppress status updates during download (fixes svn info spam on Windows)
+    for (const repo of affectedRepos) {
+      repo.sparseDownloadInProgress = true;
+    }
+
     try {
       // Use notification for cancellation support
       const isBatch = validNodes.length > 1;
@@ -1136,6 +1148,11 @@ export default class SparseCheckoutProvider
             commands.executeCommand("svn.showOutputChannel");
           }
         });
+    } finally {
+      // Re-enable status updates after download completes
+      for (const repo of affectedRepos) {
+        repo.sparseDownloadInProgress = false;
+      }
     }
   }
 

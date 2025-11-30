@@ -1,3 +1,12 @@
+## [2.26.20] (2025-11-30)
+
+### Fix: Suppress Status Updates During Downloads
+
+- **Fix**: Suppress `svn info` calls during sparse checkout downloads
+- **Fix**: Prevents working copy lock conflicts on Windows
+- **Internal**: `sparseDownloadInProgress` flag in Repository class
+- **Note**: Status updates resume after download completes
+
 ## [2.26.19] (2025-11-30)
 
 ### Fix: Folder Progress Safety & Cancellation
