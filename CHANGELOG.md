@@ -2,6 +2,9 @@
 
 ### FIX: Sparse Checkout List Performance
 
+- **Fix**: Excluded files now show as ghosts in sparse checkout tree
+  - Previously: Files excluded via "exclude" action disappeared from treeview completely
+  - Now: Individual excluded items appear as ghosts (can be re-checked out)
 - **Fix**: Sparse checkout tree view now uses URL-based listing (non-recursive)
   - Previously: `svn list <localPath>` was slow for large repos (recursive)
   - Now: Uses `svn list <repoUrl/folder>` which is fast and non-recursive

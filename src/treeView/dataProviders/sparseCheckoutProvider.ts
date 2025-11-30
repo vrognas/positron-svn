@@ -126,11 +126,9 @@ export default class SparseCheckoutProvider
   ): Promise<ISparseItem[]> {
     const relativeFolder = path.relative(repo.root, folderPath);
 
-    // First, get local items WITHOUT depth (fast, no svn calls)
-    // and server items in parallel
-    const [localItemsRaw, depth, serverResult] = await Promise.all([
+    // Fetch local items and server items in parallel
+    const [localItemsRaw, serverResult] = await Promise.all([
       this.getLocalItemsRaw(repo, folderPath),
-      this.getDepth(repo, folderPath),
       this.getServerItems(repo, folderPath).catch(err => {
         // Server list failed (offline, etc.) - log and continue
         logError("Failed to fetch server items for sparse view", err);
@@ -153,11 +151,7 @@ export default class SparseCheckoutProvider
     // NOW get depth for tracked directories only (safe - they exist in SVN)
     await this.populateDepths(repo, trackedLocalItems);
 
-    // If depth is infinity, no ghosts needed
-    if (depth === "infinity") {
-      return this.mergeItems(trackedLocalItems, []);
-    }
-
+    // Always compute ghosts - even with infinity depth, individual items may be excluded
     const ghosts = this.computeGhosts(
       trackedLocalItems,
       serverResult,
