@@ -318,7 +318,6 @@ export default class SparseCheckoutProvider
       );
 
       if (result.exitCode === 0) {
-        window.showInformationMessage(`"${itemName}" checked out`);
         this.refresh();
       } else {
         window.showErrorMessage(`Checkout failed: ${result.stderr}`);
@@ -361,7 +360,6 @@ export default class SparseCheckoutProvider
       );
 
       if (result.exitCode === 0) {
-        window.showInformationMessage(`"${itemName}" excluded`);
         this.refresh();
       } else {
         window.showErrorMessage(`Exclude failed: ${result.stderr}`);
