@@ -11,6 +11,7 @@ import {
   TreeDataProvider,
   TreeItem,
   TreeItemCollapsibleState,
+  TreeView,
   ThemeIcon,
   Uri,
   window
@@ -93,15 +94,30 @@ export default class SparseCheckoutProvider
   public readonly onDidChangeTreeData: Event<BaseNode | undefined> =
     this._onDidChangeTreeData.event;
 
+  /** Tree view instance for multi-select support */
+  private treeView: TreeView<BaseNode> | undefined;
+
   constructor(private sourceControlManager: SourceControlManager) {
+    // Use createTreeView for multi-select support
+    this.treeView = window.createTreeView("sparseCheckout", {
+      treeDataProvider: this,
+      canSelectMany: true
+    });
+
     this._disposables.push(
-      window.registerTreeDataProvider("sparseCheckout", this),
+      this.treeView,
       commands.registerCommand("svn.sparse.refresh", () => this.refresh()),
-      commands.registerCommand("svn.sparse.checkout", (node: SparseItemNode) =>
-        this.checkoutItem(node)
+      commands.registerCommand(
+        "svn.sparse.checkout",
+        (node: SparseItemNode, selected?: SparseItemNode[]) =>
+          this.checkoutItems(
+            selected && selected.length > 0 ? selected : [node]
+          )
       ),
-      commands.registerCommand("svn.sparse.exclude", (node: SparseItemNode) =>
-        this.excludeItem(node)
+      commands.registerCommand(
+        "svn.sparse.exclude",
+        (node: SparseItemNode, selected?: SparseItemNode[]) =>
+          this.excludeItems(selected && selected.length > 0 ? selected : [node])
       )
     );
   }
@@ -401,51 +417,96 @@ export default class SparseCheckoutProvider
   }
 
   /**
-   * Checkout a ghost item (restore from server)
+   * Checkout multiple items (restore from server)
    */
-  private async checkoutItem(node: SparseItemNode): Promise<void> {
-    // Guard: node can be undefined if tree refreshed while context menu open
-    if (!node?.fullPath) {
-      window.showErrorMessage("Item no longer available. Please try again.");
-      return;
-    }
-    const fullPath = node.fullPath;
-    const repo = this.sourceControlManager.getRepository(Uri.file(fullPath));
-    if (!repo) {
-      window.showErrorMessage("No SVN repository found for this path");
+  private async checkoutItems(nodes: SparseItemNode[]): Promise<void> {
+    // Filter valid nodes
+    const validNodes = nodes.filter(n => n?.fullPath);
+    if (validNodes.length === 0) {
+      window.showErrorMessage("No valid items selected. Please try again.");
       return;
     }
 
-    // For files, just checkout with infinity (download the file)
-    // For dirs, ask for depth
+    // Check all nodes have a repository
+    const firstRepo = this.sourceControlManager.getRepository(
+      Uri.file(validNodes[0].fullPath)
+    );
+    if (!firstRepo) {
+      window.showErrorMessage("No SVN repository found for selected items");
+      return;
+    }
+
+    // Determine if we need to ask for depth (any dirs selected?)
+    const hasDirs = validNodes.some(n => n.kind === "dir");
     let depth: SparseDepthKey = "infinity";
 
-    if (node.kind === "dir") {
+    if (hasDirs) {
       const selected = await window.showQuickPick(checkoutDepthOptions, {
-        placeHolder: "How much should be downloaded?"
+        placeHolder:
+          validNodes.length > 1
+            ? `How much should be downloaded? (${validNodes.length} items)`
+            : "How much should be downloaded?"
       });
 
       if (!selected) return;
       depth = selected.depth;
     }
 
-    const itemName = path.basename(fullPath);
+    const label =
+      validNodes.length === 1
+        ? `"${path.basename(validNodes[0].fullPath)}"`
+        : `${validNodes.length} items`;
 
     try {
       const result = await window.withProgress(
         {
           location: ProgressLocation.Notification,
-          title: `Checking out "${itemName}"...`,
+          title: `Checking out ${label}...`,
           cancellable: false
         },
-        // Use --parents to restore items even if parent folders are excluded
-        async () => repo.setDepth(fullPath, depth, { parents: true })
+        async progress => {
+          let success = 0;
+          let failed = 0;
+
+          for (let i = 0; i < validNodes.length; i++) {
+            const node = validNodes[i];
+            const repo = this.sourceControlManager.getRepository(
+              Uri.file(node.fullPath)
+            );
+            if (!repo) {
+              failed++;
+              continue;
+            }
+
+            progress.report({
+              message: `(${i + 1}/${validNodes.length}) ${path.basename(node.fullPath)}`,
+              increment: 100 / validNodes.length
+            });
+
+            try {
+              const res = await repo.setDepth(node.fullPath, depth, {
+                parents: true
+              });
+              if (res.exitCode === 0) {
+                success++;
+              } else {
+                failed++;
+              }
+            } catch {
+              failed++;
+            }
+          }
+
+          return { success, failed };
+        }
       );
 
-      if (result.exitCode === 0) {
-        this.refresh();
-      } else {
-        window.showErrorMessage(`Checkout failed: ${result.stderr}`);
+      this.refresh();
+
+      if (result.failed > 0) {
+        window.showWarningMessage(
+          `Checkout: ${result.success} succeeded, ${result.failed} failed`
+        );
       }
     } catch (err) {
       logError("Sparse checkout failed", err);
@@ -454,24 +515,24 @@ export default class SparseCheckoutProvider
   }
 
   /**
-   * Exclude a local item (remove from working copy)
+   * Exclude multiple items (remove from working copy)
    */
-  private async excludeItem(node: SparseItemNode): Promise<void> {
-    // Guard: node can be undefined if tree refreshed while context menu open
-    if (!node?.fullPath) {
-      window.showErrorMessage("Item no longer available. Please try again.");
-      return;
-    }
-    const fullPath = node.fullPath;
-    const repo = this.sourceControlManager.getRepository(Uri.file(fullPath));
-    if (!repo) {
-      window.showErrorMessage("No SVN repository found for this path");
+  private async excludeItems(nodes: SparseItemNode[]): Promise<void> {
+    // Filter valid nodes
+    const validNodes = nodes.filter(n => n?.fullPath);
+    if (validNodes.length === 0) {
+      window.showErrorMessage("No valid items selected. Please try again.");
       return;
     }
 
-    const itemName = path.basename(fullPath);
+    // Build confirmation message
+    const label =
+      validNodes.length === 1
+        ? `"${path.basename(validNodes[0].fullPath)}"`
+        : `${validNodes.length} items`;
+
     const confirm = await window.showWarningMessage(
-      `Exclude "${itemName}"? This will remove it locally. Files remain on server.`,
+      `Exclude ${label}? This will remove locally. Files remain on server.`,
       { modal: true },
       "Exclude",
       "Cancel"
@@ -483,16 +544,50 @@ export default class SparseCheckoutProvider
       const result = await window.withProgress(
         {
           location: ProgressLocation.Notification,
-          title: `Excluding "${itemName}"...`,
+          title: `Excluding ${label}...`,
           cancellable: false
         },
-        async () => repo.setDepth(fullPath, "exclude")
+        async progress => {
+          let success = 0;
+          let failed = 0;
+
+          for (let i = 0; i < validNodes.length; i++) {
+            const node = validNodes[i];
+            const repo = this.sourceControlManager.getRepository(
+              Uri.file(node.fullPath)
+            );
+            if (!repo) {
+              failed++;
+              continue;
+            }
+
+            progress.report({
+              message: `(${i + 1}/${validNodes.length}) ${path.basename(node.fullPath)}`,
+              increment: 100 / validNodes.length
+            });
+
+            try {
+              const res = await repo.setDepth(node.fullPath, "exclude");
+              if (res.exitCode === 0) {
+                success++;
+              } else {
+                failed++;
+              }
+            } catch {
+              failed++;
+            }
+          }
+
+          return { success, failed };
+        }
       );
 
-      if (result.exitCode === 0) {
-        this.refresh();
-      } else {
-        window.showErrorMessage(`Exclude failed: ${result.stderr}`);
+      this.refresh();
+
+      if (result.failed > 0) {
+        window.showWarningMessage(
+          `Exclude: ${result.success} succeeded, ${result.failed} failed`
+        );
       }
     } catch (err) {
       logError("Sparse exclude failed", err);
