@@ -20,7 +20,8 @@ describe("Repository list URL-based", () => {
       const relativePath =
         filePath === repoRoot ? undefined : path.relative(repoRoot, filePath);
 
-      expect(relativePath).toBe("src/lib");
+      // path.relative uses OS separator (forward on Unix, back on Windows)
+      expect(relativePath).toBe(path.join("src", "lib"));
     });
 
     it("Windows paths work correctly", () => {
