@@ -83,11 +83,31 @@ export class RepoLogProvider
   // TODO on-disk cache?
   private readonly logCache: Map<string, ICachedLog> = new Map();
   private _dispose: Disposable[] = [];
+  private static readonly MAX_LOG_CACHE_SIZE = 50;
 
   // Performance optimization: visibility tracking and debouncing
   private treeView?: TreeView<ILogTreeItem>;
   private refreshTimeout?: NodeJS.Timeout;
   private readonly DEBOUNCE_MS = 2000;
+
+  private evictOldestLogEntry(): void {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+    for (const [key, entry] of this.logCache.entries()) {
+      // Skip user-added repos from eviction
+      if (entry.persisted.userAdded) {
+        continue;
+      }
+      const accessTime = entry.lastAccessed ?? 0;
+      if (accessTime < oldestTime) {
+        oldestTime = accessTime;
+        oldestKey = key;
+      }
+    }
+    if (oldestKey !== null) {
+      this.logCache.delete(oldestKey);
+    }
+  }
 
   private getCached(maybeItem?: ILogTreeItem): ICachedLog {
     // With flat structure, commits are at root level
@@ -95,17 +115,27 @@ export class RepoLogProvider
     if (!maybeItem) {
       // Return first repo in cache (should only be one workspace repo)
       const first = this.logCache.values().next().value;
+      if (first) {
+        first.lastAccessed = Date.now();
+      }
       return unwrap(first);
     }
 
     const item = unwrap(maybeItem);
     if (item.data instanceof SvnPath) {
-      return unwrap(this.logCache.get(item.data.toString()));
+      const cached = this.logCache.get(item.data.toString());
+      if (cached) {
+        cached.lastAccessed = Date.now();
+      }
+      return unwrap(cached);
     }
 
     // For commits at root level, return first cache entry
     if (!item.parent) {
       const first = this.logCache.values().next().value;
+      if (first) {
+        first.lastAccessed = Date.now();
+      }
       return unwrap(first);
     }
 
@@ -257,6 +287,11 @@ export class RepoLogProvider
       window.showWarningMessage("Repository with this name already exists");
       return;
     }
+    // LRU eviction before adding
+    if (this.logCache.size >= RepoLogProvider.MAX_LOG_CACHE_SIZE) {
+      this.evictOldestLogEntry();
+    }
+    item.lastAccessed = Date.now();
     this.logCache.set(repoName, item);
     this._onDidChangeTreeData.fire(undefined);
   }
@@ -472,13 +507,21 @@ export class RepoLogProvider
           persisted = prev.persisted;
         }
         const entries = shouldClearCache ? [] : savedEntries.get(repoUrl) || [];
+        // LRU eviction before adding (if not updating existing)
+        if (
+          !this.logCache.has(repoUrl) &&
+          this.logCache.size >= RepoLogProvider.MAX_LOG_CACHE_SIZE
+        ) {
+          this.evictOldestLogEntry();
+        }
         this.logCache.set(repoUrl, {
           entries,
           isComplete: false,
           repo,
           svnTarget: remoteRoot,
           persisted,
-          order: this.logCache.size
+          order: this.logCache.size,
+          lastAccessed: Date.now()
         });
       }
     }

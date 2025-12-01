@@ -792,7 +792,8 @@ export class Repository {
       tmp.setGracefulCleanup();
 
       tmpFile = tmp.fileSync({
-        prefix: "svn-commit-message-"
+        prefix: "svn-commit-message-",
+        mode: 0o600 // Owner read/write only - commit messages may contain sensitive info
       });
 
       await writeFile(tmpFile.name, message, { encoding: "utf-8" });

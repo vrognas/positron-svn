@@ -1,3 +1,11 @@
+## [2.27.3] (2025-12-01)
+
+### Security: Privacy Quick Fixes
+
+- **Fixed**: Unbounded `repoLogProvider` cache → LRU eviction (max 50 entries)
+- **Fixed**: Temp commit message files now use `mode: 0o600` (owner-only access)
+- **Tests**: Added security tests for temp file permissions and LRU eviction
+
 ## [2.27.2] (2025-12-01)
 
 ### Simplified: Author Color Dots

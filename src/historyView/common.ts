@@ -51,6 +51,7 @@ export interface ICachedLog {
     readonly userAdded?: boolean;
   };
   order: number;
+  lastAccessed?: number; // LRU tracking
 }
 
 type TreeItemData = ISvnLogEntry | ISvnLogEntryPath | SvnPath | TreeItem;

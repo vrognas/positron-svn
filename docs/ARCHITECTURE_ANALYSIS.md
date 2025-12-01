@@ -314,5 +314,13 @@ See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.23
-**Updated**: 2025-12-01 (v2.26.27)
+### Security Hardening (v2.27.3)
+
+- **RepoLogProvider cache**: LRU eviction (max 50 entries), prevents unbounded memory growth
+- **Temp files**: Commit message files use `mode: 0o600` (owner read/write only)
+- **Privacy audit**: Zero external network requests, all data local
+
+---
+
+**Version**: 3.24
+**Updated**: 2025-12-01 (v2.27.3)
