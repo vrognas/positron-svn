@@ -39,6 +39,25 @@ let authConfigCache: {
 
 const AUTH_CACHE_TTL = 5000; // 5 seconds
 
+// Track if auth mode has been logged (for "once" setting)
+let authModeLoggedOnce = false;
+
+/** Check if auth mode should be logged based on setting */
+function shouldLogAuthMode(): boolean {
+  const setting = configuration.get<string>("output.authLogging", "once");
+  switch (setting) {
+    case "never":
+      return false;
+    case "always":
+      return true;
+    case "once":
+    default:
+      if (authModeLoggedOnce) return false;
+      authModeLoggedOnce = true;
+      return true;
+  }
+}
+
 function getAuthConfig(): {
   useSystemKeyring: boolean;
   modeDescription: string;
@@ -242,8 +261,8 @@ export class Svn {
       );
       const configuredTimeoutMs = timeoutSeconds * 1000;
 
-      // Log auth mode (don't log credential presence for security)
-      if (options.log !== false) {
+      // Log auth mode (controlled by svn.output.authLogging setting)
+      if (options.log !== false && shouldLogAuthMode()) {
         this.logOutput(`[auth: ${authConfig.modeDescription}]\n`);
       }
 
@@ -491,8 +510,8 @@ export class Svn {
       );
       const configuredTimeoutMs = timeoutSeconds * 1000;
 
-      // Log auth mode (don't log credential presence for security)
-      if (options.log !== false) {
+      // Log auth mode (controlled by svn.output.authLogging setting)
+      if (options.log !== false && shouldLogAuthMode()) {
         this.logOutput(`[auth: ${authConfig.modeDescription}]\n`);
       }
 

@@ -15,18 +15,29 @@ export async function parseSvnList(content: string): Promise<ISvnListItem[]> {
         camelcase: true
       });
 
-      if (result.list && result.list.entry) {
+      // SVN outputs <lists><list path="..."><entry>...
+      // Handle both <lists><list> and direct <list> formats
+      let listNode = result.list;
+      if (result.lists?.list) {
+        listNode = result.lists.list;
+      }
+
+      if (listNode?.entry) {
         // Normalize: ensure array even for single entry
-        if (!Array.isArray(result.list.entry)) {
-          result.list.entry = [result.list.entry];
+        if (!Array.isArray(listNode.entry)) {
+          listNode.entry = [listNode.entry];
         }
-        resolve(result.list.entry);
+        resolve(listNode.entry);
       } else {
         resolve([]);
       }
     } catch (err) {
       logError("parseSvnList error", err);
-      reject(new Error(`Failed to parse list XML: ${err instanceof Error ? err.message : "Unknown error"}`));
+      reject(
+        new Error(
+          `Failed to parse list XML: ${err instanceof Error ? err.message : "Unknown error"}`
+        )
+      );
     }
   });
 }

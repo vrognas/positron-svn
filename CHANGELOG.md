@@ -1,3 +1,315 @@
+## [2.26.26] (2025-11-30)
+
+### Fix: Improved Progress Meter
+
+- **Perf**: Single traversal `getFolderStats()` (was 2 separate calls)
+- **UX**: Smoothed ETA with exponential moving average (less jumpy)
+- **UX**: Shows current speed (e.g., "2.5 MB/s")
+- **UX**: Size-based progress: "45.2 MB/128.5 MB (35%)"
+- **UX**: ETA only shown after 2s elapsed (avoids wild initial estimates)
+
+## [2.26.25] (2025-11-30)
+
+### Feature: Set Depth Command Progress
+
+- **New**: Pre-scan folder with `svn list` to count files and total size
+- **New**: Real-time progress: "folder: 42/150 files (28%) ~2m 30s"
+- **New**: ETA calculated from bytes/sec (not file count) for accuracy
+- **New**: Shows total size: "Found 150 files (45.2 MB) in folder"
+- **New**: Exclusion progress: "Excluding 50 files (12.3 MB)..."
+- **UX**: Shows "Scanning folder..." during pre-scan phase
+
+## [2.26.24] (2025-11-30)
+
+### Fix: File Watcher svn info Suppression
+
+- **Fix**: `onDidAnyFileChanged` now respects `sparseDownloadInProgress` flag
+- **Fix**: Prevents svn info calls from file watcher during downloads
+
+## [2.26.23] (2025-11-30)
+
+### Fix: Exclude Items Status Suppression
+
+- **Fix**: `excludeItems` now suppresses `svn info` during exclude operations
+- **Fix**: Prevents working copy lock conflicts when excluding multiple items
+
+## [2.26.22] (2025-11-30)
+
+### Fix: Set Depth Command Progress & Cancellation
+
+- **Fix**: "Set Depth" command now shows progress notification
+- **Fix**: Cancellable for "infinity" depth downloads
+- **Fix**: Suppresses `svn info` calls during operation (no more spam)
+- **Fix**: Uses configurable timeout (`svn.sparse.downloadTimeoutMinutes`)
+
+## [2.26.21] (2025-11-30)
+
+### UX: Immediate Download Feedback
+
+- **UX**: "Starting download..." message shows immediately
+- **UX**: "Scanning {folder}..." during pre-scan phase
+- **UX**: "Found X files in {folder}" after scan completes
+- **UX**: "Downloading {item} (X files)..." when SVN update begins
+
+## [2.26.20] (2025-11-30)
+
+### Fix: Suppress Status Updates During Downloads
+
+- **Fix**: Suppress `svn info` calls during sparse checkout downloads
+- **Fix**: Prevents working copy lock conflicts on Windows
+- **Internal**: `sparseDownloadInProgress` flag in Repository class
+- **Note**: Status updates resume after download completes
+
+## [2.26.19] (2025-11-30)
+
+### Fix: Folder Progress Safety & Cancellation
+
+- **Fix**: Symlink loop protection in file counting (detects via inode)
+- **Fix**: Cancellation before/after pre-scan (respects user cancel)
+- **Fix**: Recursion depth limit (100 levels max, prevents stack overflow)
+- **Fix**: Improved error logging in file counting (non-ENOENT errors logged)
+- **Fix**: Skip folder monitor for empty folders
+- **Fix**: Clear interval before overwrite (prevents memory leak)
+- **New**: `svn.sparse.preScanTimeoutSeconds` setting (default: 30s, max: 300s)
+
+## [2.26.18] (2025-11-30)
+
+### Feature: Folder Download Progress
+
+- **New**: Pre-scan folders with `svn list --depth infinity` to get file count
+- **New**: Real-time progress: "folder: 42/150 files (28%)"
+- **New**: `listRecursive` method for recursive folder scanning
+- **UX**: Folders show file count progress, files show speed/ETA
+
+## [2.26.17] (2025-11-30)
+
+### Fix: Download Timeout for Large Folders
+
+- **New**: `svn.sparse.downloadTimeoutMinutes` setting (default: 10 min, max: 60 min)
+- **Fix**: Large folder downloads no longer timeout after 60s
+- **Refactor**: `setDepth` now accepts timeout option
+
+## [2.26.16] (2025-11-30)
+
+### Feature: Outdated File Detection
+
+- **New**: "↓" badge shows when local revision < server revision (update available)
+- **New**: Tooltip shows "Local: r5 → Server: r8 (update available)"
+- **Fix**: Use custom `svn-sparse://` scheme to prevent VS Code SCM decorations
+- **Refactor**: Added `localRevision` field to ISparseItem for revision comparison
+
+## [2.26.15] (2025-11-30)
+
+### Perf: Filter Single-Pass Optimization
+
+- **Perf**: filterToTrackedItems uses single pass (avoids 2× toLowerCase per item)
+
+## [2.26.14] (2025-11-30)
+
+### Perf: Sort Extension Pre-Computation
+
+- **Perf**: Pre-compute file extensions before sort (O(n) vs O(n log n) in comparator)
+
+## [2.26.13] (2025-11-30)
+
+### Fix: Progress & Cancellation Bugs
+
+- **Fix**: Memory leak - monitor/interval now cleaned up on cancellation
+- **Fix**: Race condition - added stopped flag, interval checks before update
+- **Fix**: Basename collision - use fullPath as key (dir1/file.txt vs dir2/file.txt)
+- **Perf**: O(n²) → O(1) file size lookup via Map instead of array.find()
+
+## [2.26.12] (2025-11-30)
+
+### Fix: Real-Time Speed Monitoring Bugs
+
+- **Fix**: Immediate poll on monitor start (was delayed 500ms)
+- **Fix**: Speed decays to 0 during network stalls (was showing stale speed)
+- **Fix**: Skip first measurement to avoid spike when file appears
+- **Fix**: Clamp downloaded bytes to expected size (prevents negative ETA)
+- **Docs**: Added note about SVN temp file limitation
+
+## [2.26.11] (2025-11-30)
+
+### UX: Rename "Sparse Checkout" to "Selective Download"
+
+- **UX**: Renamed tree view from "Sparse Checkout" to "Selective Download"
+- **UX**: Command "Checkout..." → "Download..."
+- **UX**: Command "Exclude" → "Remove from Disk"
+- **UX**: Updated welcome message and tooltips to use "download" terminology
+- **Rationale**: "Sparse checkout" is SVN jargon; "Selective Download" is intuitive
+
+## [2.26.10] (2025-11-30)
+
+### UX: Real-Time Download Speed Monitoring
+
+- **New**: File system watching for accurate download speed
+  - Monitors file size growth during large file downloads (>1MB)
+  - Shows real-time speed: "data.csv 5.2 MB/s ~12s"
+  - Updates every 500ms during active downloads
+- **Perf**: Minimal overhead - polling only for files being downloaded
+- **Cleanup**: Automatic resource cleanup after download completes
+
+## [2.26.9] (2025-11-30)
+
+### UX: Download ETA and Speed Tracking
+
+- **New**: Dynamic ETA displayed during checkout downloads
+  - Shows estimated time remaining: "~2m left"
+  - Calculates speed from bytes downloaded during operation
+  - Updates in real-time as download progresses
+- **New**: Speed tracking with historical averaging
+  - Stores last 5 download speeds for future estimates
+  - Initial ETA uses historical average (or 1 MB/s default)
+  - Subsequent downloads get more accurate estimates
+- **UX**: Initial ETA shown in progress title when starting download
+  - Format: "Downloading 5 items (125 MB ~2m)"
+
+## [2.26.8] (2025-11-30)
+
+### UX: Checkout Progress Polish
+
+- **UX**: User-friendly terminology - "Downloading" instead of "Checking out"
+- **UX**: Success notification when download completes (was silent before)
+- **UX**: Improved large file warning dialog
+  - Leads with total size (most important info first)
+  - Shows threshold value in dialog (e.g., ">10 MB")
+  - Shows 5 large files instead of 3
+  - Action button uses "Download" instead of "Continue"
+- **UX**: Clearer cancellation message - "not downloaded" vs "skipped"
+- **UX**: "Show Output" button added to partial failure warnings
+- **Perf**: Repository lookup optimization (single pass instead of double)
+
+## [2.26.7] (2025-11-30)
+
+### UX: Checkout Progress and Large File Warning
+
+- **New**: Cancellation support for checkout operations
+  - Progress notification shows cancel button
+  - Cancelled checkouts report completed vs skipped items
+- **New**: Large file warning before checkout
+  - Warns when checking out files larger than threshold (default 10MB)
+  - Shows file names and total size in modal dialog
+  - New setting: `svn.sparse.largeFileWarningMb` (0 to disable)
+- **New**: Total size estimate shown in progress notification
+  - Format: "Downloading 5 items (125.3 MB)"
+- **UX**: Always use notification (not status bar) for checkout progress
+  - Required for cancellation button visibility
+
+## [2.26.6] (2025-11-30)
+
+### FIX: Sparse Checkout List Performance
+
+- **New**: Metadata display in sparse checkout tree
+  - Shows revision, author, date, and file size in description
+  - Format: `r{rev} | {author} | YYYY-MM-DD HH:MM:SS | {size}`
+  - Rich tooltip with all metadata (hover for details)
+  - Lock indicator (🔒K/O/B/T) for locked files
+  - Lock owner and comment shown in tooltip
+  - Lock status fetched for server-only files via batch `svn info`
+
+- **Fix**: Infinite loop when expanding folders in sparse checkout tree
+  - Previously: Expanding folders caused spinner to spin indefinitely
+  - Root cause: Full tree refresh from getChildren() caused rebuild loop
+  - Now: Uses targeted refresh for specific node only (no full rebuild)
+- **Fix**: Guard against undefined node when tree refreshes during context menu
+- **Fix**: Memory leak in SVN tree view from undisposed subscriptions
+  - RepositoryNode subscribed to status changes but never disposed
+  - Nodes are now tracked and reused, disposed when repo closes
+- **Fix**: Case-insensitive name comparison for Windows/macOS
+  - Previously: Files with different case (README.md vs readme.md) could be filtered incorrectly
+  - Now: Uses case-insensitive comparison for tracked item detection and ghost computation
+- **Fix**: Depth cache key includes repo root for multi-repo safety
+- **Perf**: Debounced visual refresh to prevent UI flicker when expanding multiple folders
+- **Fix**: "Change depth" now works from sparse checkout tree
+  - Previously: Command expected Uri, failed with "No SVN repository found"
+  - Now: Accepts both Uri (explorer) and SparseItemNode (tree view)
+- **New**: Multi-select support in sparse checkout tree
+  - Shift/Ctrl-click to select multiple files or folders
+  - Checkout or exclude all selected items in one operation
+  - Single depth prompt for all selected directories
+  - Progress indicator shows batch operation status
+- **New**: Partial checkout indicator for folders with excluded children
+  - Folders with depth "infinity" that contain excluded items now show warning icon
+  - Description shows "Full (partial)" to indicate incomplete checkout
+  - Indicator appears after expanding the folder
+- **Perf**: Cache depth queries to reduce `svn info` calls
+  - Depth queries now cached with 5-minute TTL (same as server list)
+  - Significantly reduces network traffic when navigating sparse tree
+- **Fix**: Can now checkout files within excluded folders
+  - Previously: Checking out a file in an excluded parent folder failed with E155007
+  - Now: Uses `--parents` flag to automatically restore parent folders
+- **UX**: Ghost items use de-emphasized styling (per VS Code guidelines)
+  - Shows proper file/folder icons with subtle de-emphasized color
+  - No badge or description clutter - visual distinction is clear
+- **UX**: Welcome view explains sparse checkout feature when empty
+- **UX**: "Don't Ask Again" option for exclude confirmation
+  - New setting: `svn.sparse.confirmExclude` (default: true)
+- **UX**: Status bar progress for single-item operations
+  - Batch operations still use notification progress
+- **UX**: "Show Output" button on error notifications
+- **UX**: Partial indicator uses informational color (not warning)
+- **Fix**: Excluded files now show as ghosts in sparse checkout tree
+  - Previously: Files excluded via "exclude" action disappeared from treeview completely
+  - Now: Individual excluded items appear as ghosts (can be re-checked out)
+- **Fix**: Sparse checkout tree view now uses URL-based listing (non-recursive)
+  - Previously: `svn list <localPath>` was slow for large repos (recursive)
+  - Now: Uses `svn list <repoUrl/folder>` which is fast and non-recursive
+  - Fixes 47+ second freeze when expanding root folder in large repos
+- **Fix**: XML parser handles `<lists><list>` wrapper structure from `svn list`
+  - Previously: Parser expected `<list><entry>` but SVN outputs `<lists><list path="..."><entry>`
+  - Fixes "empty folder" issue when expanding sparse checkout tree
+- **Fix**: Windows paths converted to forward slashes for URL-based listing
+- **New**: `svn.output.authLogging` setting to control auth mode logging
+  - `once` (default): Log auth mode once at startup
+  - `always`: Log with every SVN command (verbose/debug)
+  - `never`: Never log auth mode
+
+## [2.26.5] (2025-11-30)
+
+### FIX: Sparse Checkout with Untracked Folders
+
+- **Fix**: Sparse checkout tree now works with untracked folders (.claude, .vscode, etc.)
+  - Previously: `svn info` was called on all local folders, failing for untracked ones
+  - Now: Only tracked folders get depth queries, untracked are filtered first
+  - Fixes "No folders showing" issue for repos with local-only folders
+
+## [2.26.4] (2025-11-30)
+
+### FEAT: Scoped Status Fetching
+
+- **New**: `getScopedStatus(path, depth)` API for targeted status queries
+  - Fetches status for specific folder instead of entire repository
+  - Avoids XML parsing limits for large repos (100k+ files)
+  - Supports depth: empty, files, immediates, infinity
+  - Use for incremental status updates or folder-specific queries
+
+## [2.26.3] (2025-11-30)
+
+### FEAT: Configurable XML Limits
+
+- **New**: `svn.performance.maxXmlTags` setting for very large repos
+  - Default: 500,000 tags (supports repos with ~100k files)
+  - Set to 0 for unlimited (use with caution)
+  - Increase for repos with 200k+ files
+
+## [2.26.2] (2025-11-30)
+
+### PERF: Large Repository Support
+
+- **Fix**: Increase XML tag limit from 100k to 500k for large repos
+- **Fix**: Increase XML size limit from 10MB to 50MB
+- **Fix**: Sparse checkout tree now falls back to local items when server unavailable
+
+## [2.26.1] (2025-11-30)
+
+### FIX: Sparse Checkout Tree View
+
+- **Fix**: Exclude untracked items (.vscode, .idea, etc.) from sparse checkout view
+  - Only items on server are shown; local-only files no longer appear
+- **Fix**: Sort files by extension then alphabetically (folders first)
+- **New**: File icons now match VS Code's file icon theme (like Explorer)
+
 ## [2.26.0] (2025-11-29)
 
 ### BREAKING: Simplified Credential Mode Setting

@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.26.0",
+  "version": "2.26.26",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.74.0",
@@ -175,11 +175,18 @@
         },
         {
           "id": "sparseCheckout",
-          "name": "Sparse Checkout",
+          "name": "Selective Download",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "sparseCheckout",
+        "contents": "Choose which folders and files to download from the repository.\n\nExpand folders to browse server contents. De-emphasized items are on the server but not downloaded locally.\n\n[Refresh](command:svn.sparse.refresh)",
+        "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+      }
+    ],
     "commands": [
       {
         "command": "svn.add",
@@ -467,13 +474,13 @@
       },
       {
         "command": "svn.sparse.checkout",
-        "title": "Checkout...",
+        "title": "Download...",
         "category": "SVN",
         "icon": "$(cloud-download)"
       },
       {
         "command": "svn.sparse.exclude",
-        "title": "Exclude",
+        "title": "Remove from Disk",
         "category": "SVN",
         "icon": "$(eye-closed)"
       },
@@ -1314,10 +1321,32 @@
           "minimum": 10,
           "maximum": 600
         },
+        "svn.output.authLogging": {
+          "type": "string",
+          "enum": [
+            "once",
+            "always",
+            "never"
+          ],
+          "enumDescriptions": [
+            "Log auth mode once at startup (recommended)",
+            "Log auth mode with every SVN command (verbose)",
+            "Never log auth mode"
+          ],
+          "description": "How often to log authentication mode in SVN output panel.",
+          "default": "once"
+        },
         "svn.autorefresh": {
           "type": "boolean",
           "description": "Whether auto refreshing is enabled",
           "default": true
+        },
+        "svn.performance.maxXmlTags": {
+          "type": "number",
+          "description": "Maximum XML tags to parse (increase for very large repos with 100k+ files). Set to 0 for unlimited.",
+          "default": 500000,
+          "minimum": 0,
+          "maximum": 10000000
         },
         "svn.blame.enabled": {
           "type": "boolean",
@@ -1424,6 +1453,32 @@
           "type": "boolean",
           "description": "Show inline blame only for current line (cursor position)",
           "default": true
+        },
+        "svn.sparse.confirmExclude": {
+          "type": "boolean",
+          "description": "Show confirmation dialog before removing items from disk",
+          "default": true
+        },
+        "svn.sparse.largeFileWarningMb": {
+          "type": "number",
+          "description": "Warn before downloading files larger than this size (in MB). Set to 0 to disable.",
+          "default": 10,
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "svn.sparse.downloadTimeoutMinutes": {
+          "type": "number",
+          "description": "Timeout for download operations in minutes. Large folders may need longer timeouts.",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 60
+        },
+        "svn.sparse.preScanTimeoutSeconds": {
+          "type": "number",
+          "description": "Timeout for folder pre-scan in seconds. Pre-scan counts files for progress display.",
+          "default": 30,
+          "minimum": 5,
+          "maximum": 300
         },
         "svn.commit.changes.selectedAll": {
           "type": "boolean",

@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { parseLockInfo } from "../../../src/parser/lockParser";
+import {
+  parseBatchLockInfo,
+  parseLockInfo
+} from "../../../src/parser/lockParser";
 
 describe("Lock Parser", () => {
   describe("Basic Parsing", () => {
@@ -140,6 +143,87 @@ describe("Lock Parser", () => {
       const xml = "";
 
       expect(() => parseLockInfo(xml)).toThrow();
+    });
+  });
+
+  describe("Batch Lock Parsing", () => {
+    it("parses multiple entries with locks", () => {
+      const xml = `<?xml version="1.0"?>
+<info>
+  <entry kind="file" path="file1.csv" revision="100">
+    <url>svn://example.com/repo/file1.csv</url>
+    <lock>
+      <token>opaquelocktoken:111</token>
+      <owner>alice</owner>
+      <comment>Editing file1</comment>
+      <created>2025-11-28T10:00:00.000000Z</created>
+    </lock>
+    <commit revision="100"><author>bob</author><date>2025-11-20T08:00:00Z</date></commit>
+  </entry>
+  <entry kind="file" path="file2.csv" revision="101">
+    <url>svn://example.com/repo/file2.csv</url>
+    <lock>
+      <token>opaquelocktoken:222</token>
+      <owner>charlie</owner>
+      <created>2025-11-28T11:00:00.000000Z</created>
+    </lock>
+    <commit revision="101"><author>bob</author><date>2025-11-20T09:00:00Z</date></commit>
+  </entry>
+</info>`;
+
+      const result = parseBatchLockInfo(xml);
+
+      expect(result.size).toBe(2);
+      expect(result.get("svn://example.com/repo/file1.csv")?.owner).toBe(
+        "alice"
+      );
+      expect(result.get("svn://example.com/repo/file2.csv")?.owner).toBe(
+        "charlie"
+      );
+    });
+
+    it("returns null for unlocked entries", () => {
+      const xml = `<?xml version="1.0"?>
+<info>
+  <entry kind="file" path="unlocked.txt" revision="100">
+    <url>svn://example.com/repo/unlocked.txt</url>
+    <commit revision="100"><author>bob</author><date>2025-11-20T08:00:00Z</date></commit>
+  </entry>
+</info>`;
+
+      const result = parseBatchLockInfo(xml);
+
+      expect(result.size).toBe(1);
+      expect(result.get("svn://example.com/repo/unlocked.txt")).toBeNull();
+    });
+
+    it("handles empty content", () => {
+      const result = parseBatchLockInfo("");
+      expect(result.size).toBe(0);
+    });
+
+    it("uses URL as map key (not path)", () => {
+      const xml = `<?xml version="1.0"?>
+<info>
+  <entry kind="file" path="data.csv" revision="100">
+    <url>svn://example.com/repo/subdir/data.csv</url>
+    <lock>
+      <token>opaquelocktoken:333</token>
+      <owner>dave</owner>
+      <created>2025-11-28T12:00:00.000000Z</created>
+    </lock>
+    <commit revision="100"><author>bob</author><date>2025-11-20T08:00:00Z</date></commit>
+  </entry>
+</info>`;
+
+      const result = parseBatchLockInfo(xml);
+
+      // Should be keyed by URL, not path
+      expect(result.has("data.csv")).toBe(false);
+      expect(result.has("svn://example.com/repo/subdir/data.csv")).toBe(true);
+      expect(result.get("svn://example.com/repo/subdir/data.csv")?.owner).toBe(
+        "dave"
+      );
     });
   });
 });

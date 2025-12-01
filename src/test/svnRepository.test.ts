@@ -546,4 +546,89 @@ suite("Svn Repository Tests", () => {
       "Should use -F flag for multiline message"
     );
   });
+
+  test("getScopedStatus: Fetches status for specific path with depth", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tmp",
+      ConstructorPolicy.LateInit
+    );
+
+    let capturedArgs: string[] = [];
+    repository.exec = async (args: string[]) => {
+      capturedArgs = args;
+      return {
+        exitCode: 0,
+        stderr: "",
+        stdout: `<?xml version="1.0"?><status><target path="src"><entry path="src/file1.ts"><wc-status item="modified" props="none"/></entry></target></status>`
+      };
+    };
+
+    const status = await repository.getScopedStatus("src", "immediates");
+
+    assert.ok(capturedArgs.includes("stat"), "Should call stat command");
+    assert.ok(capturedArgs.includes("--depth"), "Should include --depth flag");
+    assert.ok(
+      capturedArgs.includes("immediates"),
+      "Should use specified depth"
+    );
+    assert.ok(capturedArgs.includes("src"), "Should target specified path");
+    assert.equal(status.length, 1);
+    assert.equal(status[0].path, "src/file1.ts");
+  });
+
+  test("getScopedStatus: Works with infinity depth", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tmp",
+      ConstructorPolicy.LateInit
+    );
+
+    let capturedArgs: string[] = [];
+    repository.exec = async (args: string[]) => {
+      capturedArgs = args;
+      return {
+        exitCode: 0,
+        stderr: "",
+        stdout: `<?xml version="1.0"?><status><target path="lib"><entry path="lib/a.ts"><wc-status item="added" props="none"/></entry><entry path="lib/sub/b.ts"><wc-status item="modified" props="none"/></entry></target></status>`
+      };
+    };
+
+    const status = await repository.getScopedStatus("lib", "infinity");
+
+    assert.ok(
+      capturedArgs.includes("infinity"),
+      "Should use infinity depth for recursive"
+    );
+    assert.equal(status.length, 2);
+  });
+
+  test("getScopedStatus: Empty depth returns only folder status", async () => {
+    svn = new Svn(options);
+    const repository = await new Repository(
+      svn,
+      "/tmp",
+      "/tmp",
+      ConstructorPolicy.LateInit
+    );
+
+    let capturedArgs: string[] = [];
+    repository.exec = async (args: string[]) => {
+      capturedArgs = args;
+      return {
+        exitCode: 0,
+        stderr: "",
+        stdout: `<?xml version="1.0"?><status><target path="docs"></target></status>`
+      };
+    };
+
+    const status = await repository.getScopedStatus("docs", "empty");
+
+    assert.ok(capturedArgs.includes("empty"), "Should use empty depth");
+    assert.equal(status.length, 0);
+  });
 });

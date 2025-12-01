@@ -222,6 +222,19 @@ export class Repository implements IRemoteRepository {
     this.needCleanUp = false;
   }
 
+  /**
+   * Flag to suppress status updates during sparse checkout downloads.
+   * When true, file watcher events won't trigger SVN status commands,
+   * preventing working copy lock conflicts on Windows.
+   */
+  private _sparseDownloadInProgress = false;
+  get sparseDownloadInProgress(): boolean {
+    return this._sparseDownloadInProgress;
+  }
+  set sparseDownloadInProgress(value: boolean) {
+    this._sparseDownloadInProgress = value;
+  }
+
   get root(): string {
     return this.repository.root;
   }
@@ -406,6 +419,10 @@ export class Repository implements IRemoteRepository {
 
   @debounce(500)
   private async onDidAnyFileChanged(e: Uri) {
+    // Skip during sparse checkout downloads to prevent svn info spam
+    if (this._sparseDownloadInProgress) {
+      return;
+    }
     await this.repository.updateInfo();
     this._onDidChangeRepository.fire(e);
   }
@@ -535,6 +552,12 @@ export class Repository implements IRemoteRepository {
 
   @globalSequentialize("updateModelState")
   public async updateModelState(checkRemoteChanges: boolean = false) {
+    // Skip status updates during sparse checkout downloads
+    // Prevents working copy lock conflicts on Windows
+    if (this._sparseDownloadInProgress) {
+      return;
+    }
+
     // Short-term cache: skip if called within 2s
     // Note: @throttle removed (Phase 15) - cache already handles throttling
     const now = Date.now();
@@ -872,7 +895,25 @@ export class Repository implements IRemoteRepository {
 
   public async list(filePath: string): Promise<ISvnListItem[]> {
     return this.run<ISvnListItem[]>(Operation.List, () => {
-      return this.repository.ls(filePath);
+      // Convert local path to relative for URL-based listing (faster, non-recursive)
+      const relativePath =
+        filePath === this.root ? undefined : path.relative(this.root, filePath);
+      return this.repository.list(relativePath);
+    });
+  }
+
+  /**
+   * List folder contents recursively (for folder size/count estimation).
+   * @param folderPath Local folder path
+   * @param timeout Optional timeout in ms for large folders
+   */
+  public async listRecursive(
+    folderPath: string,
+    timeout?: number
+  ): Promise<ISvnListItem[]> {
+    return this.run<ISvnListItem[]>(Operation.List, () => {
+      const relativePath = path.relative(this.root, folderPath);
+      return this.repository.listRecursive(relativePath, timeout);
     });
   }
 
@@ -1222,13 +1263,31 @@ export class Repository implements IRemoteRepository {
   }
 
   /**
+   * Get lock information for multiple URLs in a single SVN call.
+   * Efficient batch operation for checking locks on remote files.
+   */
+  public async getBatchLockInfo(
+    urls: string[]
+  ): Promise<Map<string, ISvnLockInfo | null>> {
+    return this.run(Operation.Info, () =>
+      this.repository.getBatchLockInfo(urls)
+    );
+  }
+
+  /**
    * Set depth of a folder for sparse checkouts.
    * @param folderPath Path to folder
    * @param depth One of: exclude, empty, files, immediates, infinity
+   * @param options.parents Restore parent folders if excluded
+   * @param options.timeout Custom timeout in ms for long downloads
    */
-  public async setDepth(folderPath: string, depth: keyof typeof SvnDepth) {
+  public async setDepth(
+    folderPath: string,
+    depth: keyof typeof SvnDepth,
+    options?: { parents?: boolean; timeout?: number }
+  ) {
     return this.run(Operation.Update, () =>
-      this.repository.setDepth(folderPath, depth)
+      this.repository.setDepth(folderPath, depth, options)
     );
   }
 

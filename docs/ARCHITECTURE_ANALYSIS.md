@@ -288,5 +288,21 @@ See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.21
-**Updated**: 2025-11-29 (v2.25.0)
+### Scoped Status Fetching (v2.26.4)
+
+- **Method**: `svnRepository.getScopedStatus(path, depth)`
+- **Purpose**: Targeted status queries for large repos (100k+ files)
+- **Benefits**:
+  - Avoids full repo status XML parsing
+  - Respects `svn.performance.maxXmlTags` limits
+  - Enables folder-specific status updates
+- **Depth Options**: empty, files, immediates, infinity
+- **Use Cases**:
+  - Sparse checkout folder depth queries
+  - Incremental status updates after file changes
+  - Large repository support
+
+---
+
+**Version**: 3.22
+**Updated**: 2025-11-30 (v2.26.4)

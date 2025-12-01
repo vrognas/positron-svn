@@ -372,6 +372,20 @@ export interface ISparseItem {
   kind: "file" | "dir";
   depth?: SparseDepthKey;
   isGhost: boolean;
+  /** True if folder contains excluded children (ghosts) */
+  hasExcludedChildren?: boolean;
+  /** Server revision: last committed revision (from svn list) */
+  revision?: string;
+  author?: string;
+  date?: string;
+  /** Local revision: working copy revision (from svn info) */
+  localRevision?: string;
+  /** File size in bytes (files only) */
+  size?: string;
+  /** Lock status for local items */
+  lockStatus?: LockStatus;
+  lockOwner?: string;
+  lockComment?: string;
 }
 
 export interface LineChange {

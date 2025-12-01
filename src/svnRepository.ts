@@ -29,7 +29,7 @@ import { getBranchName } from "./helpers/branch";
 import { configuration } from "./helpers/configuration";
 import { parseInfoXml } from "./parser/infoParser";
 import { parseSvnList } from "./parser/listParser";
-import { parseLockInfo } from "./parser/lockParser";
+import { parseBatchLockInfo, parseLockInfo } from "./parser/lockParser";
 import { parseSvnLog } from "./parser/logParser";
 import { parseStatusXml } from "./parser/statusParser";
 import { parseSvnBlame } from "./parser/blameParser";
@@ -252,6 +252,38 @@ export class Repository {
             })
         )
     );
+
+    return status;
+  }
+
+  /**
+   * Get status for a specific path with depth control.
+   * Use this instead of getStatus() when you only need status for a subset of the repo.
+   * Avoids parsing massive XML for large repositories.
+   *
+   * @param targetPath Path to get status for (relative or absolute)
+   * @param depth SVN depth: empty, files, immediates, infinity
+   * @returns File statuses for the specified path and depth
+   */
+  public async getScopedStatus(
+    targetPath: string,
+    depth: keyof typeof SvnDepth
+  ): Promise<IFileStatus[]> {
+    const relativePath = this.removeAbsolutePath(targetPath);
+
+    const args = ["stat", "--xml", "--depth", depth, relativePath];
+
+    const result = await this.exec(args);
+
+    let status: IFileStatus[];
+    try {
+      status = await parseStatusXml(result.stdout);
+    } catch (err) {
+      logError(`Failed to parse scoped status XML for ${relativePath}`, err);
+      throw new Error(
+        `Scoped status failed: ${err instanceof Error ? err.message : "Unknown error"}`
+      );
+    }
 
     return status;
   }
@@ -1247,10 +1279,36 @@ export class Repository {
     let url = await this.getRepoUrl();
 
     if (folder) {
-      url += "/" + folder;
+      // Convert Windows backslashes to forward slashes for URL
+      const urlPath = folder.replace(/\\/g, "/");
+      url += "/" + urlPath;
     }
 
     const result = await this.exec(["list", url, "--xml"]);
+
+    return parseSvnList(result.stdout);
+  }
+
+  /**
+   * List folder contents recursively (for folder size/count estimation).
+   * @param folder Relative folder path
+   * @param timeout Optional timeout in ms for large folders
+   * @returns All files/dirs in folder tree
+   */
+  public async listRecursive(
+    folder: string,
+    timeout?: number
+  ): Promise<ISvnListItem[]> {
+    let url = await this.getRepoUrl();
+
+    // Convert Windows backslashes to forward slashes for URL
+    const urlPath = folder.replace(/\\/g, "/");
+    url += "/" + urlPath;
+
+    const result = await this.exec(
+      ["list", url, "--xml", "--depth", "infinity"],
+      timeout ? { timeout } : {}
+    );
 
     return parseSvnList(result.stdout);
   }
@@ -1423,6 +1481,31 @@ export class Repository {
   }
 
   /**
+   * Get lock information for multiple URLs in a single SVN call.
+   * Efficient batch operation for checking locks on remote files.
+   *
+   * @param urls Array of repository URLs to check
+   * @returns Map from URL to lock info (null if not locked)
+   */
+  public async getBatchLockInfo(
+    urls: string[]
+  ): Promise<Map<string, ISvnLockInfo | null>> {
+    if (urls.length === 0) {
+      return new Map();
+    }
+
+    try {
+      // svn info can take multiple URLs at once
+      const args = ["info", "--xml", ...urls.map(u => fixPegRevision(u))];
+      const result = await this.exec(args);
+      return parseBatchLockInfo(result.stdout);
+    } catch (err) {
+      logError("Failed to get batch lock info", err);
+      return new Map();
+    }
+  }
+
+  /**
    * Set the depth of a working copy folder for sparse checkouts.
    * Use this to exclude large directories or selectively include content.
    *
@@ -1432,7 +1515,8 @@ export class Repository {
    */
   public async setDepth(
     folderPath: string,
-    depth: keyof typeof SvnDepth
+    depth: keyof typeof SvnDepth,
+    options?: { parents?: boolean; timeout?: number }
   ): Promise<IExecutionResult> {
     // Validate depth is a valid SvnDepth key
     const validDepths = Object.keys(SvnDepth);
@@ -1447,9 +1531,20 @@ export class Repository {
       throw new Error(`Invalid folder path: ${folderPath}`);
     }
 
-    const args = ["update", "--set-depth", depth, folderPath];
+    const args = ["update", "--set-depth", depth];
 
-    return this.exec(args);
+    // Add --parents to restore items in excluded parent folders
+    if (options?.parents) {
+      args.push("--parents");
+    }
+
+    args.push(folderPath);
+
+    // Pass timeout option for long-running downloads
+    return this.exec(
+      args,
+      options?.timeout ? { timeout: options.timeout } : {}
+    );
   }
 
   /**

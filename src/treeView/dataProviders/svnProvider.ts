@@ -25,6 +25,9 @@ export default class SvnProvider
   public onDidChangeTreeData: Event<BaseNode | undefined> =
     this._onDidChangeTreeData.event;
 
+  /** Track nodes by repo root to reuse and properly dispose */
+  private repoNodes = new Map<string, RepositoryNode>();
+
   constructor(private sourceControlManager: SourceControlManager) {
     this._dispose.push(
       window.registerTreeDataProvider("svn", this),
@@ -54,11 +57,31 @@ export default class SvnProvider
       return element.getChildren();
     }
 
+    // Track which repos are still open
+    const currentRoots = new Set<string>();
+
     const repositories = this.sourceControlManager.openRepositories.map(
-      repository => {
-        return new RepositoryNode(repository.repository, this);
+      openRepo => {
+        const root = openRepo.repository.root;
+        currentRoots.add(root);
+
+        // Reuse existing node or create new one
+        let node = this.repoNodes.get(root);
+        if (!node) {
+          node = new RepositoryNode(openRepo.repository, this);
+          this.repoNodes.set(root, node);
+        }
+        return node;
       }
     );
+
+    // Dispose nodes for closed repos
+    for (const [root, node] of this.repoNodes) {
+      if (!currentRoots.has(root)) {
+        node.dispose();
+        this.repoNodes.delete(root);
+      }
+    }
 
     return repositories;
   }
@@ -68,6 +91,11 @@ export default class SvnProvider
   }
 
   public dispose() {
+    // Dispose all tracked nodes
+    for (const node of this.repoNodes.values()) {
+      node.dispose();
+    }
+    this.repoNodes.clear();
     dispose(this._dispose);
   }
 }

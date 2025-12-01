@@ -3,6 +3,7 @@
 // Licensed under MIT License
 
 import { XMLParser } from "fast-xml-parser";
+import { configuration } from "../helpers/configuration";
 import { camelcase } from "../util";
 
 /**
@@ -45,14 +46,14 @@ interface ParseOptions {
  * - camelcase: Transform tag and attribute names to camelCase
  *
  * Security limits:
- * - Max XML size: 10MB (DoS protection)
- * - Max tag count: 100,000 (entity expansion protection)
+ * - Max XML size: 50MB (DoS protection, supports large repos)
+ * - Max tag count: Configurable via svn.performance.maxXmlTags (default 500k, 0=unlimited)
  * - Max recursion depth: 100 levels (stack overflow protection)
  */
 export class XmlParserAdapter {
   // Security limits
-  private static readonly MAX_XML_SIZE = 10 * 1024 * 1024; // 10MB
-  private static readonly MAX_TAG_COUNT = 100000;
+  private static readonly MAX_XML_SIZE = 50 * 1024 * 1024; // 50MB for large repos
+  private static readonly MAX_TAG_COUNT = 500000; // 500k tags for large repos
   private static readonly MAX_DEPTH = 100;
   /**
    * Sanitize XML string by removing invalid characters
@@ -245,10 +246,16 @@ export class XmlParserAdapter {
       throw new Error(`XML exceeds maximum size of ${this.MAX_XML_SIZE} bytes`);
     }
 
-    // Security: Validate tag count (rough estimate)
-    const tagCount = (xml.match(/<[^>]+>/g) || []).length;
-    if (tagCount > this.MAX_TAG_COUNT) {
-      throw new Error(`XML exceeds maximum tag count of ${this.MAX_TAG_COUNT}`);
+    // Security: Validate tag count (configurable, 0 = unlimited)
+    const maxTags = configuration.get<number>(
+      "performance.maxXmlTags",
+      this.MAX_TAG_COUNT
+    );
+    if (maxTags > 0) {
+      const tagCount = (xml.match(/<[^>]+>/g) || []).length;
+      if (tagCount > maxTags) {
+        throw new Error(`XML exceeds maximum tag count of ${maxTags}`);
+      }
     }
 
     // Security: Reject empty input
