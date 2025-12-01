@@ -1,3 +1,53 @@
+## [2.27.3] (2025-12-01)
+
+### Security: Privacy Quick Fixes
+
+- **Fixed**: Unbounded `repoLogProvider` cache → LRU eviction (max 50 entries)
+- **Fixed**: Temp commit message files now use `mode: 0o600` (owner-only access)
+- **Tests**: Added security tests for temp file permissions and LRU eviction
+
+## [2.27.2] (2025-12-01)
+
+### Simplified: Author Color Dots
+
+- **Simplified**: Colored dots instead of letter avatars (cleaner look)
+- **New setting**: `svn.log.authorColors` (default: true) to toggle colored dots
+- **UX**: When disabled, shows standard `git-commit` ThemeIcon
+- **Removed**: Initials from avatars (just color now)
+
+## [2.27.1] (2025-12-01)
+
+### Removed: Gravatar Feature
+
+- **Removed**: External gravatar service (privacy concern)
+- **Removed**: `svn.gravatars.enabled` and `svn.gravatar.icon_url` settings
+- **Simplified**: `getCommitIcon()` now only uses local letter avatars
+
+## [2.27.0] (2025-12-01)
+
+### Feature: Local Letter Avatars (Privacy-First)
+
+- **New**: Local letter avatars for commit authors (e.g., "JD" for John Doe)
+- **New**: Deterministic colors from author name hash
+- **Privacy**: No network requests
+- **UX**: Consistent visual appearance across all commits
+
+## [2.26.28] (2025-12-01)
+
+### Fix: Gravatar Cache Memory Leak
+
+- **Fix**: Added LRU eviction to gravatar cache (was unbounded)
+- **Fix**: Max 100 entries, oldest evicted when full
+
+## [2.26.27] (2025-12-01)
+
+### Perf: Log Cache
+
+- **Perf**: In-memory LRU cache for `log()` and `logBatch()` queries
+- **Perf**: 60s TTL, 50-entry max (SVN logs are immutable)
+- **Perf**: Repeated log viewer scrolling now instant (cache hit)
+- **Perf**: Follows existing blame/info cache patterns
+
 ## [2.26.26] (2025-11-30)
 
 ### Fix: Improved Progress Meter

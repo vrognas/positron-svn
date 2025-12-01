@@ -304,5 +304,23 @@ See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.22
-**Updated**: 2025-11-30 (v2.26.4)
+### Log Cache (v2.26.27)
+
+- **Cache**: In-memory LRU for `log()` and `logBatch()` queries
+- **TTL**: 60 seconds (SVN logs are immutable)
+- **Size**: 50 entries max
+- **Pattern**: Follows existing blame/info cache design
+- **Benefit**: Repeated log queries (scrolling) instant on cache hit
+
+---
+
+### Security Hardening (v2.27.3)
+
+- **RepoLogProvider cache**: LRU eviction (max 50 entries), prevents unbounded memory growth
+- **Temp files**: Commit message files use `mode: 0o600` (owner read/write only)
+- **Privacy audit**: Zero external network requests, all data local
+
+---
+
+**Version**: 3.24
+**Updated**: 2025-12-01 (v2.27.3)

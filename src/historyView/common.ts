@@ -2,7 +2,6 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
-import { createHash } from "crypto";
 import * as path from "path";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -21,6 +20,7 @@ import { configuration } from "../helpers/configuration";
 import { IRemoteRepository } from "../remoteRepository";
 import { SvnRI } from "../svnRI";
 import { tempSvnFs } from "../temp_svn_fs";
+import { getAuthorColorDot } from "./letterAvatar";
 
 dayjs.extend(relativeTime);
 
@@ -51,6 +51,7 @@ export interface ICachedLog {
     readonly userAdded?: boolean;
   };
   order: number;
+  lastAccessed?: number; // LRU tracking
 }
 
 type TreeItemData = ISvnLogEntry | ISvnLogEntryPath | SvnPath | TreeItem;
@@ -200,41 +201,20 @@ export async function fetchMore(cached: ICachedLog) {
   entries.push(...moreCommits);
 }
 
-const gravatarCache: Map<string, Uri> = new Map();
-
-function md5(s: string): string {
-  const data = createHash("md5");
-  data.write(s);
-  return data.digest().toString("hex");
-}
-
+/**
+ * Get commit author icon for history view
+ * Returns colored dot (if enabled) or standard git-commit icon
+ */
 export function getCommitIcon(
-  author: string,
-  size: number = 16
+  author: string
 ): Uri | { light: Uri; dark: Uri } | ThemeIcon {
-  if (
-    (!configuration.get("gravatars.enabled", true) as boolean) ||
-    author === undefined
-  ) {
+  const showColors = configuration.get("log.authorColors", true);
+
+  if (!author || !showColors) {
     return new ThemeIcon("git-commit");
   }
 
-  let gravatar = gravatarCache.get(author);
-  if (gravatar !== undefined) {
-    return gravatar;
-  }
-
-  const gravitarUrl = configuration
-    .get("gravatar.icon_url", "")
-    .replace("<AUTHOR>", author)
-    .replace("<AUTHOR_MD5>", md5(author))
-    .replace("<SIZE>", size.toString());
-
-  gravatar = Uri.parse(gravitarUrl);
-
-  gravatarCache.set(author, gravatar);
-
-  return gravatar;
+  return getAuthorColorDot(author);
 }
 
 export function getCommitDescription(commit: ISvnLogEntry): string {

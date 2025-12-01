@@ -71,6 +71,18 @@ export class Repository {
   private readonly MAX_BLAME_CACHE_SIZE = 100;
   private readonly BLAME_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+  // Log cache - SVN logs are immutable, longer TTL safe
+  private _logCache = new Map<
+    string,
+    {
+      entries: ISvnLogEntry[];
+      timeout: NodeJS.Timeout;
+      lastAccessed: number;
+    }
+  >();
+  private readonly MAX_LOG_CACHE_SIZE = 50;
+  private readonly LOG_CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
   public username?: string;
   public password?: string;
 
@@ -337,6 +349,30 @@ export class Repository {
 
     if (oldestKey !== null) {
       this.resetBlameCache(oldestKey);
+    }
+  }
+
+  public resetLogCache(cacheKey: string): void {
+    const entry = this._logCache.get(cacheKey);
+    if (entry) {
+      clearTimeout(entry.timeout);
+      this._logCache.delete(cacheKey);
+    }
+  }
+
+  private evictLogEntry(): void {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+
+    for (const [key, entry] of this._logCache.entries()) {
+      if (entry.lastAccessed < oldestTime) {
+        oldestTime = entry.lastAccessed;
+        oldestKey = key;
+      }
+    }
+
+    if (oldestKey !== null) {
+      this.resetLogCache(oldestKey);
     }
   }
 
@@ -756,7 +792,8 @@ export class Repository {
       tmp.setGracefulCleanup();
 
       tmpFile = tmp.fileSync({
-        prefix: "svn-commit-message-"
+        prefix: "svn-commit-message-",
+        mode: 0o600 // Owner read/write only - commit messages may contain sensitive info
       });
 
       await writeFile(tmpFile.name, message, { encoding: "utf-8" });
@@ -1175,6 +1212,17 @@ export class Repository {
     limit: number,
     target?: string | Uri
   ): Promise<ISvnLogEntry[]> {
+    const targetStr =
+      target instanceof Uri ? target.toString(true) : target || "";
+    const cacheKey = `log:${targetStr}:${rfrom}:${rto}:${limit}`;
+
+    // Check cache
+    const cached = this._logCache.get(cacheKey);
+    if (cached) {
+      cached.lastAccessed = Date.now();
+      return cached.entries;
+    }
+
     const args = [
       "log",
       "-r",
@@ -1184,13 +1232,28 @@ export class Repository {
       "-v"
     ];
     if (target !== undefined) {
-      args.push(
-        fixPegRevision(target instanceof Uri ? target.toString(true) : target)
-      );
+      args.push(fixPegRevision(targetStr));
     }
     const result = await this.exec(args);
+    const entries = await parseSvnLog(result.stdout);
 
-    return parseSvnLog(result.stdout);
+    // Evict LRU if at max size
+    if (this._logCache.size >= this.MAX_LOG_CACHE_SIZE) {
+      this.evictLogEntry();
+    }
+
+    // Cache with TTL
+    const timer = setTimeout(() => {
+      this.resetLogCache(cacheKey);
+    }, this.LOG_CACHE_TTL_MS);
+
+    this._logCache.set(cacheKey, {
+      entries,
+      timeout: timer,
+      lastAccessed: Date.now()
+    });
+
+    return entries;
   }
 
   /**
@@ -1215,7 +1278,7 @@ export class Repository {
       return [];
     }
 
-    // Edge case: single revision (use existing log method)
+    // Edge case: single revision (use existing log method - also cached)
     if (revisions.length === 1) {
       return this.log(revisions[0], revisions[0], 1, target);
     }
@@ -1230,17 +1293,43 @@ export class Repository {
     const minRev = Math.min(...revNums);
     const maxRev = Math.max(...revNums);
 
+    const targetStr =
+      target instanceof Uri ? target.toString(true) : target || "";
+    const cacheKey = `logBatch:${targetStr}:${minRev}:${maxRev}`;
+
+    // Check cache - stores full range, filter to requested
+    const cached = this._logCache.get(cacheKey);
+    if (cached) {
+      cached.lastAccessed = Date.now();
+      const requestedSet = new Set(revisions);
+      return cached.entries.filter(e => requestedSet.has(e.revision));
+    }
+
     // Fetch entire range (trade bandwidth for speed)
     const args = ["log", "-r", `${minRev}:${maxRev}`, "--xml", "-v"];
 
     if (target !== undefined) {
-      args.push(
-        fixPegRevision(target instanceof Uri ? target.toString(true) : target)
-      );
+      args.push(fixPegRevision(targetStr));
     }
 
     const result = await this.exec(args);
     const allEntries = await parseSvnLog(result.stdout);
+
+    // Evict LRU if at max size
+    if (this._logCache.size >= this.MAX_LOG_CACHE_SIZE) {
+      this.evictLogEntry();
+    }
+
+    // Cache full range with TTL
+    const timer = setTimeout(() => {
+      this.resetLogCache(cacheKey);
+    }, this.LOG_CACHE_TTL_MS);
+
+    this._logCache.set(cacheKey, {
+      entries: allEntries,
+      timeout: timer,
+      lastAccessed: Date.now()
+    });
 
     // Filter to only requested revisions (discard intermediate entries)
     const requestedSet = new Set(revisions);
