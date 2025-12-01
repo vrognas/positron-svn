@@ -20,7 +20,7 @@ import { configuration } from "../helpers/configuration";
 import { IRemoteRepository } from "../remoteRepository";
 import { SvnRI } from "../svnRI";
 import { tempSvnFs } from "../temp_svn_fs";
-import { getLetterAvatar } from "./letterAvatar";
+import { getAuthorColorDot } from "./letterAvatar";
 
 dayjs.extend(relativeTime);
 
@@ -202,15 +202,18 @@ export async function fetchMore(cached: ICachedLog) {
 
 /**
  * Get commit author icon for history view
- * Uses local letter avatars (privacy-first, no network requests)
+ * Returns colored dot (if enabled) or standard git-commit icon
  */
 export function getCommitIcon(
   author: string
 ): Uri | { light: Uri; dark: Uri } | ThemeIcon {
-  if (!author) {
+  const showColors = configuration.get("log.authorColors", true);
+
+  if (!author || !showColors) {
     return new ThemeIcon("git-commit");
   }
-  return getLetterAvatar(author);
+
+  return getAuthorColorDot(author);
 }
 
 export function getCommitDescription(commit: ISvnLogEntry): string {

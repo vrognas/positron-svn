@@ -1,3 +1,12 @@
+## [2.27.2] (2025-12-01)
+
+### Simplified: Author Color Dots
+
+- **Simplified**: Colored dots instead of letter avatars (cleaner look)
+- **New setting**: `svn.log.authorColors` (default: true) to toggle colored dots
+- **UX**: When disabled, shows standard `git-commit` ThemeIcon
+- **Removed**: Initials from avatars (just color now)
+
 ## [2.27.1] (2025-12-01)
 
 ### Removed: Gravatar Feature

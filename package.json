@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.27.1",
+  "version": "2.27.2",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.74.0",
@@ -1653,6 +1653,11 @@
           "minimum": 1,
           "description": "Number of commit messages to log",
           "default": 50
+        },
+        "svn.log.authorColors": {
+          "type": "boolean",
+          "description": "Show colored dots for commit authors in history view (helps distinguish authors visually)",
+          "default": true
         },
         "svn.multipleFolders.depth": {
           "type": "number",
