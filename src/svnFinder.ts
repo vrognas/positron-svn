@@ -3,9 +3,11 @@
 // Licensed under MIT License
 
 import * as cp from "child_process";
+import * as fs from "fs/promises";
 import * as path from "path";
 import * as semver from "semver";
 import { Readable } from "stream";
+import { ExtensionContext } from "vscode";
 import { cpErrorHandler } from "./svn";
 
 export interface ISvn {
@@ -13,36 +15,110 @@ export interface ISvn {
   version: string;
 }
 
-export class SvnFinder {
-  public findSvn(hint?: string): Promise<ISvn> {
-    const first = hint
-      ? this.findSpecificSvn(hint)
-      : Promise.reject<ISvn>(null);
+// Cache key for storing full ISvn object in globalState
+const SVN_CACHE_KEY = "svnCache";
 
-    return first
-      .then(void 0, () => {
-        switch (process.platform) {
-          case "darwin":
-            return this.findSvnDarwin();
-          case "win32":
-            return this.findSvnWin32();
-          default:
-            return this.findSpecificSvn("svn");
+export class SvnFinder {
+  /**
+   * Find SVN executable with optional caching.
+   * Startup optimization: tries cached path first to avoid repeated discovery.
+   * @param hint User-configured path hint
+   * @param context Extension context for caching (optional)
+   */
+  public async findSvn(
+    hint?: string,
+    context?: ExtensionContext
+  ): Promise<ISvn> {
+    // 1. Try user hint first
+    if (hint) {
+      try {
+        const svn = await this.findSpecificSvn(hint);
+        return this.checkSvnVersion(svn);
+      } catch {
+        // Fall through to other methods
+      }
+    }
+
+    // 2. Try cached ISvn (startup optimization - fs.access instead of spawning process)
+    if (context) {
+      const cached = context.globalState.get<ISvn>(SVN_CACHE_KEY);
+      if (cached?.path && cached?.version) {
+        try {
+          // Quick file existence check - no process spawn needed
+          await fs.access(cached.path, fs.constants.X_OK);
+          console.log(
+            `SVN Extension: Using cached SVN: ${cached.path} v${cached.version}`
+          );
+          return cached;
+        } catch {
+          // Cache invalid (file moved/deleted), clear and continue discovery
+          await context.globalState.update(SVN_CACHE_KEY, undefined);
         }
-      })
-      .then(svn => this.checkSvnVersion(svn))
-      .then(null, () =>
-        Promise.reject(new Error("Svn installation not found."))
-      );
+      }
+    }
+
+    // 3. Platform-specific discovery
+    let svn: ISvn;
+    try {
+      switch (process.platform) {
+        case "darwin":
+          svn = await this.findSvnDarwin();
+          break;
+        case "win32":
+          svn = await this.findSvnWin32();
+          break;
+        default:
+          svn = await this.findSpecificSvn("svn");
+      }
+      svn = await this.checkSvnVersion(svn);
+    } catch {
+      throw new Error("Svn installation not found.");
+    }
+
+    // 4. Cache full ISvn object for next startup (avoids version check spawn)
+    if (context) {
+      await context.globalState.update(SVN_CACHE_KEY, svn);
+    }
+
+    return svn;
   }
 
-  public findSvnWin32(): Promise<ISvn> {
-    return this.findSystemSvnWin32(process.env.ProgramW6432)
-      .then(void 0, () =>
-        this.findSystemSvnWin32(process.env["ProgramFiles(x86)"])
-      )
-      .then(void 0, () => this.findSystemSvnWin32(process.env.ProgramFiles))
-      .then(void 0, () => this.findSpecificSvn("svn"));
+  /**
+   * Find SVN on Windows - uses parallel discovery for faster startup.
+   * Startup optimization: tries all paths concurrently instead of sequentially.
+   */
+  public async findSvnWin32(): Promise<ISvn> {
+    // Build list of potential paths
+    const potentialPaths: string[] = [];
+
+    const envBases = [
+      process.env.ProgramW6432,
+      process.env["ProgramFiles(x86)"],
+      process.env.ProgramFiles
+    ];
+
+    for (const base of envBases) {
+      if (base) {
+        potentialPaths.push(path.join(base, "TortoiseSVN", "bin", "svn.exe"));
+      }
+    }
+
+    // Also try PATH
+    potentialPaths.push("svn");
+
+    // Try all paths in parallel (startup optimization - saves ~1s)
+    const results = await Promise.allSettled(
+      potentialPaths.map(p => this.findSpecificSvn(p))
+    );
+
+    // Return first successful result
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        return result.value;
+      }
+    }
+
+    throw new Error("SVN not found in standard Windows locations");
   }
 
   public findSystemSvnWin32(base?: string): Promise<ISvn> {

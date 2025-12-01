@@ -189,7 +189,11 @@ export class SourceControlManager implements IDisposable {
 
     this.setState("initialized");
 
-    await this.scanWorkspaceFolders();
+    // Startup optimization: Don't await workspace scanning - let activation complete faster
+    // Scanning happens in background; repositories appear as they're discovered
+    this.scanWorkspaceFolders().catch(err => {
+      logError("Background workspace scan failed", err);
+    });
   }
 
   private onPossibleSvnRepositoryChange(uri: Uri): void {

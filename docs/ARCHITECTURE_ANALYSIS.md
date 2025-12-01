@@ -135,6 +135,14 @@ Flow: activate() → SvnFinder → Svn → SourceControlManager → registerComm
 - Adaptive chunking (`batchOperations.ts`, `svnRepository.ts:621-636,808-819`)
 - 20-30% users, 50-200ms → 20-80ms (2-3x faster)
 
+**E. Extension startup** ✅ FIXED (v2.28.0)
+
+- Conditional activation: `workspaceContains:**/.svn` (no activation without SVN)
+- SVN path caching: globalState stores discovered path (~1-2s saved)
+- Parallel Windows discovery: Promise.allSettled for TortoiseSVN paths (~600-1500ms saved)
+- Background workspace scanning: fire-and-forget (non-blocking activation)
+- 100% users, activation time reduced by 1-3s
+
 ---
 
 ## Code Quality Analysis

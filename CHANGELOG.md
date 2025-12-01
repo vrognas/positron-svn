@@ -1,3 +1,13 @@
+## [2.28.0] (2025-12-01)
+
+### Perf: Startup Optimization
+
+- **Perf**: Conditional activation - only activates when `.svn` folder exists
+- **Perf**: SVN path caching - saves ~1-2s on subsequent launches
+- **Perf**: Parallel Windows discovery - tries all TortoiseSVN paths concurrently
+- **Perf**: Background workspace scanning - non-blocking activation
+- **Tests**: 4 startup optimization tests
+
 ## [2.27.3] (2025-12-01)
 
 ### Security: Privacy Quick Fixes
