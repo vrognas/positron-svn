@@ -60,43 +60,12 @@ All extension operations execute locally on your machine:
 
 ### 1. Author Avatars (Commit Icons)
 
-**Default**: Local letter avatars (no network requests)
-
-**What is it?**
+**Implementation**: Local letter avatars only
 
 - Displays author icons in the log/history view
-- Default: Locally-generated letter avatars (e.g., "JD" for John Doe)
-- No external requests, deterministic colors based on author name
-
-**Privacy impact (default)**:
-
-- Zero network requests
-- No data sent externally
-- Fully local generation
-
-#### Optional: External Gravatar Service
-
-**Status**: Disabled by default (opt-in)
-
-If you prefer Gravatar profile photos, you can enable external requests:
-
-```json
-{
-  "svn.gravatars.enabled": true
-}
-```
-
-**Data sent when enabled**:
-
-- MD5 hash of author name to gravatar.com
-- Your IP address (standard HTTP request)
-
-**Privacy impact when enabled**:
-
-- Gravatar can track IP addresses across requests
-- MD5 hash cannot be reversed to original name
-
-**Self-hosted alternative**: Use `svn.gravatar.icon_url` with your own avatar service
+- Locally-generated letter avatars (e.g., "JD" for John Doe)
+- Deterministic colors based on author name hash
+- **Zero network requests** - fully local generation
 
 ### 2. SVN Repository Access
 
@@ -317,11 +286,11 @@ This extension is open source. Verify privacy claims by reviewing:
    # Result: No matches
    ```
 
-2. **No network requests** (except Gravatar and SVN):
+2. **No network requests** (except SVN repository access):
 
    ```bash
    grep -r "fetch\|http\.get\|axios\|request" src/
-   # Result: Only Gravatar avatar URLs
+   # Result: No matches (avatars generated locally)
    ```
 
 3. **No telemetry code**:
@@ -363,10 +332,10 @@ We will update this policy if privacy practices change.
 
 ✅ **Zero data collection**
 ✅ **Local-only operations**
-✅ **Local avatars by default** (no network requests)
+✅ **Local avatars** (no network requests)
 ✅ **Secure credential storage**
 ✅ **Open source** (audit the code)
-✅ **No third-party services** (Gravatar opt-in only)
+✅ **No third-party services**
 
 This extension respects your privacy. Your data stays on your machine.
 

@@ -2,7 +2,6 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
-import { createHash } from "crypto";
 import * as path from "path";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -201,79 +200,16 @@ export async function fetchMore(cached: ICachedLog) {
   entries.push(...moreCommits);
 }
 
-// Gravatar cache (only used when gravatars.enabled = true)
-const gravatarCache: Map<string, Uri> = new Map();
-const gravatarAccessOrder: Map<string, number> = new Map();
-const MAX_GRAVATAR_CACHE_SIZE = 100;
-
-function evictOldestGravatar(): void {
-  let oldestKey: string | null = null;
-  let oldestTime = Infinity;
-  for (const [key, time] of gravatarAccessOrder.entries()) {
-    if (time < oldestTime) {
-      oldestTime = time;
-      oldestKey = key;
-    }
-  }
-  if (oldestKey !== null) {
-    gravatarCache.delete(oldestKey);
-    gravatarAccessOrder.delete(oldestKey);
-  }
-}
-
-function md5(s: string): string {
-  const data = createHash("md5");
-  data.write(s);
-  return data.digest().toString("hex");
-}
-
 /**
  * Get commit author icon for history view
- *
- * Default: Local letter avatar (privacy-first, no network requests)
- * Optional: External Gravatar (requires svn.gravatars.enabled = true)
+ * Uses local letter avatars (privacy-first, no network requests)
  */
 export function getCommitIcon(
-  author: string,
-  size: number = 16
+  author: string
 ): Uri | { light: Uri; dark: Uri } | ThemeIcon {
-  // Fallback for undefined author
-  if (author === undefined || !author) {
+  if (!author) {
     return new ThemeIcon("git-commit");
   }
-
-  // Check if external gravatars are explicitly enabled (opt-in)
-  const gravatarsEnabled = configuration.get("gravatars.enabled", false);
-
-  if (gravatarsEnabled) {
-    // Use external Gravatar service (requires network)
-    let gravatar = gravatarCache.get(author);
-    if (gravatar !== undefined) {
-      gravatarAccessOrder.set(author, Date.now());
-      return gravatar;
-    }
-
-    const gravatarUrl = configuration
-      .get("gravatar.icon_url", "")
-      .replace("<AUTHOR>", author)
-      .replace("<AUTHOR_MD5>", md5(author))
-      .replace("<SIZE>", size.toString());
-
-    if (gravatarUrl) {
-      gravatar = Uri.parse(gravatarUrl);
-
-      if (gravatarCache.size >= MAX_GRAVATAR_CACHE_SIZE) {
-        evictOldestGravatar();
-      }
-
-      gravatarCache.set(author, gravatar);
-      gravatarAccessOrder.set(author, Date.now());
-
-      return gravatar;
-    }
-  }
-
-  // Default: Local letter avatar (no network, privacy-first)
   return getLetterAvatar(author);
 }
 
