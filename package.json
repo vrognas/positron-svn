@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.26.28",
+  "version": "2.27.0",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.74.0",
@@ -1579,7 +1579,7 @@
         },
         "svn.gravatar.icon_url": {
           "type": "string",
-          "description": "Url for the gravitar icon using the <AUTHOR>, <AUTHOR_MD5> and <SIZE> placeholders",
+          "description": "URL for external gravatar service (requires svn.gravatars.enabled). Placeholders: <AUTHOR>, <AUTHOR_MD5>, <SIZE>",
           "examples": [
             "https://www.gravatar.com/avatar/<AUTHOR_MD5>.jpg?s=<SIZE>&d=https%3A%2F%2Fui-avatars.com%2Fapi%2F/<AUTHOR>/128"
           ],
@@ -1587,8 +1587,8 @@
         },
         "svn.gravatars.enabled": {
           "type": "boolean",
-          "description": "Use gravatar icons in log viewers",
-          "default": true
+          "description": "Use external Gravatar service for author icons (opt-in, makes network requests). Default: local letter avatars (no network)",
+          "default": false
         },
         "svn.ignoreMissingSvnWarning": {
           "type": "boolean",

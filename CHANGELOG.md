@@ -1,3 +1,19 @@
+## [2.27.0] (2025-12-01)
+
+### Feature: Local Letter Avatars (Privacy-First)
+
+- **New**: Local letter avatars for commit authors (e.g., "JD" for John Doe)
+- **New**: Deterministic colors from author name hash
+- **Privacy**: No network requests by default (Gravatar now opt-in)
+- **UX**: Consistent visual appearance across all commits
+- **Breaking**: `svn.gravatars.enabled` now defaults to `false`
+
+To restore external Gravatar behavior:
+
+```json
+{ "svn.gravatars.enabled": true }
+```
+
 ## [2.26.28] (2025-12-01)
 
 ### Fix: Gravatar Cache Memory Leak
