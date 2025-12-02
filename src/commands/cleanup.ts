@@ -52,11 +52,12 @@ const cleanupOptions: CleanupQuickPickItem[] = [
     picked: true // Safe, recommended default
   },
   {
-    label: "$(link-external) Include External Folders",
-    description: "Also clean linked external repositories",
-    detail: "Applies cleanup to external working copies (if any).",
+    label: "$(link-external) Clean Nested Repositories",
+    description: "Also clean svn:externals linked repos",
+    detail:
+      "Applies cleanup to repositories embedded via svn:externals (if any).",
     id: "includeExternals",
-    shortName: "externals",
+    shortName: "nested repos",
     picked: false
   }
 ];

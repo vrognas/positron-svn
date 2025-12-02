@@ -259,9 +259,9 @@ describe("Repository Cleanup Advanced", () => {
         picked: true // Safe, recommended default
       },
       {
-        label: "$(link-external) Include External Folders",
+        label: "$(link-external) Clean Nested Repositories",
         id: "includeExternals",
-        shortName: "externals",
+        shortName: "nested repos",
         picked: false
       }
     ];
