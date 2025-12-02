@@ -553,5 +553,40 @@ if (lockInfo) console.log(`Locked by ${lockInfo.owner}`);
 
 ---
 
-**Document Version**: 2.7
+### 20. Cleanup Error Detection: Multiple Codes
+
+**Lesson**: SVN cleanup is needed for multiple error types, not just E155004.
+
+**Error codes requiring cleanup** (v2.31.0):
+
+- **E155004**: Working copy is locked
+- **E155037**: Previous operation interrupted
+- **E200030**: SQLite database busy/locked/corrupt
+- **E155032**: Working copy database problem
+
+**Text patterns**:
+
+- "locked", "previous operation", "run 'cleanup'", "sqlite"
+
+**E155015 (conflict) does NOT need cleanup**:
+
+- Conflicts require `svn resolve`, not cleanup
+- "Obstructed" status often needs delete + update, not cleanup
+
+**UX Pattern**:
+
+```typescript
+if (needsCleanup(error)) {
+  const choice = await window.showErrorMessage(msg, "Run Cleanup");
+  if (choice === "Run Cleanup") {
+    await commands.executeCommand("svn.cleanup");
+  }
+}
+```
+
+**Rule**: Offer actionable buttons for recoverable errors.
+
+---
+
+**Document Version**: 2.8
 **Last Updated**: 2025-12-02

@@ -1,3 +1,49 @@
+## [2.31.4] (2025-12-02)
+
+### Feature: Complete Cleanup Error Detection
+
+Based on [SVN error codes source](https://svn.apache.org/repos/asf/subversion/trunk/subversion/include/svn_error_codes.h):
+
+- **Added**: E155016 (WC_CORRUPT - working copy is corrupt)
+- **Added**: E200034 (SQLITE_RESETTING_FOR_ROLLBACK - sqlite busy at rollback)
+- **Added**: "is corrupt" text pattern
+- **Tests**: +3 tests (24 total)
+
+Now detects 8 error codes: E155004, E155009, E155016, E155032, E155037, E200030, E200033, E200034
+
+## [2.31.3] (2025-12-02)
+
+### Fix: Missing Cleanup Error Codes
+
+- **Added**: E155009 (failed to run WC DB work queue)
+- **Added**: E200033 to svnErrorCodes constant
+- **Added**: "work queue" text pattern detection
+- **Tests**: +3 tests (E155009, E200033, work queue)
+
+## [2.31.2] (2025-12-02)
+
+### Fix: SQLite False Positive in Cleanup Detection
+
+- **Fixed**: "sqlite" in file paths no longer triggers cleanup (regex `sqlite[:\[]`)
+- **Added**: E200033 error code detection (sqlite database busy)
+- **Tests**: +3 sqlite false positive tests
+
+## [2.31.1] (2025-12-02)
+
+### Fix: False Positive Cleanup Detection
+
+- **Fixed**: "unlocked" no longer triggers cleanup suggestion (regex word boundary)
+- **Tests**: +2 false positive tests
+
+## [2.31.0] (2025-12-02)
+
+### UX: Auto-Suggest Cleanup on Error
+
+- **New**: Detect cleanup-related errors: E155004, E155037, E200030, E155032
+- **New**: "Run Cleanup" button in error messages for cleanup-suggestible errors
+- **Patterns**: locked, previous operation, sqlite, run 'cleanup'
+- **Tests**: 13 cleanup error detection tests
+
 ## [2.30.0] (2025-12-02)
 
 ### UX: Consolidated Cleanup Command (TortoiseSVN-style)

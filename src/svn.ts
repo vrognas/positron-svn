@@ -116,7 +116,15 @@ export const svnErrorCodes: { [key: string]: string } = {
   NotShareCommonAncestry: "E195012",
   WorkingCopyIsTooOld: "E155036",
   UnableToConnect: "E170013",
-  NetworkTimeout: "E175002"
+  NetworkTimeout: "E175002",
+  // Cleanup-related errors
+  WorkQueueFailed: "E155009",
+  WorkingCopyCorrupt: "E155016",
+  WorkingCopyDatabaseProblem: "E155032",
+  PreviousOperationInterrupted: "E155037",
+  SqliteDatabaseIssue: "E200030",
+  SqliteDatabaseBusy: "E200033",
+  SqliteRollbackReset: "E200034"
 };
 
 // Path separator pattern for cross-platform path splitting
