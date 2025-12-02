@@ -284,10 +284,11 @@ describe("Repository Cleanup Advanced", () => {
       expect(cleanupOptions.every(o => o.picked === false)).toBe(true);
     });
 
-    it("shortNames exclude externals from operations list", () => {
+    it("shortNames exclude modifiers from operations list", () => {
       // Operations list should only include actual operations, not modifiers
+      const modifiers = ["includeExternals"];
       const operations = cleanupOptions
-        .filter(o => o.id !== "includeExternals")
+        .filter(o => !modifiers.includes(o.id))
         .map(o => o.shortName);
       expect(operations).not.toContain("externals");
       expect(operations).toEqual([

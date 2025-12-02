@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.29.0",
+  "version": "2.30.0",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.74.0",
@@ -269,12 +269,7 @@
       },
       {
         "command": "svn.cleanup",
-        "title": "Clean up working copy",
-        "category": "SVN"
-      },
-      {
-        "command": "svn.cleanupAdvanced",
-        "title": "Cleanup (Advanced)...",
+        "title": "Cleanup...",
         "category": "SVN"
       },
       {
@@ -495,16 +490,6 @@
         "category": "SVN"
       },
       {
-        "command": "svn.removeIgnored",
-        "title": "Remove ignored files",
-        "category": "SVN"
-      },
-      {
-        "command": "svn.vacuumPristines",
-        "title": "Vacuum pristine copies",
-        "category": "SVN"
-      },
-      {
         "command": "svn.renameExplorer",
         "title": "Rename with SVN",
         "category": "SVN"
@@ -677,10 +662,6 @@
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         },
         {
-          "command": "svn.cleanupAdvanced",
-          "when": "config.svn.enabled && svnOpenRepositoryCount != 0 && isSvn19orGreater"
-        },
-        {
           "command": "svn.clearCredentials",
           "when": "config.svn.enabled"
         },
@@ -786,14 +767,6 @@
         },
         {
           "command": "svn.removeUnversioned",
-          "when": "config.svn.enabled && svnOpenRepositoryCount != 0 && isSvn19orGreater"
-        },
-        {
-          "command": "svn.removeIgnored",
-          "when": "config.svn.enabled && svnOpenRepositoryCount != 0 && isSvn19orGreater"
-        },
-        {
-          "command": "svn.vacuumPristines",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0 && isSvn19orGreater"
         },
         {
@@ -1059,10 +1032,6 @@
         {
           "command": "svn.cleanup",
           "when": "config.svn.enabled && scmProvider == svn"
-        },
-        {
-          "command": "svn.cleanupAdvanced",
-          "when": "config.svn.enabled && scmProvider == svn && isSvn19orGreater"
         },
         {
           "command": "svn.removeUnversioned",

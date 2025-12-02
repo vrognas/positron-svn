@@ -1,3 +1,17 @@
+## [2.30.0] (2025-12-02)
+
+### UX: Consolidated Cleanup Command (TortoiseSVN-style)
+
+- **Redesign**: Single `SVN: Cleanup...` command replaces multiple cleanup commands
+- **Dialog**: Multi-select options (TortoiseSVN-inspired):
+  - Remove unversioned files
+  - Remove ignored files
+  - Reclaim disk space (vacuum pristines, SVN 1.10+)
+  - Include external folders
+- **Note**: Locks and timestamps are repaired automatically (SVN CLI behavior)
+- **Removed**: Separate `Cleanup (Advanced)`, `Remove ignored files`, `Vacuum pristine copies` commands
+- **Doc**: [TortoiseSVN Cleanup](https://tortoisesvn.net/docs/release/TortoiseSVN_en/tsvn-dug-cleanup.html)
+
 ## [2.29.0] (2025-12-02)
 
 ### Feature: Advanced Cleanup Options

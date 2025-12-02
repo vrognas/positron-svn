@@ -530,5 +530,28 @@ if (lockInfo) console.log(`Locked by ${lockInfo.owner}`);
 
 ---
 
-**Document Version**: 2.6
-**Last Updated**: 2025-11-29
+### 19. CLI vs GUI Feature Parity
+
+**Lesson**: Not all GUI options map to CLI flags. Research before implementing.
+
+**Example** (v2.30.0 - Cleanup):
+
+- TortoiseSVN has "Break locks" checkbox (calls C API directly)
+- SVN CLI always breaks locks (hardcoded in `svn_client_cleanup2()`)
+- No `--break-locks` flag exists - it's always on
+
+**Pattern**:
+
+1. Check SVN CLI `--help` for actual flags
+2. Check if feature is hardcoded in CLI source
+3. For GUI-only features, document limitation
+4. Don't create "phantom" options that do nothing
+
+**Reference**: [TortoiseSVN Cleanup](https://tortoisesvn.net/docs/release/TortoiseSVN_en/tsvn-dug-cleanup.html)
+
+**Rule**: When porting from GUI to extension, verify CLI supports the feature.
+
+---
+
+**Document Version**: 2.7
+**Last Updated**: 2025-12-02
