@@ -110,13 +110,20 @@ configuration.onDidChange(e => {
 });
 
 export const svnErrorCodes: { [key: string]: string } = {
+  // Authentication errors
   AuthorizationFailed: "E170001",
+  NoMoreCredentials: "E215004",
+
+  // Network errors
+  UnableToConnect: "E170013",
+  NetworkTimeout: "E175002",
+
+  // Repository/working copy errors
   RepositoryIsLocked: "E155004",
   NotASvnRepository: "E155007",
   NotShareCommonAncestry: "E195012",
   WorkingCopyIsTooOld: "E155036",
-  UnableToConnect: "E170013",
-  NetworkTimeout: "E175002",
+
   // Cleanup-related errors
   WorkQueueFailed: "E155009",
   WorkingCopyCorrupt: "E155016",
@@ -124,7 +131,27 @@ export const svnErrorCodes: { [key: string]: string } = {
   PreviousOperationInterrupted: "E155037",
   SqliteDatabaseIssue: "E200030",
   SqliteDatabaseBusy: "E200033",
-  SqliteRollbackReset: "E200034"
+  SqliteRollbackReset: "E200034",
+
+  // Conflict errors
+  ConflictBlocking: "E155023",
+  MergeConflict: "E200024",
+
+  // Out-of-date errors
+  NotUpToDate: "E155019",
+  ItemOutOfDate: "E200042",
+
+  // Lock errors
+  PathAlreadyLocked: "E200035",
+  PathNotLocked: "E200036",
+  LockExpired: "E200041",
+
+  // Permission errors
+  AccessDenied: "E261001",
+  PartialAccess: "E261002",
+
+  // Version mismatch
+  VersionMismatch: "E250006"
 };
 
 // Path separator pattern for cross-platform path splitting

@@ -588,5 +588,39 @@ if (needsCleanup(error)) {
 
 ---
 
-**Document Version**: 2.8
+### 21. User-Friendly Errors: Show Code for Transparency
+
+**Lesson**: Include error codes in user messages for transparency and googlability.
+
+**Pattern** (v2.32.0):
+
+```
+"Working copy locked (E155004). Run cleanup to fix."
+```
+
+**Benefits**:
+
+- User can Google the error code for more details
+- Technical users get context they need
+- Non-technical users get actionable guidance
+
+**Implementation**:
+
+```typescript
+// Extract code, format message
+const code = extractErrorCode(stderr); // E155004
+return `Working copy locked (${code}). Run cleanup to fix.`;
+```
+
+**Action Buttons**: Match error type to action:
+
+- Cleanup errors → "Run Cleanup" button
+- Out-of-date → "Update" button
+- Conflicts → "Resolve Conflicts" button
+
+**Rule**: Always include error code in parentheses. Offer one actionable button per error type.
+
+---
+
+**Document Version**: 2.9
 **Last Updated**: 2025-12-02

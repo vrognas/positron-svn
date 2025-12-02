@@ -634,8 +634,17 @@ export abstract class Command implements Disposable {
   }
 
   /**
+   * Extract error code from SVN error message.
+   */
+  private extractErrorCode(stderr: string): string | undefined {
+    const match = stderr.match(/E\d{6}/);
+    return match ? match[0] : undefined;
+  }
+
+  /**
    * Format user-friendly error message based on error type.
-   * Provides actionable guidance for common errors (network, timeout, auth).
+   * Includes error code for transparency (e.g., "Message (E155004)").
+   * Provides actionable guidance for common errors.
    */
   private formatErrorMessage(error: unknown, fallbackMsg: string): string {
     const err = error as
@@ -645,6 +654,7 @@ export abstract class Command implements Disposable {
     const rawStderr = err?.stderr || err?.stderrFormated || "";
     const stderr = this.sanitizeStderr(rawStderr);
     const fullError = `${errorStr} ${stderr}`.toLowerCase();
+    const code = this.extractErrorCode(`${errorStr} ${rawStderr}`);
 
     // Authentication errors - check FIRST (priority over network errors)
     // SVN may return E170013 with E215004 when auth fails
@@ -655,7 +665,8 @@ export abstract class Command implements Disposable {
       fullError.includes("authorization failed") ||
       fullError.includes("authentication failed")
     ) {
-      return "Authentication failed: Please check your credentials and try again.";
+      const c = fullError.includes("e215004") ? "E215004" : "E170001";
+      return `Authentication failed (${c}). Check credentials and try again.`;
     }
 
     // Network/connection errors (E170013)
@@ -665,7 +676,7 @@ export abstract class Command implements Disposable {
       fullError.includes("connection refused") ||
       fullError.includes("could not resolve host")
     ) {
-      return "Network error: Unable to connect to the repository. Check your network connection and repository URL.";
+      return "Unable to connect (E170013). Check network and repository URL.";
     }
 
     // Timeout errors (E175002)
@@ -675,16 +686,55 @@ export abstract class Command implements Disposable {
       fullError.includes("timeout") ||
       fullError.includes("operation timed out")
     ) {
-      return "Network timeout: The operation took too long. Try again or check your network connection.";
+      return "Network timeout (E175002). Try again or check network connection.";
     }
 
-    // Working copy needs cleanup (E155004, E155037, E200030, E155032, E200033)
-    // E155004: Working copy is locked
-    // E155037: Previous operation has not finished
-    // E200030/E200033: SQLite database issue (busy, locked, corrupt)
-    // E155032: Working copy database storage problem
-    // Note: Use \b word boundary to avoid matching "unlocked"
-    // Note: Use sqlite[:\[] to match "sqlite:" or "sqlite[S5]" but not paths
+    // Out-of-date errors (E155019, E200042)
+    if (
+      fullError.includes("e155019") ||
+      fullError.includes("e200042") ||
+      fullError.includes("out of date") ||
+      fullError.includes("not up-to-date")
+    ) {
+      const c = fullError.includes("e200042") ? "E200042" : "E155019";
+      return `Working copy not up-to-date (${c}). Update before committing.`;
+    }
+
+    // Conflict errors (E155023, E200024)
+    if (
+      fullError.includes("e155023") ||
+      fullError.includes("e200024") ||
+      (fullError.includes("conflict") && !fullError.includes("resolved"))
+    ) {
+      const c = fullError.includes("e200024") ? "E200024" : "E155023";
+      return `Conflict blocking operation (${c}). Resolve conflicts first.`;
+    }
+
+    // Lock errors (E200035, E200036, E200041)
+    if (fullError.includes("e200035")) {
+      return "Path already locked (E200035). Another user has the lock.";
+    }
+    if (fullError.includes("e200036")) {
+      return "Path not locked (E200036). No lock to release.";
+    }
+    if (fullError.includes("e200041")) {
+      return "Lock expired (E200041). Re-lock the file if needed.";
+    }
+
+    // Permission errors (E261001, E261002)
+    if (fullError.includes("e261001")) {
+      return "Access denied (E261001). Insufficient read permissions.";
+    }
+    if (fullError.includes("e261002")) {
+      return "Partial access (E261002). Some items not visible.";
+    }
+
+    // Version mismatch (E250006)
+    if (fullError.includes("e250006")) {
+      return "Version mismatch (E250006). Client/server versions incompatible.";
+    }
+
+    // Working copy needs cleanup (E155004, E155037, E200030, E155032, E200033, etc.)
     if (
       fullError.includes("e155004") ||
       fullError.includes("e155037") ||
@@ -696,11 +746,24 @@ export abstract class Command implements Disposable {
       fullError.includes("run 'cleanup'") ||
       /sqlite[:\[]/.test(fullError)
     ) {
-      return "Working copy needs cleanup: Run 'SVN: Cleanup' to fix.";
+      const c = code || "E155004";
+      return `Working copy needs cleanup (${c}). Run cleanup to fix.`;
     }
 
-    // Use fallback message for other errors
-    return fallbackMsg;
+    // Use fallback message for other errors (append code if found)
+    return code ? `${fallbackMsg} (${code})` : fallbackMsg;
+  }
+
+  /**
+   * Get full error string from error object.
+   */
+  private getFullErrorString(error: unknown): string {
+    const err = error as
+      | { message?: string; stderr?: string; stderrFormated?: string }
+      | undefined;
+    const errorStr = err?.message || String(error) || "";
+    const rawStderr = err?.stderr || err?.stderrFormated || "";
+    return `${errorStr} ${rawStderr}`.toLowerCase();
   }
 
   /**
@@ -708,12 +771,7 @@ export abstract class Command implements Disposable {
    * Returns true for E155004, E155009, E155037, E200030, E200033, E155032, and related text patterns.
    */
   private needsCleanup(error: unknown): boolean {
-    const err = error as
-      | { message?: string; stderr?: string; stderrFormated?: string }
-      | undefined;
-    const errorStr = err?.message || String(error) || "";
-    const rawStderr = err?.stderr || err?.stderrFormated || "";
-    const fullError = `${errorStr} ${rawStderr}`.toLowerCase();
+    const fullError = this.getFullErrorString(error);
 
     return (
       fullError.includes("e155004") ||
@@ -734,9 +792,38 @@ export abstract class Command implements Disposable {
   }
 
   /**
+   * Check if error indicates working copy needs update.
+   * Returns true for E155019, E200042, and related text patterns.
+   */
+  private needsUpdate(error: unknown): boolean {
+    const fullError = this.getFullErrorString(error);
+
+    return (
+      fullError.includes("e155019") ||
+      fullError.includes("e200042") ||
+      fullError.includes("out of date") ||
+      fullError.includes("not up-to-date")
+    );
+  }
+
+  /**
+   * Check if error indicates conflicts need resolution.
+   * Returns true for E155023, E200024, and related text patterns.
+   */
+  private needsConflictResolution(error: unknown): boolean {
+    const fullError = this.getFullErrorString(error);
+
+    return (
+      fullError.includes("e155023") ||
+      fullError.includes("e200024") ||
+      (fullError.includes("conflict") && !fullError.includes("resolved"))
+    );
+  }
+
+  /**
    * Handle repository operation with consistent error handling.
    * Pattern: try/catch with console.log + showErrorMessage
-   * Offers "Run Cleanup" button for cleanup-related errors.
+   * Offers actionable buttons: "Run Cleanup", "Update", "Resolve Conflicts"
    */
   protected async handleRepositoryOperation<T>(
     operation: () => Promise<T>,
@@ -754,6 +841,25 @@ export abstract class Command implements Disposable {
         const choice = await window.showErrorMessage(userMessage, runCleanup);
         if (choice === runCleanup) {
           await commands.executeCommand("svn.cleanup");
+        }
+      }
+      // Offer update button for out-of-date errors
+      else if (this.needsUpdate(error)) {
+        const runUpdate = "Update";
+        const choice = await window.showErrorMessage(userMessage, runUpdate);
+        if (choice === runUpdate) {
+          await commands.executeCommand("svn.update");
+        }
+      }
+      // Offer resolve conflicts button for conflict errors
+      else if (this.needsConflictResolution(error)) {
+        const resolveConflicts = "Resolve Conflicts";
+        const choice = await window.showErrorMessage(
+          userMessage,
+          resolveConflicts
+        );
+        if (choice === resolveConflicts) {
+          await commands.executeCommand("svn.resolveAll");
         }
       } else {
         window.showErrorMessage(userMessage);

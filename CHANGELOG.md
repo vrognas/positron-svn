@@ -1,3 +1,26 @@
+## [2.32.0] (2025-12-02)
+
+### Feature: User-Friendly Error Messages with Action Buttons
+
+Enhanced error handling with transparent error codes and actionable guidance:
+
+**New Error Codes** (11 additional):
+
+- E215004 (NoMoreCredentials), E155023 (ConflictBlocking), E200024 (MergeConflict)
+- E155019 (NotUpToDate), E200042 (ItemOutOfDate)
+- E200035 (PathAlreadyLocked), E200036 (PathNotLocked), E200041 (LockExpired)
+- E261001 (AccessDenied), E261002 (PartialAccess), E250006 (VersionMismatch)
+
+**Message Format**: Shows error code for transparency (e.g., "Working copy locked (E155004)")
+
+**Action Buttons**:
+
+- "Run Cleanup" for cleanup errors (E155004, E155037, etc.)
+- "Update" for out-of-date errors (E155019, E200042)
+- "Resolve Conflicts" for conflict errors (E155023, E200024)
+
+**Tests**: +21 vitest tests
+
 ## [2.31.6] (2025-12-02)
 
 ### Fix: URL Doubling in Subfolder Checkouts
