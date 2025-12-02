@@ -490,6 +490,16 @@
         "category": "SVN"
       },
       {
+        "command": "svn.removeIgnored",
+        "title": "Remove ignored files",
+        "category": "SVN"
+      },
+      {
+        "command": "svn.vacuumPristines",
+        "title": "Vacuum pristine copies",
+        "category": "SVN"
+      },
+      {
         "command": "svn.renameExplorer",
         "title": "Rename with SVN",
         "category": "SVN"
@@ -767,6 +777,14 @@
         },
         {
           "command": "svn.removeUnversioned",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0 && isSvn19orGreater"
+        },
+        {
+          "command": "svn.removeIgnored",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0 && isSvn19orGreater"
+        },
+        {
+          "command": "svn.vacuumPristines",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0 && isSvn19orGreater"
         },
         {
