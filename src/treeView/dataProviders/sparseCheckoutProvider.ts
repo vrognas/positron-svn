@@ -642,11 +642,30 @@ export default class SparseCheckoutProvider
       const baseUrl = info.url;
       if (!baseUrl) return;
 
+      // For subfolder checkouts, detect potential path overlap
+      // info.url is checkout URL, info.repository.root is repo root
+      // The checkout subfolder is the difference between them
+      let checkoutSubfolder = "";
+      if (info.repository?.root && baseUrl.startsWith(info.repository.root)) {
+        checkoutSubfolder = baseUrl
+          .slice(info.repository.root.length)
+          .replace(/^\//, ""); // Remove leading slash
+      }
+
       // Build URLs for each ghost file
       const urls = ghostFiles.map(g => {
         // Convert Windows backslashes to forward slashes
-        const urlPath = g.path.replace(/\\/g, "/");
-        return `${baseUrl}/${urlPath}`;
+        let urlPath = g.path.replace(/\\/g, "/");
+
+        // Fix: If ghost path starts with checkout subfolder, strip it
+        // This can happen due to path confusion in subfolder checkouts
+        if (checkoutSubfolder && urlPath.startsWith(checkoutSubfolder + "/")) {
+          urlPath = urlPath.slice(checkoutSubfolder.length + 1);
+        } else if (checkoutSubfolder && urlPath === checkoutSubfolder) {
+          urlPath = "";
+        }
+
+        return urlPath ? `${baseUrl}/${urlPath}` : baseUrl;
       });
 
       // Batch fetch lock info
