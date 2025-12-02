@@ -166,6 +166,16 @@ describe("Repository Cleanup Advanced", () => {
       expect(semver.gte("1.10.3", "1.10.0")).toBe(true);
       expect(semver.gte("1.14.0", "1.10.0")).toBe(true);
     });
+
+    it("semver.gte correctly validates 1.9+ features", () => {
+      // SVN 1.8.x should fail
+      expect(semver.gte("1.8.19", "1.9.0")).toBe(false);
+
+      // SVN 1.9.x and above should pass
+      expect(semver.gte("1.9.0", "1.9.0")).toBe(true);
+      expect(semver.gte("1.9.7", "1.9.0")).toBe(true);
+      expect(semver.gte("1.10.0", "1.9.0")).toBe(true);
+    });
   });
 
   describe("ICleanupOptions Interface", () => {
@@ -361,12 +371,20 @@ describe("Repository Cleanup Advanced", () => {
   });
 
   describe("Completion Message Building", () => {
+    /** Format list with commas and "and" (e.g., "a, b, and c") */
+    function formatList(items: string[]): string {
+      if (items.length <= 2) {
+        return items.join(" and ");
+      }
+      return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+    }
+
     function buildCompletionMessage(
       operations: string[],
       includeExternals: boolean
     ): string {
       const completedOps =
-        operations.length > 0 ? `Removed ${operations.join(" and ")}. ` : "";
+        operations.length > 0 ? `Removed ${formatList(operations)}. ` : "";
       const externalsNote = includeExternals ? "Included externals." : "";
       return `Cleanup completed. ${completedOps}${externalsNote}`.trim();
     }
@@ -377,10 +395,21 @@ describe("Repository Cleanup Advanced", () => {
       );
     });
 
-    it("builds message for multiple operations", () => {
+    it("builds message for two operations", () => {
       expect(
         buildCompletionMessage(["unversioned files", "ignored files"], false)
       ).toBe("Cleanup completed. Removed unversioned files and ignored files.");
+    });
+
+    it("builds message for three operations with Oxford comma", () => {
+      expect(
+        buildCompletionMessage(
+          ["unversioned files", "ignored files", "disk space"],
+          false
+        )
+      ).toBe(
+        "Cleanup completed. Removed unversioned files, ignored files, and disk space."
+      );
     });
 
     it("adds externals note when included", () => {

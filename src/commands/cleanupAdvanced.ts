@@ -1,12 +1,7 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
-import {
-  CancellationToken,
-  ProgressLocation,
-  QuickPickItem,
-  window
-} from "vscode";
+import { ProgressLocation, QuickPickItem, window } from "vscode";
 import { ICleanupOptions } from "../common/types";
 import { Repository } from "../repository";
 import { Command } from "./command";
@@ -114,49 +109,39 @@ export class CleanupAdvanced extends Command {
         ? `Cleaning: ${operations.join(", ")}...`
         : "Running SVN Cleanup...";
 
-    // Run cleanup with progress (cancellable for destructive ops)
-    const hasDestructive = destructive.length > 0;
-    let cancelled = false;
-
+    // Run cleanup with progress (not cancellable - SVN ops run to completion)
     try {
       await window.withProgress(
         {
           location: ProgressLocation.Notification,
           title: progressTitle,
-          cancellable: hasDestructive
+          cancellable: false
         },
-        async (_progress, token: CancellationToken) => {
-          // Check for cancellation before starting
-          if (token.isCancellationRequested) {
-            cancelled = true;
-            return;
-          }
-
+        async () => {
           await repository.cleanupAdvanced(options);
-
-          // Check if cancelled during operation
-          if (token.isCancellationRequested) {
-            cancelled = true;
-          }
         }
       );
 
-      if (cancelled) {
-        window.showWarningMessage("Cleanup was cancelled");
-      } else {
-        // Show descriptive completion message
-        const completedOps =
-          operations.length > 0 ? `Removed ${operations.join(" and ")}. ` : "";
-        const externalsNote = options.includeExternals
-          ? "Included externals."
-          : "";
-        window.showInformationMessage(
-          `Cleanup completed. ${completedOps}${externalsNote}`.trim()
-        );
-      }
+      // Show descriptive completion message
+      const completedOps =
+        operations.length > 0 ? `Removed ${formatList(operations)}. ` : "";
+      const externalsNote = options.includeExternals
+        ? "Included externals."
+        : "";
+      window.showInformationMessage(
+        `Cleanup completed. ${completedOps}${externalsNote}`.trim()
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       window.showErrorMessage(`Cleanup failed: ${message}`);
     }
   }
+}
+
+/** Format list with commas and "and" (e.g., "a, b, and c") */
+function formatList(items: string[]): string {
+  if (items.length <= 2) {
+    return items.join(" and ");
+  }
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }

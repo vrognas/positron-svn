@@ -1350,7 +1350,18 @@ export class Repository {
     return result.stdout;
   }
 
-  public async removeUnversioned() {
+  /**
+   * Remove unversioned files from working copy.
+   * WARNING: Permanent deletion, no recovery via SVN.
+   * @requires SVN 1.9+
+   * @throws Error if SVN version < 1.9
+   */
+  public async removeUnversioned(): Promise<string> {
+    if (!semver.gte(this.svn.version, "1.9.0")) {
+      throw new Error(
+        `--remove-unversioned requires SVN 1.9+, you have ${this.svn.version}`
+      );
+    }
     const result = await this.exec(["cleanup", "--remove-unversioned"]);
     this.svn.logOutput(result.stdout);
     this.resetInfoCache();
@@ -1361,8 +1372,14 @@ export class Repository {
    * Remove files matching svn:ignore patterns.
    * WARNING: Permanent deletion, no recovery via SVN.
    * @requires SVN 1.9+
+   * @throws Error if SVN version < 1.9
    */
   public async removeIgnored(): Promise<string> {
+    if (!semver.gte(this.svn.version, "1.9.0")) {
+      throw new Error(
+        `--remove-ignored requires SVN 1.9+, you have ${this.svn.version}`
+      );
+    }
     const result = await this.exec(["cleanup", "--remove-ignored"]);
     this.svn.logOutput(result.stdout);
     this.resetInfoCache();
@@ -1390,8 +1407,14 @@ export class Repository {
    * Run cleanup with externals support.
    * Processes all svn:externals directories recursively.
    * @requires SVN 1.9+
+   * @throws Error if SVN version < 1.9
    */
   public async cleanupWithExternals(): Promise<string> {
+    if (!semver.gte(this.svn.version, "1.9.0")) {
+      throw new Error(
+        `--include-externals requires SVN 1.9+, you have ${this.svn.version}`
+      );
+    }
     const result = await this.exec(["cleanup", "--include-externals"]);
     this.svn.logOutput(result.stdout);
     return result.stdout;
@@ -1405,10 +1428,19 @@ export class Repository {
    *
    * @param options Cleanup options to enable
    * @requires SVN 1.9+ for most options, 1.10+ for vacuumPristines
-   * @throws Error if vacuumPristines requested but SVN version < 1.10
+   * @throws Error if version requirements not met
    */
   public async cleanupAdvanced(options: ICleanupOptions): Promise<string> {
-    // Version check for --vacuum-pristines (requires SVN 1.10+)
+    // Version checks
+    const needs19 =
+      options.removeUnversioned ||
+      options.removeIgnored ||
+      options.includeExternals;
+    if (needs19 && !semver.gte(this.svn.version, "1.9.0")) {
+      throw new Error(
+        `Cleanup options require SVN 1.9+, you have ${this.svn.version}`
+      );
+    }
     if (options.vacuumPristines && !semver.gte(this.svn.version, "1.10.0")) {
       throw new Error(
         `--vacuum-pristines requires SVN 1.10+, you have ${this.svn.version}`
