@@ -1,3 +1,21 @@
+## [2.31.6] (2025-12-02)
+
+### Fix: URL Doubling in Subfolder Checkouts
+
+- **Fixed**: Ghost lock URLs no longer double checkout subfolder path
+- **Bug**: Lock status fetch used paths that overlapped with checkout URL
+- **Fix**: Strip duplicate checkout subfolder from ghost paths before URL construction
+- **Tests**: +4 tests
+
+## [2.31.5] (2025-12-02)
+
+### Fix: Subfolder Checkout Selective Download
+
+- **Fixed**: `getRepoUrl()` returns checkout URL when no branch detected
+- **Bug**: Was returning repository root, breaking ghost detection and downloads
+- **Impact**: Subfolder checkouts without standard trunk/branches/tags layout now work
+- **Tests**: +5 tests
+
 ## [2.31.4] (2025-12-02)
 
 ### Feature: Complete Cleanup Error Detection

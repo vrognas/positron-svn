@@ -922,7 +922,9 @@ export class Repository {
     const branch = getBranchName(info.url);
 
     if (!branch) {
-      return info.repository.root;
+      // No branch detected (non-standard layout): return checkout URL
+      // NOT repository.root - that breaks subfolder checkouts
+      return info.url;
     }
 
     const regex = new RegExp(branch.path + "$");
