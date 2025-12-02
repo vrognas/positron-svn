@@ -1,7 +1,12 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
-import { ProgressLocation, QuickPickItem, window } from "vscode";
+import {
+  CancellationToken,
+  ProgressLocation,
+  QuickPickItem,
+  window
+} from "vscode";
 import { ICleanupOptions } from "../common/types";
 import { Repository } from "../repository";
 import { Command } from "./command";
@@ -9,6 +14,8 @@ import { Command } from "./command";
 interface CleanupQuickPickItem extends QuickPickItem {
   id: keyof ICleanupOptions;
   destructive?: boolean;
+  /** Short name for progress/completion messages */
+  shortName: string;
 }
 
 /**
@@ -21,34 +28,38 @@ interface CleanupQuickPickItem extends QuickPickItem {
 const cleanupOptions: CleanupQuickPickItem[] = [
   {
     label: "$(trash) Remove Unversioned Files",
-    description: "Delete files not tracked by SVN",
-    detail: "Removes files with '?' status. Cannot be undone!",
+    description: "Delete untracked files",
+    detail:
+      "Deletes files not in SVN (e.g. temp files, local configs). Cannot be undone!",
     id: "removeUnversioned",
+    shortName: "unversioned files",
     destructive: true,
     picked: false
   },
   {
     label: "$(exclude) Remove Ignored Files",
-    description: "Delete files matching ignore patterns",
+    description: "Delete build artifacts & ignored files",
     detail:
-      "Removes files with 'I' status (build artifacts, etc). Cannot be undone!",
+      "Deletes files matching ignore patterns (e.g. node_modules, *.log). Cannot be undone!",
     id: "removeIgnored",
+    shortName: "ignored files",
     destructive: true,
     picked: false
   },
   {
-    label: "$(database) Vacuum Pristine Copies",
-    description: "Reclaim disk space (SVN 1.10+)",
-    detail:
-      "Removes unreferenced base copies from .svn/pristine/. Safe operation.",
+    label: "$(database) Reclaim Disk Space",
+    description: "Remove old cached file copies (SVN 1.10+)",
+    detail: "Cleans up internal SVN cache to free disk space. Safe operation.",
     id: "vacuumPristines",
+    shortName: "disk space",
     picked: false
   },
   {
-    label: "$(link-external) Include Externals",
-    description: "Process svn:externals directories",
-    detail: "Applies cleanup to external working copies too.",
+    label: "$(link-external) Include External Folders",
+    description: "Also clean linked external repositories",
+    detail: "Applies cleanup to external working copies (if any).",
     id: "includeExternals",
+    shortName: "externals",
     picked: false // Safe default - user must opt-in
   }
 ];
@@ -87,25 +98,62 @@ export class CleanupAdvanced extends Command {
       }
     }
 
-    // Build options object
+    // Build options object and collect operation names
     const options: ICleanupOptions = {};
+    const operations: string[] = [];
     for (const item of selected) {
       options[item.id] = true;
+      if (item.id !== "includeExternals") {
+        operations.push(item.shortName);
+      }
     }
 
-    // Run cleanup with progress
+    // Build progress title
+    const progressTitle =
+      operations.length > 0
+        ? `Cleaning: ${operations.join(", ")}...`
+        : "Running SVN Cleanup...";
+
+    // Run cleanup with progress (cancellable for destructive ops)
+    const hasDestructive = destructive.length > 0;
+    let cancelled = false;
+
     try {
       await window.withProgress(
         {
           location: ProgressLocation.Notification,
-          title: "Running SVN Cleanup...",
-          cancellable: false
+          title: progressTitle,
+          cancellable: hasDestructive
         },
-        async () => {
+        async (_progress, token: CancellationToken) => {
+          // Check for cancellation before starting
+          if (token.isCancellationRequested) {
+            cancelled = true;
+            return;
+          }
+
           await repository.cleanupAdvanced(options);
+
+          // Check if cancelled during operation
+          if (token.isCancellationRequested) {
+            cancelled = true;
+          }
         }
       );
-      window.showInformationMessage("Cleanup completed");
+
+      if (cancelled) {
+        window.showWarningMessage("Cleanup was cancelled");
+      } else {
+        // Show descriptive completion message
+        const completedOps =
+          operations.length > 0 ? `Removed ${operations.join(" and ")}. ` : "";
+        const externalsNote = options.includeExternals
+          ? "Included externals."
+          : "";
+        window.showInformationMessage(
+          `Cleanup completed. ${completedOps}${externalsNote}`.trim()
+        );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       window.showErrorMessage(`Cleanup failed: ${message}`);
