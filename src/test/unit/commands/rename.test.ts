@@ -56,10 +56,13 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, "file.txt");
+      assert.strictEqual(showInputBoxCalls[0]!.value, "file.txt");
       assert.strictEqual(renameCalls.length, 1);
-      assert.strictEqual(renameCalls[0].oldFile, "/test/workspace/file.txt");
-      assert.strictEqual(renameCalls[0].newFile, "/test/workspace/newfile.txt");
+      assert.strictEqual(renameCalls[0]!.oldFile, "/test/workspace/file.txt");
+      assert.strictEqual(
+        renameCalls[0]!.newFile,
+        "/test/workspace/newfile.txt"
+      );
     });
 
     test("1.2: Rename file in subdirectory", async () => {
@@ -73,14 +76,14 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, "file.txt");
+      assert.strictEqual(showInputBoxCalls[0]!.value, "file.txt");
       assert.strictEqual(renameCalls.length, 1);
       assert.strictEqual(
-        renameCalls[0].oldFile,
+        renameCalls[0]!.oldFile,
         "/test/workspace/subdir/file.txt"
       );
       assert.strictEqual(
-        renameCalls[0].newFile,
+        renameCalls[0]!.newFile,
         "/test/workspace/subdir/renamed.txt"
       );
     });
@@ -96,8 +99,8 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(renameCalls.length, 1);
-      assert.strictEqual(renameCalls[0].oldFile, "/test/workspace/file.txt");
-      assert.strictEqual(renameCalls[0].newFile, "/test/workspace/file.md");
+      assert.strictEqual(renameCalls[0]!.oldFile, "/test/workspace/file.txt");
+      assert.strictEqual(renameCalls[0]!.newFile, "/test/workspace/file.md");
     });
 
     test("1.4: Rename file without extension", async () => {
@@ -111,10 +114,10 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, "README");
+      assert.strictEqual(showInputBoxCalls[0]!.value, "README");
       assert.strictEqual(renameCalls.length, 1);
-      assert.strictEqual(renameCalls[0].oldFile, "/test/workspace/README");
-      assert.strictEqual(renameCalls[0].newFile, "/test/workspace/LICENSE");
+      assert.strictEqual(renameCalls[0]!.oldFile, "/test/workspace/README");
+      assert.strictEqual(renameCalls[0]!.newFile, "/test/workspace/LICENSE");
     });
 
     test("1.5: Rename directory", async () => {
@@ -128,10 +131,10 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, "olddir");
+      assert.strictEqual(showInputBoxCalls[0]!.value, "olddir");
       assert.strictEqual(renameCalls.length, 1);
-      assert.strictEqual(renameCalls[0].oldFile, "/test/workspace/olddir");
-      assert.strictEqual(renameCalls[0].newFile, "/test/workspace/newdir");
+      assert.strictEqual(renameCalls[0]!.oldFile, "/test/workspace/olddir");
+      assert.strictEqual(renameCalls[0]!.newFile, "/test/workspace/newdir");
     });
 
     test("1.6: Rename nested directory", async () => {
@@ -146,11 +149,11 @@ suite("RenameExplorer Command Tests", () => {
 
       assert.strictEqual(renameCalls.length, 1);
       assert.strictEqual(
-        renameCalls[0].oldFile,
+        renameCalls[0]!.oldFile,
         "/test/workspace/parent/child"
       );
       assert.strictEqual(
-        renameCalls[0].newFile,
+        renameCalls[0]!.newFile,
         "/test/workspace/parent/renamed-child"
       );
     });
@@ -168,11 +171,11 @@ suite("RenameExplorer Command Tests", () => {
       assert.strictEqual(showInputBoxCalls.length, 1);
       assert.strictEqual(renameCalls.length, 1);
       assert.strictEqual(
-        renameCalls[0].oldFile,
+        renameCalls[0]!.oldFile,
         "/test/workspace/a/b/c/d/file.txt"
       );
       assert.strictEqual(
-        renameCalls[0].newFile,
+        renameCalls[0]!.newFile,
         "/test/workspace/a/b/c/d/newfile.txt"
       );
     });
@@ -191,7 +194,7 @@ suite("RenameExplorer Command Tests", () => {
 
       assert.strictEqual(renameCalls.length, 1);
       assert.strictEqual(
-        renameCalls[0].newFile,
+        renameCalls[0]!.newFile,
         "/test/workspace/subdir/newfile.txt"
       );
     });
@@ -208,7 +211,7 @@ suite("RenameExplorer Command Tests", () => {
 
       assert.strictEqual(renameCalls.length, 1);
       // Path.join will resolve the relative path
-      assert.ok(renameCalls[0].newFile.includes("newfile.txt"));
+      assert.ok(renameCalls[0]!.newFile.includes("newfile.txt"));
     });
 
     test("2.3: Input box shows basename only", async () => {
@@ -222,7 +225,7 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, "file.txt");
+      assert.strictEqual(showInputBoxCalls[0]!.value, "file.txt");
     });
 
     test("2.4: Input box shows relative path in prompt", async () => {
@@ -237,8 +240,8 @@ suite("RenameExplorer Command Tests", () => {
 
       assert.strictEqual(showInputBoxCalls.length, 1);
       assert.ok(
-        showInputBoxCalls[0].prompt.includes("subdir/file.txt") ||
-          showInputBoxCalls[0].prompt.includes("subdir\\file.txt")
+        showInputBoxCalls[0]!.prompt.includes("subdir/file.txt") ||
+          showInputBoxCalls[0]!.prompt.includes("subdir\\file.txt")
       );
     });
 
@@ -253,8 +256,8 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(renameCalls.length, 1);
-      assert.ok(renameCalls[0].newFile.includes("subdir"));
-      assert.ok(renameCalls[0].newFile.includes("renamed.txt"));
+      assert.ok(renameCalls[0]!.newFile.includes("subdir"));
+      assert.ok(renameCalls[0]!.newFile.includes("renamed.txt"));
     });
   });
 
@@ -406,9 +409,9 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, "old name.txt");
+      assert.strictEqual(showInputBoxCalls[0]!.value, "old name.txt");
       assert.strictEqual(renameCalls.length, 1);
-      assert.ok(renameCalls[0].newFile.includes("new name.txt"));
+      assert.ok(renameCalls[0]!.newFile.includes("new name.txt"));
     });
 
     test("5.2: Rename file with special characters", async () => {
@@ -422,9 +425,9 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, "file(1).txt");
+      assert.strictEqual(showInputBoxCalls[0]!.value, "file(1).txt");
       assert.strictEqual(renameCalls.length, 1);
-      assert.ok(renameCalls[0].newFile.includes("file(2).txt"));
+      assert.ok(renameCalls[0]!.newFile.includes("file(2).txt"));
     });
 
     test("5.3: Rename file with dots", async () => {
@@ -438,9 +441,9 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, "file.old.txt");
+      assert.strictEqual(showInputBoxCalls[0]!.value, "file.old.txt");
       assert.strictEqual(renameCalls.length, 1);
-      assert.ok(renameCalls[0].newFile.includes("file.new.txt"));
+      assert.ok(renameCalls[0]!.newFile.includes("file.new.txt"));
     });
 
     test("5.4: Rename file with unicode characters", async () => {
@@ -454,9 +457,9 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, "文件.txt");
+      assert.strictEqual(showInputBoxCalls[0]!.value, "文件.txt");
       assert.strictEqual(renameCalls.length, 1);
-      assert.ok(renameCalls[0].newFile.includes("新文件.txt"));
+      assert.ok(renameCalls[0]!.newFile.includes("新文件.txt"));
     });
 
     test("5.5: Rename file with dashes and underscores", async () => {
@@ -470,9 +473,9 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, "old-file_name.txt");
+      assert.strictEqual(showInputBoxCalls[0]!.value, "old-file_name.txt");
       assert.strictEqual(renameCalls.length, 1);
-      assert.ok(renameCalls[0].newFile.includes("new-file_name.txt"));
+      assert.ok(renameCalls[0]!.newFile.includes("new-file_name.txt"));
     });
 
     test("5.6: Same name rename (no change)", async () => {
@@ -486,8 +489,8 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(renameCalls.length, 1);
-      assert.strictEqual(renameCalls[0].oldFile, "/test/workspace/file.txt");
-      assert.strictEqual(renameCalls[0].newFile, "/test/workspace/file.txt");
+      assert.strictEqual(renameCalls[0]!.oldFile, "/test/workspace/file.txt");
+      assert.strictEqual(renameCalls[0]!.newFile, "/test/workspace/file.txt");
     });
 
     test("5.7: Case-only rename", async () => {
@@ -501,8 +504,8 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(renameCalls.length, 1);
-      assert.strictEqual(renameCalls[0].oldFile, "/test/workspace/file.txt");
-      assert.strictEqual(renameCalls[0].newFile, "/test/workspace/FILE.txt");
+      assert.strictEqual(renameCalls[0]!.oldFile, "/test/workspace/file.txt");
+      assert.strictEqual(renameCalls[0]!.newFile, "/test/workspace/FILE.txt");
     });
 
     test("5.8: Whitespace in new name", async () => {
@@ -517,7 +520,7 @@ suite("RenameExplorer Command Tests", () => {
 
       assert.strictEqual(renameCalls.length, 1);
       // Path.join will preserve the whitespace
-      assert.ok(renameCalls[0].newFile.includes("  newfile.txt  "));
+      assert.ok(renameCalls[0]!.newFile.includes("  newfile.txt  "));
     });
   });
 
@@ -533,10 +536,10 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(renameCalls.length, 1);
-      assert.ok(renameCalls[0].newFile.includes("src"));
-      assert.ok(renameCalls[0].newFile.includes("components"));
-      assert.ok(renameCalls[0].newFile.includes("IconButton.tsx"));
-      assert.ok(!renameCalls[0].newFile.includes("Button.tsx"));
+      assert.ok(renameCalls[0]!.newFile.includes("src"));
+      assert.ok(renameCalls[0]!.newFile.includes("components"));
+      assert.ok(renameCalls[0]!.newFile.includes("IconButton.tsx"));
+      assert.ok(!renameCalls[0]!.newFile.includes("Button.tsx"));
     });
 
     test("6.2: Root file rename", async () => {
@@ -550,8 +553,8 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(renameCalls.length, 1);
-      assert.strictEqual(renameCalls[0].oldFile, "/test/workspace/README.md");
-      assert.strictEqual(renameCalls[0].newFile, "/test/workspace/README.txt");
+      assert.strictEqual(renameCalls[0]!.oldFile, "/test/workspace/README.md");
+      assert.strictEqual(renameCalls[0]!.newFile, "/test/workspace/README.txt");
     });
 
     test("6.3: Hidden file rename", async () => {
@@ -565,9 +568,9 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, ".gitignore");
+      assert.strictEqual(showInputBoxCalls[0]!.value, ".gitignore");
       assert.strictEqual(renameCalls.length, 1);
-      assert.ok(renameCalls[0].newFile.includes(".svnignore"));
+      assert.ok(renameCalls[0]!.newFile.includes(".svnignore"));
     });
 
     test("6.4: Multiple file extensions", async () => {
@@ -581,9 +584,9 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(showInputBoxCalls.length, 1);
-      assert.strictEqual(showInputBoxCalls[0].value, "archive.tar.gz");
+      assert.strictEqual(showInputBoxCalls[0]!.value, "archive.tar.gz");
       assert.strictEqual(renameCalls.length, 1);
-      assert.ok(renameCalls[0].newFile.includes("backup.tar.gz"));
+      assert.ok(renameCalls[0]!.newFile.includes("backup.tar.gz"));
     });
   });
 
@@ -599,8 +602,8 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(renameCalls.length, 1);
-      assert.strictEqual(renameCalls[0].oldFile, "/test/workspace/old.txt");
-      assert.strictEqual(renameCalls[0].newFile, "/test/workspace/new.txt");
+      assert.strictEqual(renameCalls[0]!.oldFile, "/test/workspace/old.txt");
+      assert.strictEqual(renameCalls[0]!.newFile, "/test/workspace/new.txt");
     });
 
     test("7.2: Repository.rename called exactly once", async () => {
@@ -673,8 +676,11 @@ suite("RenameExplorer Command Tests", () => {
       );
 
       assert.strictEqual(renameCalls.length, 1);
-      assert.strictEqual(renameCalls[0].oldFile, "/test/workspace/main.txt");
-      assert.strictEqual(renameCalls[0].newFile, "/test/workspace/renamed.txt");
+      assert.strictEqual(renameCalls[0]!.oldFile, "/test/workspace/main.txt");
+      assert.strictEqual(
+        renameCalls[0]!.newFile,
+        "/test/workspace/renamed.txt"
+      );
     });
 
     test("8.2: Only renames mainUri, not allUris", async () => {

@@ -174,7 +174,7 @@ export class AuthService {
         if (attempt <= storedAccounts.length) {
           // Try stored credentials (attempt 1, 2, ...)
           const index = attempt - 1;
-          const stored = storedAccounts[index];
+          const stored = storedAccounts[index]!;
           this.setCredentials({
             username: stored.account,
             password: stored.password

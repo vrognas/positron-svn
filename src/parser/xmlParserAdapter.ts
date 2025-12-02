@@ -121,7 +121,7 @@ export class XmlParserAdapter {
     const result: XmlObject = {};
     for (const key in obj) {
       const camelKey = camelcase(key);
-      result[camelKey] = this.toCamelCase(obj[key], depth + 1);
+      result[camelKey] = this.toCamelCase(obj[key]!, depth + 1);
     }
     return result;
   }
@@ -154,12 +154,12 @@ export class XmlParserAdapter {
       if (key.startsWith("@_")) {
         // Merge attribute into parent (strip @_ prefix)
         const attrName = key.substring(2);
-        result[attrName] = obj[key];
+        result[attrName] = obj[key]!;
       } else if (key === "_") {
         hasTextNode = true;
-        textNodeValue = obj[key];
+        textNodeValue = obj[key]!;
       } else {
-        result[key] = this.mergeAttributes(obj[key], depth + 1);
+        result[key] = this.mergeAttributes(obj[key]!, depth + 1);
       }
     }
 
@@ -198,14 +198,14 @@ export class XmlParserAdapter {
 
     const result: XmlObject = {};
     for (const key in obj) {
-      const value = obj[key];
+      const value = obj[key]!;
 
       // Recursively process the value first
       const processed = this.normalizeArrays(value, depth + 1);
 
       // If it's an array with single element, unwrap it
       if (Array.isArray(processed) && processed.length === 1) {
-        result[key] = processed[0];
+        result[key] = processed[0]!;
       } else {
         result[key] = processed;
       }
@@ -225,7 +225,7 @@ export class XmlParserAdapter {
     const keys = Object.keys(obj);
     // If single root element, return its value
     if (keys.length === 1) {
-      return obj[keys[0]];
+      return obj[keys[0]!]!;
     }
 
     return obj;

@@ -124,8 +124,8 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
       const listResults = await repository.list(fsPath);
 
       if (listResults.length) {
-        size = Number(listResults[0].size) as number;
-        mtime = Date.parse(listResults[0].commit.date);
+        size = Number(listResults[0]!.size) as number;
+        mtime = Date.parse(listResults[0]!.commit.date);
       }
     } catch (error) {
       // Suppress "node not found" errors for untracked files (expected)

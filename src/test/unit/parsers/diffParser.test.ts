@@ -11,10 +11,10 @@ suite("DiffParser", () => {
     const result = await parseDiffXml(xml);
 
     assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0]._, "/trunk/file.txt");
-    assert.strictEqual(result[0].props, "none");
-    assert.strictEqual(result[0].kind, "file");
-    assert.strictEqual(result[0].item, "modified");
+    assert.strictEqual(result[0]!._, "/trunk/file.txt");
+    assert.strictEqual(result[0]!.props, "none");
+    assert.strictEqual(result[0]!.kind, "file");
+    assert.strictEqual(result[0]!.item, "modified");
   });
 
   test("parses multiple paths", async () => {
@@ -28,12 +28,12 @@ suite("DiffParser", () => {
     const result = await parseDiffXml(xml);
 
     assert.strictEqual(result.length, 3);
-    assert.strictEqual(result[0]._, "/trunk/new.txt");
-    assert.strictEqual(result[0].item, "added");
-    assert.strictEqual(result[1]._, "/trunk/changed.txt");
-    assert.strictEqual(result[1].props, "modified");
-    assert.strictEqual(result[2].kind, "dir");
-    assert.strictEqual(result[2].item, "deleted");
+    assert.strictEqual(result[0]!._, "/trunk/new.txt");
+    assert.strictEqual(result[0]!.item, "added");
+    assert.strictEqual(result[1]!._, "/trunk/changed.txt");
+    assert.strictEqual(result[1]!.props, "modified");
+    assert.strictEqual(result[2]!.kind, "dir");
+    assert.strictEqual(result[2]!.item, "deleted");
   });
 
   test("rejects empty paths", async () => {

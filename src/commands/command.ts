@@ -108,7 +108,7 @@ export abstract class Command implements Disposable {
         repositoryPromise = Promise.resolve(repository);
       } else if (sourceControlManager.repositories.length === 1) {
         repositoryPromise = Promise.resolve(
-          sourceControlManager.repositories[0]
+          sourceControlManager.repositories[0]!
         );
       } else {
         repositoryPromise = sourceControlManager.pickRepository();
@@ -135,7 +135,7 @@ export abstract class Command implements Disposable {
   ): Promise<Resource[]> {
     if (
       resourceStates.length === 0 ||
-      !(resourceStates[0].resourceUri instanceof Uri)
+      !(resourceStates[0]!.resourceUri instanceof Uri)
     ) {
       const resource = await this.getSCMResource();
 
@@ -207,7 +207,7 @@ export abstract class Command implements Disposable {
       if (isSingleResource) {
         return (fn as (repository: Repository, resource: Uri) => Promise<T>)(
           repository as Repository,
-          resources[0]
+          resources[0]!
         );
       }
       return (fn as (repository: Repository, resources: Uri[]) => Promise<T>)(

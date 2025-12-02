@@ -37,7 +37,7 @@ export class DiffWithExternalTool extends Command {
 
     // If no file provided, try to get from resource states
     if (!filePath && resourceStates.length > 0) {
-      filePath = resourceStates[0].resourceUri.fsPath;
+      filePath = resourceStates[0]!.resourceUri.fsPath;
       console.log("Got file path from resourceStates:", filePath);
     }
 

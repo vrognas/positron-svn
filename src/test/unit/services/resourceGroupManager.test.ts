@@ -53,7 +53,8 @@ suite("ResourceGroupManager Tests", () => {
 
   test("Group creation - static groups created on construction", () => {
     // Arrange & Act
-    const ResourceGroupManager = require("../../../services/ResourceGroupManager").ResourceGroupManager;
+    const ResourceGroupManager =
+      require("../../../services/ResourceGroupManager").ResourceGroupManager;
     void new ResourceGroupManager(
       mockSourceControl as SourceControl,
       disposables
@@ -73,7 +74,8 @@ suite("ResourceGroupManager Tests", () => {
 
   test("Group updates - updateGroups correctly updates all groups from StatusResult", () => {
     // Arrange
-    const ResourceGroupManager = require("../../../services/ResourceGroupManager").ResourceGroupManager;
+    const ResourceGroupManager =
+      require("../../../services/ResourceGroupManager").ResourceGroupManager;
     const manager = new ResourceGroupManager(
       mockSourceControl as SourceControl,
       disposables
@@ -84,12 +86,8 @@ suite("ResourceGroupManager Tests", () => {
         createMockResource("file1.txt", Status.MODIFIED),
         createMockResource("file2.txt", Status.ADDED)
       ],
-      conflicts: [
-        createMockResource("file3.txt", Status.CONFLICTED)
-      ],
-      unversioned: [
-        createMockResource("file4.txt", Status.UNVERSIONED)
-      ],
+      conflicts: [createMockResource("file3.txt", Status.CONFLICTED)],
+      unversioned: [createMockResource("file4.txt", Status.UNVERSIONED)],
       changelists: new Map(),
       remoteChanges: [],
       statusExternal: [],
@@ -105,32 +103,37 @@ suite("ResourceGroupManager Tests", () => {
     const changesGroup = mockGroups.get("changes");
     assert.strictEqual(changesGroup?.resourceStates.length, 2, "2 changes");
     assert.strictEqual(
-      changesGroup?.resourceStates[0].resourceUri.fsPath,
+      changesGroup?.resourceStates[0]!.resourceUri.fsPath,
       "/workspace/file1.txt"
     );
     assert.strictEqual(
-      changesGroup?.resourceStates[1].resourceUri.fsPath,
+      changesGroup?.resourceStates[1]!.resourceUri.fsPath,
       "/workspace/file2.txt"
     );
 
     const conflictsGroup = mockGroups.get("conflicts");
     assert.strictEqual(conflictsGroup?.resourceStates.length, 1, "1 conflict");
     assert.strictEqual(
-      conflictsGroup?.resourceStates[0].resourceUri.fsPath,
+      conflictsGroup?.resourceStates[0]!.resourceUri.fsPath,
       "/workspace/file3.txt"
     );
 
     const unversionedGroup = mockGroups.get("unversioned");
-    assert.strictEqual(unversionedGroup?.resourceStates.length, 1, "1 unversioned");
     assert.strictEqual(
-      unversionedGroup?.resourceStates[0].resourceUri.fsPath,
+      unversionedGroup?.resourceStates.length,
+      1,
+      "1 unversioned"
+    );
+    assert.strictEqual(
+      unversionedGroup?.resourceStates[0]!.resourceUri.fsPath,
       "/workspace/file4.txt"
     );
   });
 
   test("Changelist management - dynamic changelist groups created and disposed", () => {
     // Arrange
-    const ResourceGroupManager = require("../../../services/ResourceGroupManager").ResourceGroupManager;
+    const ResourceGroupManager =
+      require("../../../services/ResourceGroupManager").ResourceGroupManager;
     const manager = new ResourceGroupManager(
       mockSourceControl as SourceControl,
       disposables
@@ -161,7 +164,10 @@ suite("ResourceGroupManager Tests", () => {
     manager.updateGroups(result1);
 
     // Assert 1 - verify changelist groups created
-    assert.ok(mockGroups.has("changelist-feature-x"), "feature-x group created");
+    assert.ok(
+      mockGroups.has("changelist-feature-x"),
+      "feature-x group created"
+    );
     assert.ok(mockGroups.has("changelist-bugfix-y"), "bugfix-y group created");
 
     assert.strictEqual(
@@ -212,7 +218,8 @@ suite("ResourceGroupManager Tests", () => {
 
   test("Index rebuild - skipped when resources unchanged (Phase 16)", () => {
     // Arrange
-    const ResourceGroupManager = require("../../../services/ResourceGroupManager").ResourceGroupManager;
+    const ResourceGroupManager =
+      require("../../../services/ResourceGroupManager").ResourceGroupManager;
     const manager = new ResourceGroupManager(
       mockSourceControl as SourceControl,
       disposables
@@ -248,7 +255,8 @@ suite("ResourceGroupManager Tests", () => {
 
   test("Index rebuild - triggered when resources change (Phase 16)", () => {
     // Arrange
-    const ResourceGroupManager = require("../../../services/ResourceGroupManager").ResourceGroupManager;
+    const ResourceGroupManager =
+      require("../../../services/ResourceGroupManager").ResourceGroupManager;
     const manager = new ResourceGroupManager(
       mockSourceControl as SourceControl,
       disposables
@@ -287,20 +295,30 @@ suite("ResourceGroupManager Tests", () => {
     manager.updateGroups({ result: result1, config });
     const resource1 = manager.getResourceFromFile("/workspace/file1.txt");
     assert.ok(resource1, "file1.txt found");
-    assert.ok(!manager.getResourceFromFile("/workspace/file2.txt"), "file2.txt not found yet");
+    assert.ok(
+      !manager.getResourceFromFile("/workspace/file2.txt"),
+      "file2.txt not found yet"
+    );
 
     manager.updateGroups({ result: result2, config });
     const resource2 = manager.getResourceFromFile("/workspace/file2.txt");
     assert.ok(resource2, "file2.txt found after change");
 
     // Assert - both resources findable (proves rebuild happened)
-    assert.ok(manager.getResourceFromFile("/workspace/file1.txt"), "file1.txt still found");
-    assert.ok(manager.getResourceFromFile("/workspace/file2.txt"), "file2.txt found");
+    assert.ok(
+      manager.getResourceFromFile("/workspace/file1.txt"),
+      "file1.txt still found"
+    );
+    assert.ok(
+      manager.getResourceFromFile("/workspace/file2.txt"),
+      "file2.txt found"
+    );
   });
 
   test("Index rebuild - triggered when changelist count changes (Phase 16)", () => {
     // Arrange
-    const ResourceGroupManager = require("../../../services/ResourceGroupManager").ResourceGroupManager;
+    const ResourceGroupManager =
+      require("../../../services/ResourceGroupManager").ResourceGroupManager;
     const manager = new ResourceGroupManager(
       mockSourceControl as SourceControl,
       disposables
@@ -319,7 +337,9 @@ suite("ResourceGroupManager Tests", () => {
     };
 
     const changelists = new Map<string, Resource[]>();
-    changelists.set("feature-x", [createMockResource("file2.txt", Status.MODIFIED)]);
+    changelists.set("feature-x", [
+      createMockResource("file2.txt", Status.MODIFIED)
+    ]);
 
     const result2: StatusResult = {
       changes: [createMockResource("file1.txt", Status.MODIFIED)],
@@ -337,7 +357,10 @@ suite("ResourceGroupManager Tests", () => {
 
     // Act
     manager.updateGroups({ result: result1, config });
-    assert.ok(!manager.getResourceFromFile("/workspace/file2.txt"), "file2.txt not in index yet");
+    assert.ok(
+      !manager.getResourceFromFile("/workspace/file2.txt"),
+      "file2.txt not in index yet"
+    );
 
     manager.updateGroups({ result: result2, config });
     const resource = manager.getResourceFromFile("/workspace/file2.txt");

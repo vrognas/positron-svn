@@ -18,11 +18,11 @@ suite("ListParser", () => {
     const result = await parseSvnList(xml);
 
     assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0].kind, "file");
-    assert.strictEqual(result[0].name, "test.txt");
-    assert.strictEqual(result[0].size, "1024");
-    assert.strictEqual(result[0].commit.revision, "100");
-    assert.strictEqual(result[0].commit.author, "testuser");
+    assert.strictEqual(result[0]!.kind, "file");
+    assert.strictEqual(result[0]!.name, "test.txt");
+    assert.strictEqual(result[0]!.size, "1024");
+    assert.strictEqual(result[0]!.commit.revision, "100");
+    assert.strictEqual(result[0]!.commit.author, "testuser");
   });
 
   test("parses multiple entries", async () => {
@@ -56,13 +56,13 @@ suite("ListParser", () => {
     const result = await parseSvnList(xml);
 
     assert.strictEqual(result.length, 3);
-    assert.strictEqual(result[0].kind, "dir");
-    assert.strictEqual(result[0].name, "subdir");
-    assert.strictEqual(result[1].kind, "file");
-    assert.strictEqual(result[1].name, "file1.txt");
-    assert.strictEqual(result[1].size, "512");
-    assert.strictEqual(result[2].name, "file2.txt");
-    assert.strictEqual(result[2].commit.revision, "80");
+    assert.strictEqual(result[0]!.kind, "dir");
+    assert.strictEqual(result[0]!.name, "subdir");
+    assert.strictEqual(result[1]!.kind, "file");
+    assert.strictEqual(result[1]!.name, "file1.txt");
+    assert.strictEqual(result[1]!.size, "512");
+    assert.strictEqual(result[2]!.name, "file2.txt");
+    assert.strictEqual(result[2]!.commit.revision, "80");
   });
 
   test("returns empty array for empty list", async () => {

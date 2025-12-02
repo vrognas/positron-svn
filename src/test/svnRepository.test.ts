@@ -36,9 +36,9 @@ suite("Svn Repository Tests", () => {
 
     const status = await repository.getStatus({});
 
-    assert.equal(status[0].path, "test.php");
-    assert.equal(status[1].path, "newfiletester.php");
-    assert.equal(status[2].path, "added.php");
+    assert.equal(status[0]!.path, "test.php");
+    assert.equal(status[1]!.path, "newfiletester.php");
+    assert.equal(status[2]!.path, "added.php");
   });
 
   test("Test rename", async () => {
@@ -50,9 +50,9 @@ suite("Svn Repository Tests", () => {
       ConstructorPolicy.LateInit
     );
     repository.exec = async (args: string[], _options?: ICpOptions) => {
-      assert.equal(args[0].includes("rename"), true);
-      assert.equal(args[1].includes("test.php"), true);
-      assert.equal(args[2].includes("tester.php"), true);
+      assert.equal(args[0]!.includes("rename"), true);
+      assert.equal(args[1]!.includes("test.php"), true);
+      assert.equal(args[2]!.includes("tester.php"), true);
 
       return {
         exitCode: 1,
@@ -576,7 +576,7 @@ suite("Svn Repository Tests", () => {
     );
     assert.ok(capturedArgs.includes("src"), "Should target specified path");
     assert.equal(status.length, 1);
-    assert.equal(status[0].path, "src/file1.ts");
+    assert.equal(status[0]!.path, "src/file1.ts");
   });
 
   test("getScopedStatus: Works with infinity depth", async () => {

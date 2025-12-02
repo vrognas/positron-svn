@@ -7,3 +7,4 @@
 /test-reports
 positron-svn*.vsix
 .tsbuildinfo
+.claude/settings.local.json

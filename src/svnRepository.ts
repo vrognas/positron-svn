@@ -574,7 +574,7 @@ export class Repository {
       return [];
     }
 
-    const copyCommitPath = entries[0].paths[0];
+    const copyCommitPath = entries[0]!.paths[0]!;
 
     if (
       copyCommitPath.copyfromRev === undefined ||
@@ -600,7 +600,7 @@ export class Repository {
     let latestMergedRevision: string = "";
 
     if (revisions.length) {
-      latestMergedRevision = revisions[revisions.length - 1];
+      latestMergedRevision = revisions[revisions.length - 1]!;
     }
 
     if (latestMergedRevision.trim().length === 0) {
@@ -1084,7 +1084,7 @@ export class Repository {
     let message = "";
 
     for (let i = lines.length - 1; i >= 0; i--) {
-      const line = lines[i];
+      const line = lines[i]!;
       const trimmed = line.trim();
 
       // Capture last non-empty line as message
@@ -1095,14 +1095,14 @@ export class Repository {
       // Detect all conflict types (text, tree, property)
       const conflictMatch = conflictRegex.exec(line);
       if (conflictMatch && conflictMatch[1]) {
-        conflicts.unshift(conflictMatch[1].trim());
+        conflicts.unshift(conflictMatch[1]!.trim());
       }
 
       // Extract revision (only once)
       if (revision === null) {
         const revMatch = revRegex.exec(line);
-        if (revMatch) {
-          revision = parseInt(revMatch[1], 10);
+        if (revMatch && revMatch[1]) {
+          revision = parseInt(revMatch[1]!, 10);
         }
       }
     }
@@ -1326,7 +1326,7 @@ export class Repository {
 
     // Edge case: single revision (use existing log method - also cached)
     if (revisions.length === 1) {
-      return this.log(revisions[0], revisions[0], 1, target);
+      return this.log(revisions[0]!, revisions[0]!, 1, target);
     }
 
     // Parse revisions as numbers

@@ -68,12 +68,18 @@ suite("Merge Command Tests", () => {
     };
 
     // Mock window.showErrorMessage
-    (window as any).showErrorMessage = async (_message: string, ..._items: string[]) => {
+    (window as any).showErrorMessage = async (
+      _message: string,
+      ..._items: string[]
+    ) => {
       return mockState.showErrorMessageResult;
     };
 
     // Mock commands.executeCommand
-    (commands as any).executeCommand = async (command: string, ..._args: any[]) => {
+    (commands as any).executeCommand = async (
+      command: string,
+      ..._args: any[]
+    ) => {
       mockState.executeCommandCalls.push({ command });
     };
   });
@@ -105,10 +111,10 @@ suite("Merge Command Tests", () => {
 
       assert.strictEqual(mockState.repositoryMergeCalls.length, 1);
       assert.strictEqual(
-        mockState.repositoryMergeCalls[0].name,
+        mockState.repositoryMergeCalls[0]!.name,
         "branches/feature-123"
       );
-      assert.strictEqual(mockState.repositoryMergeCalls[0].reintegrate, false);
+      assert.strictEqual(mockState.repositoryMergeCalls[0]!.reintegrate, false);
     });
 
     test("should merge with reintegrate from trunk", async () => {
@@ -124,10 +130,10 @@ suite("Merge Command Tests", () => {
 
       assert.strictEqual(mockState.repositoryMergeCalls.length, 1);
       assert.strictEqual(
-        mockState.repositoryMergeCalls[0].name,
+        mockState.repositoryMergeCalls[0]!.name,
         "branches/feature-456"
       );
-      assert.strictEqual(mockState.repositoryMergeCalls[0].reintegrate, true);
+      assert.strictEqual(mockState.repositoryMergeCalls[0]!.reintegrate, true);
     });
 
     test("should merge with reintegrate from trunk subdirectory", async () => {
@@ -142,7 +148,7 @@ suite("Merge Command Tests", () => {
       await merge.execute(mockRepository as Repository);
 
       assert.strictEqual(mockState.repositoryMergeCalls.length, 1);
-      assert.strictEqual(mockState.repositoryMergeCalls[0].reintegrate, true);
+      assert.strictEqual(mockState.repositoryMergeCalls[0]!.reintegrate, true);
     });
   });
 
@@ -233,7 +239,7 @@ suite("Merge Command Tests", () => {
       assert.strictEqual(mockState.repositoryMergeCalls.length, 2);
       assert.strictEqual(mockState.executeCommandCalls.length, 1);
       assert.strictEqual(
-        mockState.executeCommandCalls[0].command,
+        mockState.executeCommandCalls[0]!.command,
         "svn.update"
       );
     });
@@ -355,7 +361,7 @@ suite("Merge Command Tests", () => {
       resetMockCalls();
       await merge.execute(mockRepository as Repository);
 
-      assert.strictEqual(mockState.repositoryMergeCalls[0].reintegrate, true);
+      assert.strictEqual(mockState.repositoryMergeCalls[0]!.reintegrate, true);
     });
 
     test("should detect non-trunk correctly", async () => {
@@ -369,7 +375,7 @@ suite("Merge Command Tests", () => {
       resetMockCalls();
       await merge.execute(mockRepository as Repository);
 
-      assert.strictEqual(mockState.repositoryMergeCalls[0].reintegrate, false);
+      assert.strictEqual(mockState.repositoryMergeCalls[0]!.reintegrate, false);
     });
 
     test("should handle tag as non-trunk", async () => {
@@ -383,7 +389,7 @@ suite("Merge Command Tests", () => {
       resetMockCalls();
       await merge.execute(mockRepository as Repository);
 
-      assert.strictEqual(mockState.repositoryMergeCalls[0].reintegrate, false);
+      assert.strictEqual(mockState.repositoryMergeCalls[0]!.reintegrate, false);
     });
   });
 
@@ -402,7 +408,7 @@ suite("Merge Command Tests", () => {
 
       assert.strictEqual(mockState.repositoryMergeCalls.length, 1);
       assert.strictEqual(
-        mockState.repositoryMergeCalls[0].name,
+        mockState.repositoryMergeCalls[0]!.name,
         "branches/new-feature"
       );
     });
@@ -420,7 +426,7 @@ suite("Merge Command Tests", () => {
 
       assert.strictEqual(mockState.repositoryMergeCalls.length, 1);
       assert.strictEqual(
-        mockState.repositoryMergeCalls[0].name,
+        mockState.repositoryMergeCalls[0]!.name,
         "branches/feature-with-dash_and_underscore"
       );
     });
@@ -438,7 +444,7 @@ suite("Merge Command Tests", () => {
 
       assert.strictEqual(mockState.repositoryMergeCalls.length, 1);
       assert.strictEqual(
-        mockState.repositoryMergeCalls[0].name,
+        mockState.repositoryMergeCalls[0]!.name,
         "project/branches/team/feature"
       );
     });
@@ -457,10 +463,10 @@ suite("Merge Command Tests", () => {
 
       assert.strictEqual(mockState.repositoryMergeCalls.length, 1);
       assert.strictEqual(
-        mockState.repositoryMergeCalls[0].name,
+        mockState.repositoryMergeCalls[0]!.name,
         "branches/test-branch"
       );
-      assert.strictEqual(mockState.repositoryMergeCalls[0].reintegrate, true);
+      assert.strictEqual(mockState.repositoryMergeCalls[0]!.reintegrate, true);
     });
 
     test("should pass reintegrate=false for non-trunk branch", async () => {
@@ -474,7 +480,7 @@ suite("Merge Command Tests", () => {
       await merge.merge(mockRepository as Repository, branchItem);
 
       assert.strictEqual(mockState.repositoryMergeCalls.length, 1);
-      assert.strictEqual(mockState.repositoryMergeCalls[0].reintegrate, false);
+      assert.strictEqual(mockState.repositoryMergeCalls[0]!.reintegrate, false);
     });
 
     test("should handle recursive update retry", async () => {

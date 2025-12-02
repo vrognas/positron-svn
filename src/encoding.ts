@@ -69,8 +69,8 @@ export function detectEncoding(buffer: Buffer): string | null {
 
   if (encodingPriorities.length > 0) {
     for (const pri of encodingPriorities) {
-      const match = detected.find(d =>
-        normaliseEncodingName(pri) === normaliseEncodingName(d.name)
+      const match = detected.find(
+        d => normaliseEncodingName(pri) === normaliseEncodingName(d.name)
       );
       if (match && match.confidence > 60) {
         const normalizedName = normaliseEncodingName(match.name);
@@ -81,7 +81,7 @@ export function detectEncoding(buffer: Buffer): string | null {
   }
 
   // Return highest confidence result
-  const best = detected[0];
+  const best = detected[0]!;
   if (best.confidence < 80) {
     return null;
   }

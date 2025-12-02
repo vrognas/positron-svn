@@ -427,7 +427,10 @@ suite("Prompt Commands Tests", () => {
 
     test("2.7: Remove duplicates from ignore list", async () => {
       const uri = Uri.file("/test/repo/file.txt");
-      (configuration as any).get = <T>(section: string, defaultValue?: T): T => {
+      (configuration as any).get = <T>(
+        section: string,
+        defaultValue?: T
+      ): T => {
         configGetCalls.push({ section, defaultValue });
         if (section === "delete.ignoredRulesForDeletedFiles") {
           return ["file.txt", "other.txt"] as T;
@@ -443,7 +446,10 @@ suite("Prompt Commands Tests", () => {
 
       assert.strictEqual(configUpdateCalls.length, 1);
       const value = configUpdateCalls[0].value;
-      assert.strictEqual(value.filter((v: string) => v === "file.txt").length, 1);
+      assert.strictEqual(
+        value.filter((v: string) => v === "file.txt").length,
+        1
+      );
       assert.ok(value.includes("other.txt"));
     });
 
@@ -457,7 +463,7 @@ suite("Prompt Commands Tests", () => {
         showInfoCalls.push({ message });
         const match = message.match(/"([^"]+)"/);
         if (match) {
-          const fileList = match[1];
+          const fileList = match[1]!;
           const files = fileList.split(", ");
           assert.strictEqual(files[0], "a-file.txt");
           assert.strictEqual(files[1], "z-file.txt");
@@ -669,7 +675,10 @@ suite("Prompt Commands Tests", () => {
       const uri1 = Uri.file("/test/repo/new1.txt");
       const uri2 = Uri.file("/test/repo/new2.txt");
 
-      (configuration as any).get = <T>(section: string, defaultValue?: T): T => {
+      (configuration as any).get = <T>(
+        section: string,
+        defaultValue?: T
+      ): T => {
         if (section === "delete.ignoredRulesForDeletedFiles") {
           return ["existing1.txt", "existing2.txt"] as T;
         }

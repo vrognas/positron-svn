@@ -44,7 +44,7 @@ export function parseLockInfo(content: string): ISvnLockInfo | null {
     }
 
     // Handle single entry (not array)
-    const entry = Array.isArray(result.entry) ? result.entry[0] : result.entry;
+    const entry = Array.isArray(result.entry) ? result.entry[0]! : result.entry;
     const lock = entry.lock;
     if (!lock) {
       // File is not locked

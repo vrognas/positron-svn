@@ -1025,7 +1025,7 @@ export class BlameProvider implements Disposable {
     if (revisionIndex < 5) {
       // Recent revisions: categorical colors (index 0=newest=red, 4=5th newest=blue)
       const categoricalHues = [0, 30, 60, 120, 200]; // Red→orange→yellow→green→blue
-      const hue = categoricalHues[revisionIndex];
+      const hue = categoricalHues[revisionIndex]!;
       const color = this.hslToHex(hue, saturation, lightness);
       this.revisionColors.set(revision, color);
       return color;
@@ -1311,7 +1311,7 @@ export class BlameProvider implements Disposable {
     const maxLength = blameConfiguration.getInlineMaxLength();
 
     // Extract first line only
-    const firstLine = message.split("\n")[0].trim();
+    const firstLine = message.split("\n")[0]!.trim();
 
     if (firstLine.length <= maxLength) {
       return firstLine;

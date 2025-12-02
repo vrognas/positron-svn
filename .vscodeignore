@@ -10,7 +10,6 @@ dist/*.map
 build.yml
 coverage/**
 coverconfig.json
-jsconfig.json
 out/**
 package-lock.json
 package.json.bak

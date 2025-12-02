@@ -57,7 +57,7 @@ export class Checkout extends Command {
       return;
     }
 
-    const uri = uris[0];
+    const uri = uris[0]!;
     const parentPath = uri.fsPath;
 
     let folderName: string | undefined;
@@ -82,11 +82,11 @@ export class Checkout extends Command {
     const repositoryPath = path.join(parentPath, folderName);
 
     // Use Notification location if supported
-    let location = ProgressLocation.Window;
+    let location: ProgressLocation = ProgressLocation.Window;
     if ((ProgressLocation as unknown as Record<string, unknown>).Notification) {
       location = (
         ProgressLocation as unknown as Record<string, ProgressLocation>
-      ).Notification;
+      ).Notification!;
     }
 
     const progressOptions = {

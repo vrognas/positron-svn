@@ -97,7 +97,7 @@ suite("Revert Command Tests", () => {
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(mockState.lastExecuteRevertCall.uris.length, 1);
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[0].fsPath,
+        mockState.lastExecuteRevertCall.uris[0]!.fsPath,
         fileUri.fsPath
       );
       assert.strictEqual(mockState.lastExecuteRevertCall.depth, "empty");
@@ -115,7 +115,7 @@ suite("Revert Command Tests", () => {
 
       assert.ok(mockState.executeRevertCalled);
       assert.ok(mockState.lastExecuteRevertCall);
-      assert.strictEqual(mockState.lastExecuteRevertCall.depth, "files");
+      assert.strictEqual(mockState.lastExecuteRevertCall!.depth, "files");
     });
 
     test("should revert single file with infinity depth", async () => {
@@ -130,7 +130,7 @@ suite("Revert Command Tests", () => {
 
       assert.ok(mockState.executeRevertCalled);
       assert.ok(mockState.lastExecuteRevertCall);
-      assert.strictEqual(mockState.lastExecuteRevertCall.depth, "infinity");
+      assert.strictEqual(mockState.lastExecuteRevertCall!.depth, "infinity");
     });
 
     test("should revert single modified file", async () => {
@@ -145,7 +145,7 @@ suite("Revert Command Tests", () => {
       assert.ok(mockState.executeRevertCalled);
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[0].fsPath,
+        mockState.lastExecuteRevertCall.uris[0]!.fsPath,
         fileUri.fsPath
       );
     });
@@ -162,7 +162,7 @@ suite("Revert Command Tests", () => {
       assert.ok(mockState.executeRevertCalled);
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[0].fsPath,
+        mockState.lastExecuteRevertCall.uris[0]!.fsPath,
         fileUri.fsPath
       );
     });
@@ -179,7 +179,7 @@ suite("Revert Command Tests", () => {
       assert.ok(mockState.executeRevertCalled);
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[0].fsPath,
+        mockState.lastExecuteRevertCall.uris[0]!.fsPath,
         fileUri.fsPath
       );
     });
@@ -196,7 +196,7 @@ suite("Revert Command Tests", () => {
       assert.ok(mockState.executeRevertCalled);
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[0].fsPath,
+        mockState.lastExecuteRevertCall.uris[0]!.fsPath,
         fileUri.fsPath
       );
     });
@@ -218,11 +218,11 @@ suite("Revert Command Tests", () => {
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(mockState.lastExecuteRevertCall.uris.length, 2);
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[0].fsPath,
+        mockState.lastExecuteRevertCall.uris[0]!.fsPath,
         fileUri1.fsPath
       );
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[1].fsPath,
+        mockState.lastExecuteRevertCall.uris[1]!.fsPath,
         fileUri2.fsPath
       );
     });
@@ -236,7 +236,11 @@ suite("Revert Command Tests", () => {
       const resource3 = new Resource(fileUri3, Status.DELETED);
 
       resetMockCalls();
-      mockState.getResourceStatesOrExitResult = [resource1, resource2, resource3];
+      mockState.getResourceStatesOrExitResult = [
+        resource1,
+        resource2,
+        resource3
+      ];
 
       await revert.execute(resource1, resource2, resource3);
 
@@ -244,15 +248,15 @@ suite("Revert Command Tests", () => {
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(mockState.lastExecuteRevertCall.uris.length, 3);
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[0].fsPath,
+        mockState.lastExecuteRevertCall.uris[0]!.fsPath,
         fileUri1.fsPath
       );
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[1].fsPath,
+        mockState.lastExecuteRevertCall.uris[1]!.fsPath,
         fileUri2.fsPath
       );
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[2].fsPath,
+        mockState.lastExecuteRevertCall.uris[2]!.fsPath,
         fileUri3.fsPath
       );
     });
@@ -266,7 +270,11 @@ suite("Revert Command Tests", () => {
       const resource3 = new Resource(fileUri3, Status.DELETED);
 
       resetMockCalls();
-      mockState.getResourceStatesOrExitResult = [resource1, resource2, resource3];
+      mockState.getResourceStatesOrExitResult = [
+        resource1,
+        resource2,
+        resource3
+      ];
 
       await revert.execute(resource1, resource2, resource3);
 
@@ -315,7 +323,7 @@ suite("Revert Command Tests", () => {
 
       assert.ok(mockState.executeRevertCalled);
       assert.ok(mockState.lastExecuteRevertCall);
-      assert.strictEqual(mockState.lastExecuteRevertCall.depth, "immediates");
+      assert.strictEqual(mockState.lastExecuteRevertCall!.depth, "immediates");
     });
 
     test("should handle all depth values", async () => {
@@ -337,7 +345,7 @@ suite("Revert Command Tests", () => {
 
         assert.ok(mockState.executeRevertCalled);
         assert.ok(mockState.lastExecuteRevertCall);
-        assert.strictEqual(mockState.lastExecuteRevertCall.depth, depth);
+        assert.strictEqual(mockState.lastExecuteRevertCall!.depth, depth);
       }
     });
   });
@@ -464,7 +472,7 @@ suite("Revert Command Tests", () => {
       assert.ok(mockState.executeRevertCalled);
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(mockState.lastExecuteRevertCall.uris.length, 2);
-      assert.strictEqual(mockState.lastExecuteRevertCall.depth, "files");
+      assert.strictEqual(mockState.lastExecuteRevertCall!.depth, "files");
     });
 
     test("should map URIs correctly for mixed resources", async () => {
@@ -476,7 +484,11 @@ suite("Revert Command Tests", () => {
       const dirResource = new Resource(dirUri, Status.MODIFIED);
 
       resetMockCalls();
-      mockState.getResourceStatesOrExitResult = [resource1, resource2, dirResource];
+      mockState.getResourceStatesOrExitResult = [
+        resource1,
+        resource2,
+        dirResource
+      ];
       mockState.checkAndPromptDepthResult = "infinity";
 
       await revert.execute(resource1, resource2, dirResource);
@@ -485,15 +497,15 @@ suite("Revert Command Tests", () => {
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(mockState.lastExecuteRevertCall.uris.length, 3);
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[0].fsPath,
+        mockState.lastExecuteRevertCall.uris[0]!.fsPath,
         fileUri1.fsPath
       );
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[1].fsPath,
+        mockState.lastExecuteRevertCall.uris[1]!.fsPath,
         fileUri2.fsPath
       );
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[2].fsPath,
+        mockState.lastExecuteRevertCall.uris[2]!.fsPath,
         dirUri.fsPath
       );
     });
@@ -513,10 +525,10 @@ suite("Revert Command Tests", () => {
       assert.ok(mockState.executeRevertCalled);
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[0].fsPath,
+        mockState.lastExecuteRevertCall.uris[0]!.fsPath,
         dirUri.fsPath
       );
-      assert.strictEqual(mockState.lastExecuteRevertCall.depth, "empty");
+      assert.strictEqual(mockState.lastExecuteRevertCall!.depth, "empty");
     });
 
     test("should revert directory with files depth", async () => {
@@ -530,7 +542,7 @@ suite("Revert Command Tests", () => {
       await revert.execute(resource);
 
       assert.ok(mockState.lastExecuteRevertCall);
-      assert.strictEqual(mockState.lastExecuteRevertCall.depth, "files");
+      assert.strictEqual(mockState.lastExecuteRevertCall!.depth, "files");
     });
 
     test("should revert directory with infinity depth", async () => {
@@ -544,7 +556,7 @@ suite("Revert Command Tests", () => {
       await revert.execute(resource);
 
       assert.ok(mockState.lastExecuteRevertCall);
-      assert.strictEqual(mockState.lastExecuteRevertCall.depth, "infinity");
+      assert.strictEqual(mockState.lastExecuteRevertCall!.depth, "infinity");
     });
 
     test("should revert nested directory structure", async () => {
@@ -560,7 +572,7 @@ suite("Revert Command Tests", () => {
       assert.ok(mockState.executeRevertCalled);
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[0].fsPath,
+        mockState.lastExecuteRevertCall.uris[0]!.fsPath,
         dirUri.fsPath
       );
     });
@@ -628,7 +640,7 @@ suite("Revert Command Tests", () => {
 
       assert.ok(mockState.lastExecuteRevertCall);
       assert.strictEqual(
-        mockState.lastExecuteRevertCall.uris[0].fsPath,
+        mockState.lastExecuteRevertCall.uris[0]!.fsPath,
         fileUri.fsPath
       );
     });
@@ -643,7 +655,10 @@ suite("Revert Command Tests", () => {
       await revert.execute(resource);
 
       assert.ok(mockState.lastExecuteRevertCall);
-      assert.strictEqual(mockState.lastExecuteRevertCall.uris[0].scheme, "file");
+      assert.strictEqual(
+        mockState.lastExecuteRevertCall.uris[0]!.scheme,
+        "file"
+      );
     });
 
     test("should maintain URI order in mapped URIs", async () => {
@@ -655,15 +670,19 @@ suite("Revert Command Tests", () => {
       const resource3 = new Resource(fileUri3, Status.DELETED);
 
       resetMockCalls();
-      mockState.getResourceStatesOrExitResult = [resource1, resource2, resource3];
+      mockState.getResourceStatesOrExitResult = [
+        resource1,
+        resource2,
+        resource3
+      ];
 
       await revert.execute(resource1, resource2, resource3);
 
       assert.ok(mockState.lastExecuteRevertCall);
       const uris = mockState.lastExecuteRevertCall.uris;
-      assert.strictEqual(uris[0].fsPath, fileUri1.fsPath);
-      assert.strictEqual(uris[1].fsPath, fileUri2.fsPath);
-      assert.strictEqual(uris[2].fsPath, fileUri3.fsPath);
+      assert.strictEqual(uris[0]!.fsPath, fileUri1.fsPath);
+      assert.strictEqual(uris[1]!.fsPath, fileUri2.fsPath);
+      assert.strictEqual(uris[2]!.fsPath, fileUri3.fsPath);
     });
   });
 });

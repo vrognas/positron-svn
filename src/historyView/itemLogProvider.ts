@@ -99,7 +99,7 @@ export class ItemLogProvider
       window.showWarningMessage("Cannot diff last commit");
       return;
     }
-    const prevRev = item.entries[pos + 1].revision;
+    const prevRev = item.entries[pos + 1]!.revision;
     return openDiff(item.repo, item.svnTarget, prevRev, commit.revision);
   }
 

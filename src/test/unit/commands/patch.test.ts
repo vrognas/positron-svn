@@ -62,10 +62,7 @@ suite("Patch Commands Tests", () => {
       const resource = new Resource(fileUri, Status.MODIFIED);
 
       (patch as any).getResourceStatesOrExit = async () => [resource];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [fileUri]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -75,9 +72,12 @@ suite("Patch Commands Tests", () => {
       await patch.execute(resource);
 
       assert.strictEqual(patchCalls.length, 1);
-      assert.strictEqual(patchCalls[0].files.length, 1);
+      assert.strictEqual(patchCalls[0]!.files.length, 1);
       assert.strictEqual(showDiffPathCalls.length, 1);
-      assert.strictEqual(showDiffPathCalls[0].content, "diff content for files");
+      assert.strictEqual(
+        showDiffPathCalls[0]!.content,
+        "diff content for files"
+      );
     });
 
     test("1.2: Multiple modified files patch", async () => {
@@ -90,10 +90,7 @@ suite("Patch Commands Tests", () => {
         resource1,
         resource2
       ];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [fileUri1, fileUri2]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -103,7 +100,7 @@ suite("Patch Commands Tests", () => {
       await patch.execute(resource1, resource2);
 
       assert.strictEqual(patchCalls.length, 1);
-      assert.strictEqual(patchCalls[0].files.length, 2);
+      assert.strictEqual(patchCalls[0]!.files.length, 2);
       assert.strictEqual(showDiffPathCalls.length, 1);
     });
 
@@ -112,10 +109,7 @@ suite("Patch Commands Tests", () => {
       const resource = new Resource(fileUri, Status.ADDED);
 
       (patch as any).getResourceStatesOrExit = async () => [resource];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [fileUri]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -133,10 +127,7 @@ suite("Patch Commands Tests", () => {
       const resource = new Resource(fileUri, Status.DELETED);
 
       (patch as any).getResourceStatesOrExit = async () => [resource];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [fileUri]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -162,10 +153,7 @@ suite("Patch Commands Tests", () => {
         resource2,
         resource3
       ];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [modifiedUri, addedUri, deletedUri]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -175,7 +163,7 @@ suite("Patch Commands Tests", () => {
       await patch.execute(resource1, resource2, resource3);
 
       assert.strictEqual(patchCalls.length, 1);
-      assert.strictEqual(patchCalls[0].files.length, 3);
+      assert.strictEqual(patchCalls[0]!.files.length, 3);
       assert.strictEqual(showDiffPathCalls.length, 1);
     });
 
@@ -206,10 +194,7 @@ suite("Patch Commands Tests", () => {
       };
 
       (patch as any).getResourceStatesOrExit = async () => [resource];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         try {
           await operation(mockRepository, [fileUri]);
         } catch (err) {
@@ -231,12 +216,9 @@ suite("Patch Commands Tests", () => {
       const resource = new Resource(fileUri, Status.MODIFIED);
 
       (patch as any).getResourceStatesOrExit = async () => [resource];
-      (patch as any).runByRepository = async (
-        uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (uris: Uri[], operation: any) => {
         assert.strictEqual(uris.length, 1);
-        assert.strictEqual(uris[0].fsPath, fileUri.fsPath);
+        assert.strictEqual(uris[0]!.fsPath, fileUri.fsPath);
         await operation(mockRepository, uris);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -253,10 +235,7 @@ suite("Patch Commands Tests", () => {
       const resource = new Resource(fileUri, Status.MODIFIED);
 
       (patch as any).getResourceStatesOrExit = async () => [resource];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [fileUri]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -274,10 +253,7 @@ suite("Patch Commands Tests", () => {
       const resource = new Resource(fileUri, Status.CONFLICTED);
 
       (patch as any).getResourceStatesOrExit = async () => [resource];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [fileUri]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -295,10 +271,7 @@ suite("Patch Commands Tests", () => {
       const resource = new Resource(fileUri, Status.REPLACED);
 
       (patch as any).getResourceStatesOrExit = async () => [resource];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [fileUri]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -327,9 +300,12 @@ suite("Patch Commands Tests", () => {
       await patchAll.execute(mockRepository as Repository);
 
       assert.strictEqual(patchCalls.length, 1);
-      assert.strictEqual(patchCalls[0].files.length, 0);
+      assert.strictEqual(patchCalls[0]!.files.length, 0);
       assert.strictEqual(showDiffPathCalls.length, 1);
-      assert.strictEqual(showDiffPathCalls[0].content, "diff content for files");
+      assert.strictEqual(
+        showDiffPathCalls[0]!.content,
+        "diff content for files"
+      );
     });
 
     test("2.2: Empty patch when no changes", async () => {
@@ -345,9 +321,9 @@ suite("Patch Commands Tests", () => {
       await patchAll.execute(mockRepository as Repository);
 
       assert.strictEqual(patchCalls.length, 1);
-      assert.strictEqual(patchCalls[0].files.length, 0);
+      assert.strictEqual(patchCalls[0]!.files.length, 0);
       assert.strictEqual(showDiffPathCalls.length, 1);
-      assert.strictEqual(showDiffPathCalls[0].content, "");
+      assert.strictEqual(showDiffPathCalls[0]!.content, "");
     });
 
     test("2.3: Repository.patch error handling", async () => {
@@ -366,7 +342,8 @@ suite("Patch Commands Tests", () => {
     });
 
     test("2.4: showDiffPath called with correct content", async () => {
-      const expectedContent = "diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new";
+      const expectedContent =
+        "diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new";
       (mockRepository.patch as any) = async (files: string[]) => {
         patchCalls.push({ files });
         return expectedContent;
@@ -418,10 +395,13 @@ suite("Patch Commands Tests", () => {
 
       assert.strictEqual(getPatchChangelistCalls, 1);
       assert.strictEqual(patchChangelistCalls.length, 1);
-      assert.strictEqual(patchChangelistCalls[0].changelistName, "my-changelist");
+      assert.strictEqual(
+        patchChangelistCalls[0]!.changelistName,
+        "my-changelist"
+      );
       assert.strictEqual(showDiffPathCalls.length, 1);
       assert.strictEqual(
-        showDiffPathCalls[0].content,
+        showDiffPathCalls[0]!.content,
         "diff content for my-changelist"
       );
     });
@@ -496,7 +476,7 @@ suite("Patch Commands Tests", () => {
 
       assert.strictEqual(patchChangelistCalls.length, 1);
       assert.strictEqual(
-        patchChangelistCalls[0].changelistName,
+        patchChangelistCalls[0]!.changelistName,
         "feature/my-feature-123"
       );
       assert.strictEqual(showDiffPathCalls.length, 1);
@@ -516,7 +496,7 @@ suite("Patch Commands Tests", () => {
 
       assert.strictEqual(patchChangelistCalls.length, 1);
       assert.strictEqual(
-        patchChangelistCalls[0].changelistName,
+        patchChangelistCalls[0]!.changelistName,
         "my changelist with spaces"
       );
       assert.strictEqual(showDiffPathCalls.length, 1);
@@ -526,7 +506,9 @@ suite("Patch Commands Tests", () => {
       getPatchChangelistResult = "my-changelist";
 
       const expectedContent = "diff for changelist";
-      (mockRepository.patchChangelist as any) = async (changelistName: string) => {
+      (mockRepository.patchChangelist as any) = async (
+        changelistName: string
+      ) => {
         patchChangelistCalls.push({ changelistName });
         return expectedContent;
       };
@@ -567,7 +549,9 @@ suite("Patch Commands Tests", () => {
       getPatchChangelistResult = "my-changelist";
 
       let receivedRepo: any = null;
-      (changelistItems as any).getPatchChangelist = async (repo: Repository) => {
+      (changelistItems as any).getPatchChangelist = async (
+        repo: Repository
+      ) => {
         receivedRepo = repo;
         getPatchChangelistCalls++;
         return getPatchChangelistResult;
@@ -604,10 +588,7 @@ suite("Patch Commands Tests", () => {
       }
 
       (patch as any).getResourceStatesOrExit = async () => resources;
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, uris);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -617,7 +598,7 @@ suite("Patch Commands Tests", () => {
       await patch.execute(...resources);
 
       assert.strictEqual(patchCalls.length, 1);
-      assert.strictEqual(patchCalls[0].files.length, 100);
+      assert.strictEqual(patchCalls[0]!.files.length, 100);
       assert.strictEqual(showDiffPathCalls.length, 1);
     });
 
@@ -626,10 +607,7 @@ suite("Patch Commands Tests", () => {
       const resource = new Resource(fileUri, Status.MODIFIED);
 
       (patch as any).getResourceStatesOrExit = async () => [resource];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [fileUri]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -647,10 +625,7 @@ suite("Patch Commands Tests", () => {
       const resource = new Resource(fileUri, Status.MODIFIED);
 
       (patch as any).getResourceStatesOrExit = async () => [resource];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [fileUri]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -668,10 +643,7 @@ suite("Patch Commands Tests", () => {
       const resource = new Resource(fileUri, Status.MODIFIED);
 
       (patch as any).getResourceStatesOrExit = async () => [resource];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [fileUri]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {
@@ -689,10 +661,7 @@ suite("Patch Commands Tests", () => {
       const resource = new Resource(fileUri, Status.MODIFIED);
 
       (patch as any).getResourceStatesOrExit = async () => [resource, resource];
-      (patch as any).runByRepository = async (
-        _uris: Uri[],
-        operation: any
-      ) => {
+      (patch as any).runByRepository = async (_uris: Uri[], operation: any) => {
         await operation(mockRepository, [fileUri, fileUri]);
       };
       (patch as any).showDiffPath = async (_repo: any, content: string) => {

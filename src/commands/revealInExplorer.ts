@@ -24,7 +24,7 @@ export class RevealInExplorer extends Command {
 
     // Reveal the first resource in the OS file explorer
     // Note: Only first file revealed when multiple selected (matches VS Code UX)
-    const resource = resourceStates[0];
+    const resource = resourceStates[0]!;
     if (!resource.resourceUri) {
       return;
     }

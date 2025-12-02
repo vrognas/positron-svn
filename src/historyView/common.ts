@@ -109,10 +109,10 @@ function needFetch(
   fetched: ISvnLogEntry[],
   limit: number
 ): boolean {
-  if (cached.length && cached[cached.length - 1].revision === "1") {
+  if (cached.length && cached[cached.length - 1]!.revision === "1") {
     return false;
   }
-  if (fetched.length === 0 || fetched[fetched.length - 1].revision === "1") {
+  if (fetched.length === 0 || fetched[fetched.length - 1]!.revision === "1") {
     return false;
   }
   if (fetched.length < limit) {
@@ -130,10 +130,10 @@ export function insertBaseMarker(
   if (
     entries.length &&
     baseRev &&
-    parseInt(entries[0].revision, 10) > baseRev
+    parseInt(entries[0]!.revision, 10) > baseRev
   ) {
     let i = 1;
-    while (entries.length > i && parseInt(entries[i].revision, 10) > baseRev) {
+    while (entries.length > i && parseInt(entries[i]!.revision, 10) > baseRev) {
       i++;
     }
     const titem = new TreeItem("BASE");
@@ -185,7 +185,7 @@ export async function fetchMore(cached: ICachedLog) {
   let rfrom = cached.persisted.commitFrom;
   const entries = cached.entries;
   if (entries.length) {
-    rfrom = entries[entries.length - 1].revision;
+    rfrom = entries[entries.length - 1]!.revision;
     rfrom = (Number.parseInt(rfrom, 10) - 1).toString();
   }
   let moreCommits: ISvnLogEntry[] = [];
@@ -226,7 +226,7 @@ export function getCommitLabel(commit: ISvnLogEntry): string {
   if (!commit.msg) {
     return "<blank>";
   }
-  return commit.msg.split(/\r?\n/, 1)[0];
+  return commit.msg.split(/\r?\n/, 1)[0]!;
 }
 
 export function getCommitToolTip(commit: ISvnLogEntry): string {

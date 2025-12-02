@@ -20,7 +20,10 @@ suite("ChangeList Command Tests", () => {
   // Call tracking
   let addChangelistCalls: Array<{ paths: string[]; name: string }>;
   let removeChangelistCalls: Array<{ paths: string[] }>;
-  let inputSwitchChangelistCalls: Array<{ repo: Repository; canRemove: boolean }>;
+  let inputSwitchChangelistCalls: Array<{
+    repo: Repository;
+    canRemove: boolean;
+  }>;
   let showErrorCalls: string[];
   let showInfoCalls: string[];
   let executeCommandCalls: any[];
@@ -37,7 +40,10 @@ suite("ChangeList Command Tests", () => {
     // Mock Repository with changelists
     mockRepository = {
       changelists: new Map(),
-      addChangelist: async (paths: string[], name: string): Promise<IExecutionResult> => {
+      addChangelist: async (
+        paths: string[],
+        name: string
+      ): Promise<IExecutionResult> => {
         addChangelistCalls.push({ paths, name });
         return { exitCode: 0, stdout: "", stderr: "" };
       },
@@ -113,8 +119,8 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(resource);
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.deepStrictEqual(addChangelistCalls[0].paths, ["/repo/file.txt"]);
-      assert.strictEqual(addChangelistCalls[0].name, "my-changelist");
+      assert.deepStrictEqual(addChangelistCalls[0]!.paths, ["/repo/file.txt"]);
+      assert.strictEqual(addChangelistCalls[0]!.name, "my-changelist");
     });
 
     test("1.2: Handle multiple Resource instances", async () => {
@@ -122,10 +128,7 @@ suite("ChangeList Command Tests", () => {
         Uri.file("/repo/file1.txt"),
         Status.MODIFIED
       );
-      const resource2 = new Resource(
-        Uri.file("/repo/file2.txt"),
-        Status.ADDED
-      );
+      const resource2 = new Resource(Uri.file("/repo/file2.txt"), Status.ADDED);
 
       (changelistItems as any).inputSwitchChangelist = async () =>
         "feature-123";
@@ -133,24 +136,23 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(resource1, resource2);
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.deepStrictEqual(addChangelistCalls[0].paths, [
+      assert.deepStrictEqual(addChangelistCalls[0]!.paths, [
         "/repo/file1.txt",
         "/repo/file2.txt"
       ]);
-      assert.strictEqual(addChangelistCalls[0].name, "feature-123");
+      assert.strictEqual(addChangelistCalls[0]!.name, "feature-123");
     });
 
     test("1.3: Handle Uri array", async () => {
       const uri1 = Uri.file("/repo/file1.txt");
       const uri2 = Uri.file("/repo/file2.txt");
 
-      (changelistItems as any).inputSwitchChangelist = async () =>
-        "bugfix-456";
+      (changelistItems as any).inputSwitchChangelist = async () => "bugfix-456";
 
       await changeListCmd.execute(uri1, [uri1, uri2]);
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.deepStrictEqual(addChangelistCalls[0].paths, [
+      assert.deepStrictEqual(addChangelistCalls[0]!.paths, [
         "/repo/file1.txt",
         "/repo/file2.txt"
       ]);
@@ -167,7 +169,7 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute();
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.deepStrictEqual(addChangelistCalls[0].paths, [
+      assert.deepStrictEqual(addChangelistCalls[0]!.paths, [
         "/repo/active-file.txt"
       ]);
     });
@@ -224,9 +226,7 @@ suite("ChangeList Command Tests", () => {
       let callCount = 0;
       mockSourceControlManager.getRepositoryFromUri = async () => {
         callCount++;
-        return (callCount === 1
-          ? mockRepository
-          : mockRepo2) as Repository;
+        return (callCount === 1 ? mockRepository : mockRepo2) as Repository;
       };
 
       await changeListCmd.execute(resource1, resource2);
@@ -298,10 +298,10 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(resource);
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.strictEqual(addChangelistCalls[0].name, "new-feature");
-      assert.deepStrictEqual(addChangelistCalls[0].paths, ["/repo/file.txt"]);
+      assert.strictEqual(addChangelistCalls[0]!.name, "new-feature");
+      assert.deepStrictEqual(addChangelistCalls[0]!.paths, ["/repo/file.txt"]);
       assert.strictEqual(showInfoCalls.length, 1);
-      assert.ok(showInfoCalls[0].includes("new-feature"));
+      assert.ok(showInfoCalls[0]!.includes("new-feature"));
     });
 
     test("3.2: Add to existing changelist", async () => {
@@ -327,7 +327,7 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(resource);
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.strictEqual(addChangelistCalls[0].name, "existing-list");
+      assert.strictEqual(addChangelistCalls[0]!.name, "existing-list");
     });
 
     test("3.3: Multiple files to single changelist", async () => {
@@ -342,12 +342,12 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(...resources);
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.deepStrictEqual(addChangelistCalls[0].paths, [
+      assert.deepStrictEqual(addChangelistCalls[0]!.paths, [
         "/repo/file1.txt",
         "/repo/file2.txt",
         "/repo/file3.txt"
       ]);
-      assert.strictEqual(addChangelistCalls[0].name, "batch-fix");
+      assert.strictEqual(addChangelistCalls[0]!.name, "batch-fix");
     });
   });
 
@@ -381,7 +381,7 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(resource);
 
       assert.strictEqual(removeChangelistCalls.length, 1);
-      assert.deepStrictEqual(removeChangelistCalls[0].paths, [
+      assert.deepStrictEqual(removeChangelistCalls[0]!.paths, [
         "/repo/file.txt"
       ]);
       assert.strictEqual(addChangelistCalls.length, 0);
@@ -397,9 +397,7 @@ suite("ChangeList Command Tests", () => {
           {
             id: "active-list",
             label: "active-list",
-            resourceStates: [
-              new Resource(fileUri, Status.MODIFIED)
-            ]
+            resourceStates: [new Resource(fileUri, Status.MODIFIED)]
           } as any
         ]
       ]);
@@ -415,7 +413,7 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(resource);
 
       assert.strictEqual(inputSwitchChangelistCalls.length, 1);
-      assert.strictEqual(inputSwitchChangelistCalls[0].canRemove, true);
+      assert.strictEqual(inputSwitchChangelistCalls[0]!.canRemove, true);
     });
 
     test("4.3: canRemove=false when file not in changelist", async () => {
@@ -437,7 +435,7 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(resource);
 
       assert.strictEqual(inputSwitchChangelistCalls.length, 1);
-      assert.strictEqual(inputSwitchChangelistCalls[0].canRemove, false);
+      assert.strictEqual(inputSwitchChangelistCalls[0]!.canRemove, false);
     });
 
     test("4.4: Switch file between changelists", async () => {
@@ -462,7 +460,7 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(resource);
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.strictEqual(addChangelistCalls[0].name, "new-list");
+      assert.strictEqual(addChangelistCalls[0]!.name, "new-list");
       assert.strictEqual(removeChangelistCalls.length, 0);
     });
   });
@@ -598,9 +596,7 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(resource);
 
       assert.strictEqual(showErrorCalls.length, 1);
-      assert.ok(
-        showErrorCalls[0].includes("not under version control")
-      );
+      assert.ok(showErrorCalls[0]!.includes("not under version control"));
     });
   });
 
@@ -635,7 +631,7 @@ suite("ChangeList Command Tests", () => {
 
       await changeListCmd.execute(resource);
 
-      assert.strictEqual(inputSwitchChangelistCalls[0].canRemove, true);
+      assert.strictEqual(inputSwitchChangelistCalls[0]!.canRemove, true);
     });
 
     test("7.2: Handle Windows-style paths", async () => {
@@ -649,7 +645,7 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(resource);
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.ok(addChangelistCalls[0].paths[0].includes("file.txt"));
+      assert.ok(addChangelistCalls[0]!.paths[0]!.includes("file.txt"));
     });
 
     test("7.3: Handle special characters in paths", async () => {
@@ -665,7 +661,7 @@ suite("ChangeList Command Tests", () => {
 
       assert.strictEqual(addChangelistCalls.length, 1);
       assert.strictEqual(
-        addChangelistCalls[0].paths[0],
+        addChangelistCalls[0]!.paths[0]!,
         "/repo/file with spaces.txt"
       );
     });
@@ -683,9 +679,9 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(resource);
 
       assert.strictEqual(showInfoCalls.length, 1);
-      assert.ok(showInfoCalls[0].includes('Added files'));
-      assert.ok(showInfoCalls[0].includes('/repo/file.txt'));
-      assert.ok(showInfoCalls[0].includes('feature-x'));
+      assert.ok(showInfoCalls[0]!.includes("Added files"));
+      assert.ok(showInfoCalls[0]!.includes("/repo/file.txt"));
+      assert.ok(showInfoCalls[0]!.includes("feature-x"));
     });
 
     test("8.2: Show file paths in message", async () => {
@@ -699,8 +695,8 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(...resources);
 
       assert.strictEqual(showInfoCalls.length, 1);
-      assert.ok(showInfoCalls[0].includes('/repo/file1.txt'));
-      assert.ok(showInfoCalls[0].includes('/repo/file2.txt'));
+      assert.ok(showInfoCalls[0]!.includes("/repo/file1.txt"));
+      assert.ok(showInfoCalls[0]!.includes("/repo/file2.txt"));
     });
 
     test("8.3: No success message when removing", async () => {
@@ -764,8 +760,8 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(file1, file2, file3);
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.strictEqual(addChangelistCalls[0].name, "unified-list");
-      assert.strictEqual(addChangelistCalls[0].paths.length, 3);
+      assert.strictEqual(addChangelistCalls[0]!.name, "unified-list");
+      assert.strictEqual(addChangelistCalls[0]!.paths.length, 3);
     });
 
     test("9.2: Large batch of files", async () => {
@@ -781,7 +777,7 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(...resources);
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.strictEqual(addChangelistCalls[0].paths.length, 50);
+      assert.strictEqual(addChangelistCalls[0]!.paths.length, 50);
     });
 
     test("9.3: Files with various status types", async () => {
@@ -797,7 +793,7 @@ suite("ChangeList Command Tests", () => {
       await changeListCmd.execute(...resources);
 
       assert.strictEqual(addChangelistCalls.length, 1);
-      assert.strictEqual(addChangelistCalls[0].paths.length, 4);
+      assert.strictEqual(addChangelistCalls[0]!.paths.length, 4);
     });
   });
 });

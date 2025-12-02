@@ -21,11 +21,11 @@ suite("StatusParser", () => {
     const result = await parseStatusXml(xml);
 
     assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0].path, "file.txt");
-    assert.strictEqual(result[0].status, "modified");
-    assert.strictEqual(result[0].props, "none");
-    assert.strictEqual(result[0].commit?.revision, "123");
-    assert.strictEqual(result[0].commit?.author, "user");
+    assert.strictEqual(result[0]!.path, "file.txt");
+    assert.strictEqual(result[0]!.status, "modified");
+    assert.strictEqual(result[0]!.props, "none");
+    assert.strictEqual(result[0]!.commit?.revision, "123");
+    assert.strictEqual(result[0]!.commit?.author, "user");
   });
 
   test("parses changelist entries", async () => {
@@ -46,12 +46,12 @@ suite("StatusParser", () => {
     const result = await parseStatusXml(xml);
 
     assert.strictEqual(result.length, 2);
-    assert.strictEqual(result[0].changelist, "my-changelist");
-    assert.strictEqual(result[0].path, "file1.txt");
-    assert.strictEqual(result[0].status, "modified");
-    assert.strictEqual(result[1].changelist, "my-changelist");
-    assert.strictEqual(result[1].path, "file2.txt");
-    assert.strictEqual(result[1].status, "added");
+    assert.strictEqual(result[0]!.changelist, "my-changelist");
+    assert.strictEqual(result[0]!.path, "file1.txt");
+    assert.strictEqual(result[0]!.status, "modified");
+    assert.strictEqual(result[1]!.changelist, "my-changelist");
+    assert.strictEqual(result[1]!.path, "file2.txt");
+    assert.strictEqual(result[1]!.status, "added");
   });
 
   test("parses external repository", async () => {
@@ -72,8 +72,8 @@ suite("StatusParser", () => {
     const result = await parseStatusXml(xml);
 
     assert.strictEqual(result.length, 2);
-    assert.strictEqual(result[0].status, "external");
-    assert.strictEqual(result[1].wcStatus.locked, true);
+    assert.strictEqual(result[0]!.status, "external");
+    assert.strictEqual(result[1]!.wcStatus.locked, true);
   });
 
   test("lockStatus K when wcLocked=true and no server check", async () => {
@@ -90,9 +90,9 @@ suite("StatusParser", () => {
 
     const result = await parseStatusXml(xml);
 
-    assert.strictEqual(result[0].wcStatus.hasLockToken, true);
-    assert.strictEqual(result[0].wcStatus.lockStatus, LockStatus.K);
-    assert.strictEqual(result[0].wcStatus.serverChecked, false);
+    assert.strictEqual(result[0]!.wcStatus.hasLockToken, true);
+    assert.strictEqual(result[0]!.wcStatus.lockStatus, LockStatus.K);
+    assert.strictEqual(result[0]!.wcStatus.serverChecked, false);
   });
 
   test("lockStatus O when server has lock by another user", async () => {
@@ -116,10 +116,10 @@ suite("StatusParser", () => {
 
     const result = await parseStatusXml(xml);
 
-    assert.strictEqual(result[0].wcStatus.hasLockToken, false);
-    assert.strictEqual(result[0].wcStatus.lockStatus, LockStatus.O);
-    assert.strictEqual(result[0].wcStatus.lockOwner, "otheruser");
-    assert.strictEqual(result[0].wcStatus.serverChecked, true);
+    assert.strictEqual(result[0]!.wcStatus.hasLockToken, false);
+    assert.strictEqual(result[0]!.wcStatus.lockStatus, LockStatus.O);
+    assert.strictEqual(result[0]!.wcStatus.lockOwner, "otheruser");
+    assert.strictEqual(result[0]!.wcStatus.serverChecked, true);
   });
 
   test("lockStatus B when wcLocked=true but server has no lock (broken)", async () => {
@@ -137,9 +137,9 @@ suite("StatusParser", () => {
 
     const result = await parseStatusXml(xml);
 
-    assert.strictEqual(result[0].wcStatus.hasLockToken, true);
-    assert.strictEqual(result[0].wcStatus.lockStatus, LockStatus.B);
-    assert.strictEqual(result[0].wcStatus.serverChecked, true);
-    assert.strictEqual(result[0].wcStatus.lockOwner, undefined);
+    assert.strictEqual(result[0]!.wcStatus.hasLockToken, true);
+    assert.strictEqual(result[0]!.wcStatus.lockStatus, LockStatus.B);
+    assert.strictEqual(result[0]!.wcStatus.serverChecked, true);
+    assert.strictEqual(result[0]!.wcStatus.lockOwner, undefined);
   });
 });

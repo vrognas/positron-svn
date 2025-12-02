@@ -159,7 +159,9 @@ export class SvnAuthCache {
         }
       } catch (err) {
         // Security: Don't log raw error (may contain sensitive paths)
-        console.error(`[SvnAuthCache] Failed to delete credential file: ${(err as Error).message}`);
+        console.error(
+          `[SvnAuthCache] Failed to delete credential file: ${(err as Error).message}`
+        );
       }
     }
     this.writtenFiles.clear();
@@ -255,7 +257,7 @@ export class SvnAuthCache {
       let i = 0;
 
       while (i < lines.length) {
-        const line = lines[i].trim();
+        const line = lines[i]!.trim();
 
         // End marker
         if (line === "END") {
@@ -264,15 +266,15 @@ export class SvnAuthCache {
 
         // Key line: K <length>
         if (line.startsWith("K ")) {
-          const key = lines[i + 1];
+          const key = lines[i + 1]!;
 
           // Value line: V <length>
-          const valueLine = lines[i + 2];
+          const valueLine = lines[i + 2]!;
           if (!valueLine || !valueLine.startsWith("V ")) {
             return null; // Corrupt format
           }
 
-          const value = lines[i + 3];
+          const value = lines[i + 3]!;
 
           if (key && value) {
             values[key] = value;
@@ -362,25 +364,23 @@ export class SvnAuthCache {
 
       const proc = spawn("icacls", args, {
         stdio: "pipe",
-        shell: false  // SECURITY: Prevent command injection
+        shell: false // SECURITY: Prevent command injection
       });
 
       let stderr = "";
-      proc.stderr.on("data", (data) => {
+      proc.stderr.on("data", data => {
         stderr += data.toString();
       });
 
-      proc.on("close", (code) => {
+      proc.on("close", code => {
         if (code !== 0) {
-          reject(
-            new Error(`icacls failed with code ${code}: ${stderr}`)
-          );
+          reject(new Error(`icacls failed with code ${code}: ${stderr}`));
         } else {
           resolve();
         }
       });
 
-      proc.on("error", (err) => {
+      proc.on("error", err => {
         // icacls not available - reject to prevent creating file with insecure permissions
         reject(new Error(`Failed to set Windows ACL: ${err.message}`));
       });

@@ -47,13 +47,16 @@ suite("Add Command Tests", () => {
     // Mock runByRepository to execute operation immediately
     const origRunByRepository = (addCmd as any).runByRepository;
     (addCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await addCmd.execute(resource);
 
     assert.strictEqual(addFilesCalls.length, 1);
-    assert.deepStrictEqual(addFilesCalls[0], ["/workspace/newfile.txt"]);
+    assert.deepStrictEqual(addFilesCalls[0]!, ["/workspace/newfile.txt"]);
     assert.strictEqual(showErrorCalls.length, 0);
 
     (addCmd as any).getResourceStates = origGetResourceStates;
@@ -69,15 +72,22 @@ suite("Add Command Tests", () => {
     const resource2 = new Resource(file2, Status.UNVERSIONED);
     const resource3 = new Resource(file3, Status.UNVERSIONED);
 
-    (addCmd as any).getResourceStates = async () => [resource1, resource2, resource3];
+    (addCmd as any).getResourceStates = async () => [
+      resource1,
+      resource2,
+      resource3
+    ];
     (addCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await addCmd.execute(resource1, resource2, resource3);
 
     assert.strictEqual(addFilesCalls.length, 1);
-    assert.deepStrictEqual(addFilesCalls[0], [
+    assert.deepStrictEqual(addFilesCalls[0]!, [
       "/workspace/file1.txt",
       "/workspace/file2.txt",
       "/workspace/file3.txt"
@@ -92,7 +102,10 @@ suite("Add Command Tests", () => {
 
     (addCmd as any).getResourceStates = async () => [resource];
     (addCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await addCmd.execute(resource);
@@ -118,13 +131,16 @@ suite("Add Command Tests", () => {
     // executeOnResources doesn't validate status - it passes all resources
     (addCmd as any).getResourceStates = async () => [resource];
     (addCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await addCmd.execute(resource);
 
     assert.strictEqual(addFilesCalls.length, 1);
-    assert.deepStrictEqual(addFilesCalls[0], ["/workspace/modified.txt"]);
+    assert.deepStrictEqual(addFilesCalls[0]!, ["/workspace/modified.txt"]);
   });
 
   test("add handles repository error", async () => {
@@ -137,7 +153,10 @@ suite("Add Command Tests", () => {
 
     (addCmd as any).getResourceStates = async () => [resource];
     (addCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await addCmd.execute(resource);
@@ -157,13 +176,16 @@ suite("Add Command Tests", () => {
 
     (addCmd as any).getResourceStates = async () => resources;
     (addCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await addCmd.execute(...resources);
 
     assert.strictEqual(addFilesCalls.length, 1);
-    assert.deepStrictEqual(addFilesCalls[0], [
+    assert.deepStrictEqual(addFilesCalls[0]!, [
       "/repo/src/main.ts",
       "/repo/src/utils.ts"
     ]);
@@ -191,7 +213,10 @@ suite("Remove Command Tests", () => {
 
     // Mock Repository.removeFiles()
     mockRepository = {
-      removeFiles: async (files: string[], keepLocal: boolean): Promise<string> => {
+      removeFiles: async (
+        files: string[],
+        keepLocal: boolean
+      ): Promise<string> => {
         removeFilesCalls.push({ files, keepLocal });
         return "";
       }
@@ -226,19 +251,22 @@ suite("Remove Command Tests", () => {
 
     (removeCmd as any).getResourceStatesOrExit = async () => [resource];
     (removeCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await removeCmd.execute(resource);
 
     assert.strictEqual(windowWarningCalls.length, 1);
     assert.strictEqual(
-      windowWarningCalls[0].message,
+      windowWarningCalls[0]!.message,
       "Would you like to keep a local copy of the files?"
     );
     assert.strictEqual(removeFilesCalls.length, 1);
-    assert.deepStrictEqual(removeFilesCalls[0].files, ["/workspace/file.txt"]);
-    assert.strictEqual(removeFilesCalls[0].keepLocal, true);
+    assert.deepStrictEqual(removeFilesCalls[0]!.files, ["/workspace/file.txt"]);
+    assert.strictEqual(removeFilesCalls[0]!.keepLocal, true);
   });
 
   test("remove single file - delete local copy (No)", async () => {
@@ -249,14 +277,17 @@ suite("Remove Command Tests", () => {
 
     (removeCmd as any).getResourceStatesOrExit = async () => [resource];
     (removeCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await removeCmd.execute(resource);
 
     assert.strictEqual(removeFilesCalls.length, 1);
-    assert.deepStrictEqual(removeFilesCalls[0].files, ["/workspace/file.txt"]);
-    assert.strictEqual(removeFilesCalls[0].keepLocal, false);
+    assert.deepStrictEqual(removeFilesCalls[0]!.files, ["/workspace/file.txt"]);
+    assert.strictEqual(removeFilesCalls[0]!.keepLocal, false);
   });
 
   test("remove multiple files - keep local copy", async () => {
@@ -272,18 +303,21 @@ suite("Remove Command Tests", () => {
 
     (removeCmd as any).getResourceStatesOrExit = async () => resources;
     (removeCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await removeCmd.execute(...resources);
 
     assert.strictEqual(removeFilesCalls.length, 1);
-    assert.deepStrictEqual(removeFilesCalls[0].files, [
+    assert.deepStrictEqual(removeFilesCalls[0]!.files, [
       "/workspace/file1.txt",
       "/workspace/file2.txt",
       "/workspace/file3.txt"
     ]);
-    assert.strictEqual(removeFilesCalls[0].keepLocal, true);
+    assert.strictEqual(removeFilesCalls[0]!.keepLocal, true);
   });
 
   test("remove multiple files - delete local copy", async () => {
@@ -298,17 +332,20 @@ suite("Remove Command Tests", () => {
 
     (removeCmd as any).getResourceStatesOrExit = async () => resources;
     (removeCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await removeCmd.execute(...resources);
 
     assert.strictEqual(removeFilesCalls.length, 1);
-    assert.deepStrictEqual(removeFilesCalls[0].files, [
+    assert.deepStrictEqual(removeFilesCalls[0]!.files, [
       "/workspace/file1.txt",
       "/workspace/file2.txt"
     ]);
-    assert.strictEqual(removeFilesCalls[0].keepLocal, false);
+    assert.strictEqual(removeFilesCalls[0]!.keepLocal, false);
   });
 
   test("remove with user cancellation", async () => {
@@ -325,7 +362,11 @@ suite("Remove Command Tests", () => {
     await removeCmd.execute(resource);
 
     assert.strictEqual(windowWarningCalls.length, 1);
-    assert.strictEqual(removeFilesCalls.length, 0, "Should not call removeFiles");
+    assert.strictEqual(
+      removeFilesCalls.length,
+      0,
+      "Should not call removeFiles"
+    );
   });
 
   test("remove with no resources returns early", async () => {
@@ -348,13 +389,16 @@ suite("Remove Command Tests", () => {
 
     (removeCmd as any).getResourceStatesOrExit = async () => [resource];
     (removeCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await removeCmd.execute(resource);
 
     assert.strictEqual(windowWarningCalls.length, 1);
-    const call = windowWarningCalls[0];
+    const call = windowWarningCalls[0]!;
     assert.strictEqual(call.options.modal, true);
     assert.deepStrictEqual(call.buttons, ["Yes", "No"]);
   });
@@ -371,7 +415,10 @@ suite("Remove Command Tests", () => {
 
     (removeCmd as any).getResourceStatesOrExit = async () => [resource];
     (removeCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await removeCmd.execute(resource);
@@ -388,13 +435,16 @@ suite("Remove Command Tests", () => {
 
     (removeCmd as any).getResourceStatesOrExit = async () => [resource];
     (removeCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await removeCmd.execute(resource);
 
     assert.strictEqual(removeFilesCalls.length, 1);
-    const call = removeFilesCalls[0];
+    const call = removeFilesCalls[0]!;
     assert.strictEqual(call.keepLocal, true);
   });
 
@@ -406,13 +456,16 @@ suite("Remove Command Tests", () => {
 
     (removeCmd as any).getResourceStatesOrExit = async () => [resource];
     (removeCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await removeCmd.execute(resource);
 
     assert.strictEqual(removeFilesCalls.length, 1);
-    const call = removeFilesCalls[0];
+    const call = removeFilesCalls[0]!;
     assert.strictEqual(call.keepLocal, false);
   });
 
@@ -426,20 +479,23 @@ suite("Remove Command Tests", () => {
     ];
 
     const resources = [
-      new Resource(files[0], Status.ADDED),
-      new Resource(files[1], Status.MODIFIED),
-      new Resource(files[2], Status.DELETED)
+      new Resource(files[0]!, Status.ADDED),
+      new Resource(files[1]!, Status.MODIFIED),
+      new Resource(files[2]!, Status.DELETED)
     ];
 
     (removeCmd as any).getResourceStatesOrExit = async () => resources;
     (removeCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await removeCmd.execute(...resources);
 
     assert.strictEqual(removeFilesCalls.length, 1);
-    assert.deepStrictEqual(removeFilesCalls[0].files, [
+    assert.deepStrictEqual(removeFilesCalls[0]!.files, [
       "/workspace/added.txt",
       "/workspace/modified.txt",
       "/workspace/deleted.txt"
@@ -459,13 +515,16 @@ suite("Remove Command Tests", () => {
 
     (removeCmd as any).getResourceStatesOrExit = async () => resources;
     (removeCmd as any).runByRepository = async (uris: any, fn: any) => {
-      await fn(mockRepository, uris.map((u: Uri) => u.fsPath));
+      await fn(
+        mockRepository,
+        uris.map((u: Uri) => u.fsPath)
+      );
     };
 
     await removeCmd.execute(...resources);
 
     // Verify file order is preserved (not sorted)
-    assert.deepStrictEqual(removeFilesCalls[0].files, [
+    assert.deepStrictEqual(removeFilesCalls[0]!.files, [
       "/workspace/z_file.txt",
       "/workspace/a_file.txt",
       "/workspace/m_file.txt"

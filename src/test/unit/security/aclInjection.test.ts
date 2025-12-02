@@ -195,7 +195,7 @@ suite("Security: ACL Command Injection", () => {
 
       const files = authCache.getWrittenFiles();
       assert.strictEqual(files.length, 1, "Should create credential file");
-      assert.ok(fs.existsSync(files[0]), "Credential file should exist");
+      assert.ok(fs.existsSync(files[0]!), "Credential file should exist");
     });
 
     test("2.2: Allows username with dot", async () => {
@@ -328,7 +328,7 @@ suite("Security: ACL Command Injection", () => {
       // With shell:false, they are treated as literals (safe)
       const files = authCache.getWrittenFiles();
       assert.strictEqual(files.length, 1);
-      assert.ok(fs.existsSync(files[0]));
+      assert.ok(fs.existsSync(files[0]!));
     });
 
     test("4.2: Verifies error handling rejects (not resolves)", async () => {

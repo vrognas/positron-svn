@@ -1059,7 +1059,7 @@ export class Repository implements IRemoteRepository {
           c => c.account === username
         );
         if (existingIndex >= 0) {
-          credentials[existingIndex].password = password;
+          credentials[existingIndex]!.password = password;
         } else {
           credentials.push({ account: username, password });
         }
@@ -1208,8 +1208,8 @@ export class Repository implements IRemoteRepository {
     // Fix Bug 2: Pre-set credentials from first stored account if none set
     // Prevents first attempt failing with empty credentials in remote sessions
     if (!this.username && !this.password && accounts.length > 0) {
-      this.username = accounts[0].account;
-      this.password = accounts[0].password;
+      this.username = accounts[0]!.account;
+      this.password = accounts[0]!.password;
     }
 
     while (true) {
@@ -1237,8 +1237,8 @@ export class Repository implements IRemoteRepository {
           // attempt 1 failed with accounts[0], try accounts[1], etc.
           const index = attempt;
           if (typeof accounts[index] !== "undefined") {
-            this.username = accounts[index].account;
-            this.password = accounts[index].password;
+            this.username = accounts[index]!.account;
+            this.password = accounts[index]!.password;
           }
         } else if (
           svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&

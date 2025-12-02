@@ -274,8 +274,8 @@ suite("RevertAll & RevertExplorer Commands Tests", () => {
       await revertAll.execute(resourceGroup);
 
       assert.strictEqual(capturedUris.length, 2);
-      assert.strictEqual(capturedUris[0].fsPath, fileUri1.fsPath);
-      assert.strictEqual(capturedUris[1].fsPath, fileUri2.fsPath);
+      assert.strictEqual(capturedUris[0]!.fsPath, fileUri1.fsPath);
+      assert.strictEqual(capturedUris[1]!.fsPath, fileUri2.fsPath);
     });
 
     test("1.10: Path reversal for revert operation", async () => {
@@ -581,7 +581,7 @@ suite("RevertAll & RevertExplorer Commands Tests", () => {
 
       assert.ok(mockState.revertCalled);
       assert.ok(mockState.lastRevertCall);
-      assert.strictEqual(mockState.lastRevertCall.paths[0], dirUri.fsPath);
+      assert.strictEqual(mockState.lastRevertCall.paths[0]!, dirUri.fsPath);
     });
 
     test("2.11: Mixed files and directories from explorer", async () => {
@@ -628,8 +628,8 @@ suite("RevertAll & RevertExplorer Commands Tests", () => {
 
       // executeRevert receives allUris (not mainUri)
       assert.strictEqual(capturedUris.length, 2);
-      assert.strictEqual(capturedUris[0].fsPath, mainUri.fsPath);
-      assert.strictEqual(capturedUris[1].fsPath, otherUri.fsPath);
+      assert.strictEqual(capturedUris[0]!.fsPath, mainUri.fsPath);
+      assert.strictEqual(capturedUris[1]!.fsPath, otherUri.fsPath);
     });
   });
 
@@ -776,7 +776,7 @@ suite("RevertAll & RevertExplorer Commands Tests", () => {
       assert.ok(mockState.revertCalled);
       assert.ok(mockState.lastRevertCall);
       assert.ok(
-        mockState.lastRevertCall.paths[0].includes("file with spaces.txt")
+        mockState.lastRevertCall.paths[0]!.includes("file with spaces.txt")
       );
     });
 
@@ -834,7 +834,7 @@ suite("RevertAll & RevertExplorer Commands Tests", () => {
 
       assert.ok(mockState.revertCalled);
       assert.ok(mockState.lastRevertCall);
-      assert.ok(mockState.lastRevertCall.paths[0].includes("a/b/c/file.txt"));
+      assert.ok(mockState.lastRevertCall.paths[0]!.includes("a/b/c/file.txt"));
     });
 
     test("3.8: Confirmation flow verification", async () => {

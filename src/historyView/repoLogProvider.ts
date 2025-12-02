@@ -247,7 +247,7 @@ export class RepoLogProvider
         let uri: Uri;
         if (repoLike.startsWith("^")) {
           const wsrepo = this.sourceControlManager.getRepository(
-            unwrap(workspace.workspaceFolders)[0].uri
+            unwrap(workspace.workspaceFolders)[0]!.uri
           );
           if (!wsrepo) {
             throw new Error("No repository in workspace root");
@@ -370,7 +370,7 @@ export class RepoLogProvider
       const revs = await item.repo.log(parent.revision, "1", 2, pathWithPeg);
 
       if (revs.length === 2) {
-        prevRev = revs[1];
+        prevRev = revs[1]!;
       } else {
         window.showWarningMessage("Cannot find previous commit");
         return;
@@ -436,7 +436,7 @@ export class RepoLogProvider
         return;
       }
 
-      const prevRev = revs[1];
+      const prevRev = revs[1]!;
 
       // Diff between previous and current revision
       // Use workspaceRoot if available (Repository), otherwise empty string (RemoteRepository)

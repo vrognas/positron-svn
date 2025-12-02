@@ -95,10 +95,8 @@ suite("Unversioned Commands Tests", () => {
       await deleteCmd.execute(resource);
 
       assert.strictEqual(showWarningCalls.length, 1);
-      assert.ok(
-        showWarningCalls[0].message.includes("delete selected files")
-      );
-      assert.strictEqual(showWarningCalls[0].options.modal, true);
+      assert.ok(showWarningCalls[0]!.message.includes("delete selected files"));
+      assert.strictEqual(showWarningCalls[0]!.options.modal, true);
       assert.strictEqual(unlinkCalls.length, 1);
       assert.strictEqual(unlinkCalls[0], "/workspace/unversioned.txt");
       assert.strictEqual(deleteDirectoryCalls.length, 0);
@@ -118,10 +116,7 @@ suite("Unversioned Commands Tests", () => {
 
       assert.strictEqual(showWarningCalls.length, 1);
       assert.strictEqual(deleteDirectoryCalls.length, 1);
-      assert.strictEqual(
-        deleteDirectoryCalls[0],
-        "/workspace/unversioned-dir"
-      );
+      assert.strictEqual(deleteDirectoryCalls[0], "/workspace/unversioned-dir");
       assert.strictEqual(unlinkCalls.length, 0);
     });
 
@@ -242,7 +237,10 @@ suite("Unversioned Commands Tests", () => {
 
       // Mock handleRepositoryOperation to track error
       const origHandleRepoOp = (deleteCmd as any).handleRepositoryOperation;
-      (deleteCmd as any).handleRepositoryOperation = async (op: any, msg: string) => {
+      (deleteCmd as any).handleRepositoryOperation = async (
+        op: any,
+        msg: string
+      ) => {
         try {
           await op();
         } catch (error) {
@@ -253,7 +251,10 @@ suite("Unversioned Commands Tests", () => {
 
       await deleteCmd.execute(resource);
 
-      assert.ok(errorCaught, "Error should be caught by handleRepositoryOperation");
+      assert.ok(
+        errorCaught,
+        "Error should be caught by handleRepositoryOperation"
+      );
 
       (deleteCmd as any).handleRepositoryOperation = origHandleRepoOp;
     });
@@ -277,7 +278,7 @@ suite("Unversioned Commands Tests", () => {
 
       await deleteCmd.execute(resource);
 
-      assert.strictEqual(showWarningCalls[0].options.modal, true);
+      assert.strictEqual(showWarningCalls[0]!.options.modal, true);
     });
   });
 
@@ -309,11 +310,11 @@ suite("Unversioned Commands Tests", () => {
 
       assert.strictEqual(showWarningCalls.length, 1);
       assert.ok(
-        showWarningCalls[0].message.includes(
+        showWarningCalls[0]!.message.includes(
           "remove all unversioned files except for ignored"
         )
       );
-      assert.strictEqual(showWarningCalls[0].options.modal, true);
+      assert.strictEqual(showWarningCalls[0]!.options.modal, true);
       assert.strictEqual(removeUnversionedCalls, 1);
     });
 
@@ -340,7 +341,7 @@ suite("Unversioned Commands Tests", () => {
 
       await removeCmd.execute(mockRepository as Repository);
 
-      assert.strictEqual(showWarningCalls[0].options.modal, true);
+      assert.strictEqual(showWarningCalls[0]!.options.modal, true);
     });
 
     test("calls repository.removeUnversioned on confirmation", async () => {
@@ -362,7 +363,7 @@ suite("Unversioned Commands Tests", () => {
 
       await removeCmd.execute(mockRepository as Repository);
 
-      const message = showWarningCalls[0].message;
+      const message = showWarningCalls[0]!.message;
       assert.ok(message.includes("except for ignored"));
     });
 
@@ -467,7 +468,7 @@ suite("Unversioned Commands Tests", () => {
 
       await removeCmd.execute(mockRepo as Repository);
 
-      const message = showWarningCalls[0].message;
+      const message = showWarningCalls[0]!.message;
       assert.ok(message.includes("Are you sure?"));
       assert.ok(message.toLowerCase().includes("remove"));
 

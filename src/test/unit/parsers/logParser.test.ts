@@ -18,11 +18,11 @@ suite("LogParser", () => {
     const result = await parseSvnLog(xml);
 
     assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0].revision, "123");
-    assert.strictEqual(result[0].author, "testuser");
-    assert.strictEqual(result[0].msg, "Initial commit");
-    assert.strictEqual(result[0].paths.length, 1);
-    assert.strictEqual(result[0].paths[0].action, "A");
+    assert.strictEqual(result[0]!.revision, "123");
+    assert.strictEqual(result[0]!.author, "testuser");
+    assert.strictEqual(result[0]!.msg, "Initial commit");
+    assert.strictEqual(result[0]!.paths.length, 1);
+    assert.strictEqual(result[0]!.paths[0]!.action, "A");
   });
 
   test("parses multiple log entries", async () => {
@@ -50,10 +50,10 @@ suite("LogParser", () => {
     const result = await parseSvnLog(xml);
 
     assert.strictEqual(result.length, 2);
-    assert.strictEqual(result[0].revision, "124");
-    assert.strictEqual(result[0].paths.length, 2);
-    assert.strictEqual(result[1].revision, "123");
-    assert.strictEqual(result[1].paths.length, 1);
+    assert.strictEqual(result[0]!.revision, "124");
+    assert.strictEqual(result[0]!.paths.length, 2);
+    assert.strictEqual(result[1]!.revision, "123");
+    assert.strictEqual(result[1]!.paths.length, 1);
   });
 
   test("parses entry without paths", async () => {
@@ -69,10 +69,10 @@ suite("LogParser", () => {
     const result = await parseSvnLog(xml);
 
     assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0].revision, "125");
-    assert.strictEqual(result[0].msg, "Empty commit");
-    assert.strictEqual(Array.isArray(result[0].paths), true);
-    assert.strictEqual(result[0].paths.length, 0);
+    assert.strictEqual(result[0]!.revision, "125");
+    assert.strictEqual(result[0]!.msg, "Empty commit");
+    assert.strictEqual(Array.isArray(result[0]!.paths), true);
+    assert.strictEqual(result[0]!.paths.length, 0);
   });
 
   test("parses path content (_) correctly", async () => {
@@ -92,12 +92,12 @@ suite("LogParser", () => {
     const result = await parseSvnLog(xml);
 
     assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0].paths.length, 2);
-    assert.strictEqual(result[0].paths[0]._, "/trunk/src/file.txt");
-    assert.strictEqual(result[0].paths[0].action, "M");
-    assert.strictEqual(result[0].paths[0].kind, "file");
-    assert.strictEqual(result[0].paths[1]._, "/trunk/newdir");
-    assert.strictEqual(result[0].paths[1].action, "A");
-    assert.strictEqual(result[0].paths[1].kind, "dir");
+    assert.strictEqual(result[0]!.paths.length, 2);
+    assert.strictEqual(result[0]!.paths[0]!._, "/trunk/src/file.txt");
+    assert.strictEqual(result[0]!.paths[0]!.action, "M");
+    assert.strictEqual(result[0]!.paths[0]!.kind, "file");
+    assert.strictEqual(result[0]!.paths[1]!._, "/trunk/newdir");
+    assert.strictEqual(result[0]!.paths[1]!.action, "A");
+    assert.strictEqual(result[0]!.paths[1]!.kind, "dir");
   });
 });

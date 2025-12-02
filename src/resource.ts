@@ -147,13 +147,13 @@ export class Resource implements SourceControlResourceState {
 
   private getIconPath(theme: string): Uri | undefined {
     if (this.type === Status.ADDED && this.renameResourceUri) {
-      return Resource.icons[theme].Renamed;
+      return Resource.icons[theme]!.Renamed;
     }
 
     const type = this.type.charAt(0).toUpperCase() + this.type.slice(1);
 
-    if (typeof Resource.icons[theme][type] !== "undefined") {
-      return Resource.icons[theme][type];
+    if (typeof Resource.icons[theme]![type] !== "undefined") {
+      return Resource.icons[theme]![type];
     }
 
     return void 0;

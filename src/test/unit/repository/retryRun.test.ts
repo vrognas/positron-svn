@@ -57,8 +57,8 @@ suite("Repository retryRun Auth Logic", () => {
 
       // Fix: Pre-set from first stored account if none set
       if (!username && !password && accounts.length > 0) {
-        username = accounts[0].account;
-        password = accounts[0].password;
+        username = accounts[0]!.account;
+        password = accounts[0]!.password;
       }
 
       assert.strictEqual(username, "user1");
@@ -73,8 +73,8 @@ suite("Repository retryRun Auth Logic", () => {
 
       // Fix: Don't override if credentials already set
       if (!username && !password && accounts.length > 0) {
-        username = accounts[0].account;
-        password = accounts[0].password;
+        username = accounts[0]!.account;
+        password = accounts[0]!.password;
       }
 
       assert.strictEqual(username, "existing");
@@ -88,8 +88,8 @@ suite("Repository retryRun Auth Logic", () => {
       let password: string | undefined;
 
       if (!username && !password && accounts.length > 0) {
-        username = accounts[0].account;
-        password = accounts[0].password;
+        username = accounts[0]!.account;
+        password = accounts[0]!.password;
       }
 
       assert.strictEqual(username, undefined);
@@ -136,8 +136,8 @@ suite("Repository retryRun Auth Logic", () => {
 
       // Pre-set from first account (Bug 2 fix)
       if (!username && !password && accounts.length > 0) {
-        username = accounts[0].account;
-        password = accounts[0].password;
+        username = accounts[0]!.account;
+        password = accounts[0]!.password;
       }
 
       // Simulate retry loop
@@ -168,7 +168,7 @@ suite("Repository retryRun Auth Logic", () => {
       assert.strictEqual(attemptLog[0], "Attempt 1: user1");
       assert.strictEqual(attemptLog[1], "Attempt 2: user2");
       assert.strictEqual(attemptLog[2], "Attempt 3: user2");
-      assert.ok(attemptLog[3].includes("Prompt triggered"));
+      assert.ok(attemptLog[3]!.includes("Prompt triggered"));
     });
   });
 });

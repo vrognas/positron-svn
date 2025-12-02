@@ -7,7 +7,10 @@ import { QuickPickItem, Uri, window } from "vscode";
 import { Repository } from "./repository";
 
 export class IgnoreSingleItem implements QuickPickItem {
-  constructor(public expression: string, public recursive: boolean = false) {}
+  constructor(
+    public expression: string,
+    public recursive: boolean = false
+  ) {}
 
   get label(): string {
     const text = this.recursive ? " (Recursive)" : "";
@@ -28,7 +31,7 @@ export async function inputIgnoreList(repository: Repository, uris: Uri[]) {
   const regexExtension = new RegExp("\\.[^\\.]+(\\.map)?$", "i");
 
   if (uris.length === 1) {
-    const uri = uris[0];
+    const uri = uris[0]!;
     const matchExt = uri.fsPath.match(regexExtension);
     const ext = matchExt && matchExt[0] ? matchExt[0] : "";
     const fileName = path.basename(uri.fsPath);

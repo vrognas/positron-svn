@@ -49,7 +49,10 @@ suite("Open Commands Tests", () => {
 
     // Mock commands.executeCommand
     origExecuteCommand = commands.executeCommand;
-    (commands as any).executeCommand = async (command: string, ...args: any[]) => {
+    (commands as any).executeCommand = async (
+      command: string,
+      ...args: any[]
+    ) => {
       mockState.executeCommandCalls.push({ command, args });
       return Promise.resolve();
     };
@@ -118,7 +121,7 @@ suite("Open Commands Tests", () => {
 
       assert.strictEqual(mockState.openTextDocumentCalls.length, 1);
       assert.strictEqual(
-        mockState.openTextDocumentCalls[0].uri.fsPath,
+        mockState.openTextDocumentCalls[0]!.uri.fsPath,
         fileUri.fsPath
       );
       assert.strictEqual(mockState.showTextDocumentCalls.length, 1);
@@ -131,7 +134,7 @@ suite("Open Commands Tests", () => {
 
       assert.strictEqual(mockState.openTextDocumentCalls.length, 1);
       assert.strictEqual(
-        mockState.openTextDocumentCalls[0].uri.fsPath,
+        mockState.openTextDocumentCalls[0]!.uri.fsPath,
         fileUri.fsPath
       );
     });
@@ -191,7 +194,7 @@ suite("Open Commands Tests", () => {
 
       assert.strictEqual(mockState.showTextDocumentCalls.length, 1);
       assert.strictEqual(
-        mockState.showTextDocumentCalls[0].options.preview,
+        mockState.showTextDocumentCalls[0]!.options.preview,
         true,
         "Single file should open in preview"
       );
@@ -205,7 +208,7 @@ suite("Open Commands Tests", () => {
 
       assert.strictEqual(mockState.showTextDocumentCalls.length, 2);
       assert.strictEqual(
-        mockState.showTextDocumentCalls[0].options.preview,
+        mockState.showTextDocumentCalls[0]!.options.preview,
         false,
         "Multiple files should not preview"
       );
@@ -219,7 +222,7 @@ suite("Open Commands Tests", () => {
 
       assert.strictEqual(mockState.showTextDocumentCalls.length, 1);
       assert.strictEqual(
-        mockState.showTextDocumentCalls[0].options.preserveFocus,
+        mockState.showTextDocumentCalls[0]!.options.preserveFocus,
         true,
         "Resource should preserve focus"
       );
@@ -257,7 +260,7 @@ suite("Open Commands Tests", () => {
       await openFile.execute(resource);
 
       assert.strictEqual(mockState.showTextDocumentCalls.length, 1);
-      const opts = mockState.showTextDocumentCalls[0].options;
+      const opts = mockState.showTextDocumentCalls[0]!.options;
       assert.ok(opts.selection, "Should preserve selection");
     });
   });
@@ -302,7 +305,9 @@ suite("Open Commands Tests", () => {
 
       await openChangeBase.execute(fileUri);
 
-      assert.ok(mockState.executeCommandCalls.some(c => c.command === "vscode.diff"));
+      assert.ok(
+        mockState.executeCommandCalls.some(c => c.command === "vscode.diff")
+      );
     });
 
     test("2.3: Open change for multiple resources", async () => {
@@ -311,7 +316,8 @@ suite("Open Commands Tests", () => {
 
       (openChangeBase as any).getLeftResource = async (res: Resource) =>
         Uri.parse(`svn:${res.resourceUri.fsPath}?rev=BASE`);
-      (openChangeBase as any).getRightResource = (res: Resource) => res.resourceUri;
+      (openChangeBase as any).getRightResource = (res: Resource) =>
+        res.resourceUri;
       (openChangeBase as any).getTitle = () => "file (Working vs BASE)";
 
       await openChangeBase.execute(file1, file2);
@@ -384,7 +390,9 @@ suite("Open Commands Tests", () => {
 
       await openChangeHead.execute(resource);
 
-      assert.ok(mockState.executeCommandCalls.some(c => c.command === "vscode.diff"));
+      assert.ok(
+        mockState.executeCommandCalls.some(c => c.command === "vscode.diff")
+      );
     });
 
     test("3.2: Open change with HEAD for IncomingChangeNode", async () => {
@@ -404,7 +412,13 @@ suite("Open Commands Tests", () => {
 
     test("3.3: Open change for remote resource", async () => {
       const fileUri = Uri.file("/test/file.txt");
-      const resource = new Resource(fileUri, Status.MODIFIED, undefined, undefined, true);
+      const resource = new Resource(
+        fileUri,
+        Status.MODIFIED,
+        undefined,
+        undefined,
+        true
+      );
 
       (openChangeHead as any).getLeftResource = async () =>
         Uri.parse("svn:/test/file.txt?rev=HEAD");
@@ -422,7 +436,8 @@ suite("Open Commands Tests", () => {
 
       (openChangeHead as any).getLeftResource = async (res: Resource) =>
         Uri.parse(`svn:${res.resourceUri.fsPath}?rev=HEAD`);
-      (openChangeHead as any).getRightResource = (res: Resource) => res.resourceUri;
+      (openChangeHead as any).getRightResource = (res: Resource) =>
+        res.resourceUri;
       (openChangeHead as any).getTitle = () => "file";
 
       await openChangeHead.execute(file1, file2);
@@ -445,7 +460,9 @@ suite("Open Commands Tests", () => {
 
       await openChangeHead.execute(fileUri);
 
-      assert.ok(mockState.executeCommandCalls.some(c => c.command === "vscode.diff"));
+      assert.ok(
+        mockState.executeCommandCalls.some(c => c.command === "vscode.diff")
+      );
     });
   });
 
@@ -471,7 +488,9 @@ suite("Open Commands Tests", () => {
 
       await openChangePrev.execute(resource);
 
-      assert.ok(mockState.executeCommandCalls.some(c => c.command === "vscode.diff"));
+      assert.ok(
+        mockState.executeCommandCalls.some(c => c.command === "vscode.diff")
+      );
     });
 
     test("4.2: Open change with PREV for IncomingChangeNode", async () => {
@@ -495,7 +514,8 @@ suite("Open Commands Tests", () => {
 
       (openChangePrev as any).getLeftResource = async (res: Resource) =>
         Uri.parse(`svn:${res.resourceUri.fsPath}?rev=PREV`);
-      (openChangePrev as any).getRightResource = (res: Resource) => res.resourceUri;
+      (openChangePrev as any).getRightResource = (res: Resource) =>
+        res.resourceUri;
       (openChangePrev as any).getTitle = () => "file";
 
       await openChangePrev.execute(file1, file2);
@@ -555,7 +575,7 @@ suite("Open Commands Tests", () => {
         "Should show warning"
       );
       assert.ok(
-        mockState.showWarningMessageCalls[0].message.includes("HEAD version"),
+        mockState.showWarningMessageCalls[0]!.message.includes("HEAD version"),
         "Warning should mention HEAD"
       );
     });
@@ -570,7 +590,9 @@ suite("Open Commands Tests", () => {
 
       await openHeadFile.execute(fileUri);
 
-      assert.ok(mockState.executeCommandCalls.some(c => c.command === "vscode.open"));
+      assert.ok(
+        mockState.executeCommandCalls.some(c => c.command === "vscode.open")
+      );
     });
 
     test("5.4: Open HEAD file for IncomingChangeNode", async () => {
@@ -583,7 +605,9 @@ suite("Open Commands Tests", () => {
 
       await openHeadFile.execute(node);
 
-      assert.ok(mockState.executeCommandCalls.some(c => c.command === "vscode.open"));
+      assert.ok(
+        mockState.executeCommandCalls.some(c => c.command === "vscode.open")
+      );
     });
 
     test("5.5: Handle no resource (undefined)", async () => {
@@ -613,10 +637,7 @@ suite("Open Commands Tests", () => {
       );
       if (openCall && openCall.args[0]) {
         const uri = openCall.args[0] as Uri;
-        assert.ok(
-          uri.path.includes("(HEAD)"),
-          "Title should include (HEAD)"
-        );
+        assert.ok(uri.path.includes("(HEAD)"), "Title should include (HEAD)");
       }
     });
 
@@ -633,7 +654,10 @@ suite("Open Commands Tests", () => {
         c => c.command === "vscode.open"
       );
       assert.ok(openCall);
-      assert.ok(openCall.args[1]?.preview === true, "Should be in preview mode");
+      assert.ok(
+        openCall.args[1]?.preview === true,
+        "Should be in preview mode"
+      );
     });
   });
 
@@ -659,7 +683,9 @@ suite("Open Commands Tests", () => {
 
       await openResourceBase.execute(resource);
 
-      assert.ok(mockState.executeCommandCalls.some(c => c.command === "vscode.diff"));
+      assert.ok(
+        mockState.executeCommandCalls.some(c => c.command === "vscode.diff")
+      );
     });
 
     test("6.2: Open resource with BASE for MODIFIED status", async () => {
@@ -747,7 +773,9 @@ suite("Open Commands Tests", () => {
 
       await openResourceHead.execute(resource);
 
-      assert.ok(mockState.executeCommandCalls.some(c => c.command === "vscode.diff"));
+      assert.ok(
+        mockState.executeCommandCalls.some(c => c.command === "vscode.diff")
+      );
     });
 
     test("7.2: Open resource with HEAD for ADDED status", async () => {
@@ -780,7 +808,13 @@ suite("Open Commands Tests", () => {
 
     test("7.4: Open resource with HEAD for remote resource", async () => {
       const fileUri = Uri.file("/test/file.txt");
-      const resource = new Resource(fileUri, Status.MODIFIED, undefined, undefined, true);
+      const resource = new Resource(
+        fileUri,
+        Status.MODIFIED,
+        undefined,
+        undefined,
+        true
+      );
 
       (openResourceHead as any).getLeftResource = async () =>
         Uri.parse("svn:/test/file.txt?rev=HEAD");
@@ -897,7 +931,7 @@ suite("Open Commands Tests", () => {
 
       assert.strictEqual(mockState.openTextDocumentCalls.length, 1);
       assert.ok(
-        mockState.openTextDocumentCalls[0].uri.fsPath.includes("spaces")
+        mockState.openTextDocumentCalls[0]!.uri.fsPath.includes("spaces")
       );
       openFile.dispose();
     });
@@ -929,15 +963,15 @@ suite("Open Commands Tests", () => {
 
       assert.strictEqual(mockState.openTextDocumentCalls.length, 3);
       assert.strictEqual(
-        mockState.openTextDocumentCalls[0].uri.fsPath,
+        mockState.openTextDocumentCalls[0]!.uri.fsPath,
         "/test/file1.txt"
       );
       assert.strictEqual(
-        mockState.openTextDocumentCalls[1].uri.fsPath,
+        mockState.openTextDocumentCalls[1]!.uri.fsPath,
         "/test/file2.txt"
       );
       assert.strictEqual(
-        mockState.openTextDocumentCalls[2].uri.fsPath,
+        mockState.openTextDocumentCalls[2]!.uri.fsPath,
         "/test/file3.txt"
       );
       openFile.dispose();

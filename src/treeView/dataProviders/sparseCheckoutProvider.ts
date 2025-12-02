@@ -676,13 +676,13 @@ export default class SparseCheckoutProvider
 
       // Apply lock info to ghost items
       for (let i = 0; i < ghostFiles.length; i++) {
-        const url = urls[i];
+        const url = urls[i]!;
         const lockInfo = lockInfoMap.get(url);
         if (lockInfo) {
-          ghostFiles[i].lockOwner = lockInfo.owner;
-          ghostFiles[i].lockComment = lockInfo.comment;
+          ghostFiles[i]!.lockOwner = lockInfo.owner;
+          ghostFiles[i]!.lockComment = lockInfo.comment;
           // K if locked by current user, O if locked by others
-          ghostFiles[i].lockStatus =
+          ghostFiles[i]!.lockStatus =
             currentUser && lockInfo.owner === currentUser
               ? LockStatus.K
               : LockStatus.O;
@@ -943,7 +943,7 @@ export default class SparseCheckoutProvider
 
     const label =
       validNodes.length === 1
-        ? `"${path.basename(validNodes[0].fullPath)}"`
+        ? `"${path.basename(validNodes[0]!.fullPath)}"`
         : `${validNodes.length} items`;
 
     // Include size and ETA estimate in title if known
@@ -1017,7 +1017,7 @@ export default class SparseCheckoutProvider
               break;
             }
 
-            const { node, repo } = nodeRepos[i];
+            const { node, repo } = nodeRepos[i]!;
             if (!repo) {
               failed++;
               continue;
@@ -1082,7 +1082,8 @@ export default class SparseCheckoutProvider
                 const files = folderContents.filter(f => f.kind === "file");
                 expectedFileCount = files.length;
                 expectedFolderSize = files.reduce(
-                  (sum, f) => sum + parseInt(f.size, 10),
+                  (sum: number, f: ISvnListItem) =>
+                    sum + parseInt(f.size ?? "0", 10),
                   0
                 );
 
@@ -1307,7 +1308,7 @@ export default class SparseCheckoutProvider
     // Build label for messages
     const label =
       validNodes.length === 1
-        ? `"${path.basename(validNodes[0].fullPath)}"`
+        ? `"${path.basename(validNodes[0]!.fullPath)}"`
         : `${validNodes.length} items`;
 
     // Check if confirmation is enabled
@@ -1367,7 +1368,7 @@ export default class SparseCheckoutProvider
           let failed = 0;
 
           for (let i = 0; i < validNodes.length; i++) {
-            const node = validNodes[i];
+            const node = validNodes[i]!;
             const repo = repoMap.get(node.fullPath);
             if (!repo) {
               failed++;

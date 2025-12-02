@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "es2022",
     "module": "commonjs",
-    "lib": ["es2020"],
+    "lib": ["es2022"],
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "moduleDetection": "force",
     "outDir": "./out",
     "rootDir": "./src",
     "typeRoots": ["./node_modules/@types"],
@@ -12,6 +15,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
     "allowUnreachableCode": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
