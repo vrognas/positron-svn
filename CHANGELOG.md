@@ -1,3 +1,27 @@
+## [2.31.2] (2025-12-02)
+
+### Fix: SQLite False Positive in Cleanup Detection
+
+- **Fixed**: "sqlite" in file paths no longer triggers cleanup (regex `sqlite[:\[]`)
+- **Added**: E200033 error code detection (sqlite database busy)
+- **Tests**: +3 sqlite false positive tests
+
+## [2.31.1] (2025-12-02)
+
+### Fix: False Positive Cleanup Detection
+
+- **Fixed**: "unlocked" no longer triggers cleanup suggestion (regex word boundary)
+- **Tests**: +2 false positive tests
+
+## [2.31.0] (2025-12-02)
+
+### UX: Auto-Suggest Cleanup on Error
+
+- **New**: Detect cleanup-related errors: E155004, E155037, E200030, E155032
+- **New**: "Run Cleanup" button in error messages for cleanup-suggestible errors
+- **Patterns**: locked, previous operation, sqlite, run 'cleanup'
+- **Tests**: 13 cleanup error detection tests
+
 ## [2.30.0] (2025-12-02)
 
 ### UX: Consolidated Cleanup Command (TortoiseSVN-style)

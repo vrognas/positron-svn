@@ -227,15 +227,127 @@ suite("Error Formatting Tests", () => {
     });
   });
 
-  suite("Repository Locked Errors (E155004)", () => {
-    test("Detects E155004 error code", () => {
+  suite("Working Copy Needs Cleanup Errors", () => {
+    test("Detects E155004 (working copy locked)", () => {
       const error = {
         message: "svn: E155004: Working copy is locked"
       };
       const result = command.testFormatErrorMessage(error, "Generic error");
 
-      assert.ok(result.includes("Working copy is locked"));
-      assert.ok(result.includes("Cleanup"));
+      assert.ok(
+        result.toLowerCase().includes("cleanup"),
+        `Expected "cleanup" in: ${result}`
+      );
+      assert.ok(
+        result.includes("SVN: Cleanup"),
+        `Expected "SVN: Cleanup" in: ${result}`
+      );
+    });
+
+    test("Detects E155037 (previous operation interrupted)", () => {
+      const error = {
+        message:
+          "svn: E155037: Previous operation has not finished; run 'cleanup' if it was interrupted"
+      };
+      const result = command.testFormatErrorMessage(error, "Generic error");
+
+      assert.ok(
+        result.toLowerCase().includes("cleanup"),
+        `Expected "cleanup" in: ${result}`
+      );
+      assert.ok(
+        result.includes("SVN: Cleanup"),
+        `Expected "SVN: Cleanup" in: ${result}`
+      );
+    });
+
+    test("Detects E200030 (sqlite database issue)", () => {
+      const error = {
+        message: "svn: E200030: sqlite: database is locked"
+      };
+      const result = command.testFormatErrorMessage(error, "Generic error");
+
+      assert.ok(
+        result.toLowerCase().includes("cleanup"),
+        `Expected "cleanup" in: ${result}`
+      );
+      assert.ok(
+        result.includes("SVN: Cleanup"),
+        `Expected "SVN: Cleanup" in: ${result}`
+      );
+    });
+
+    test("Detects E155032 (working copy database problem)", () => {
+      const error = {
+        message: "svn: E155032: The working copy database is corrupted"
+      };
+      const result = command.testFormatErrorMessage(error, "Generic error");
+
+      assert.ok(
+        result.toLowerCase().includes("cleanup"),
+        `Expected "cleanup" in: ${result}`
+      );
+      assert.ok(
+        result.includes("SVN: Cleanup"),
+        `Expected "SVN: Cleanup" in: ${result}`
+      );
+    });
+
+    test("Detects 'previous operation' text pattern", () => {
+      const error = {
+        message: "Previous operation has not finished"
+      };
+      const result = command.testFormatErrorMessage(error, "Generic error");
+
+      assert.ok(
+        result.toLowerCase().includes("cleanup"),
+        `Expected "cleanup" in: ${result}`
+      );
+    });
+
+    test("Detects 'run cleanup' text pattern", () => {
+      const error = {
+        message: "run 'cleanup' if it was interrupted"
+      };
+      const result = command.testFormatErrorMessage(error, "Generic error");
+
+      assert.ok(
+        result.toLowerCase().includes("cleanup"),
+        `Expected "cleanup" in: ${result}`
+      );
+    });
+
+    test("Detects 'sqlite:' text pattern", () => {
+      const error = {
+        message: "sqlite: database is locked"
+      };
+      const result = command.testFormatErrorMessage(error, "Generic error");
+
+      assert.ok(
+        result.toLowerCase().includes("cleanup"),
+        `Expected "cleanup" in: ${result}`
+      );
+    });
+
+    test("Detects 'sqlite[S5]' text pattern", () => {
+      const error = {
+        message: "sqlite[S5]: database is locked"
+      };
+      const result = command.testFormatErrorMessage(error, "Generic error");
+
+      assert.ok(
+        result.toLowerCase().includes("cleanup"),
+        `Expected "cleanup" in: ${result}`
+      );
+    });
+
+    test("Does NOT flag 'sqlite' in paths (false positive fix)", () => {
+      const error = {
+        message: "Error in /path/to/sqlite_backup/"
+      };
+      const result = command.testFormatErrorMessage(error, "Fallback message");
+
+      assert.strictEqual(result, "Fallback message");
     });
 
     test("Detects 'locked' message", () => {
@@ -244,16 +356,20 @@ suite("Error Formatting Tests", () => {
       };
       const result = command.testFormatErrorMessage(error, "Generic error");
 
-      assert.ok(result.includes("locked"));
+      assert.ok(
+        result.toLowerCase().includes("cleanup"),
+        `Expected "cleanup" in: ${result}`
+      );
     });
 
-    test("Provides cleanup guidance", () => {
+    test("Does NOT flag 'unlocked' as cleanup (false positive fix)", () => {
       const error = {
-        message: "svn: E155004"
+        message: "'file.txt' unlocked."
       };
-      const result = command.testFormatErrorMessage(error, "Generic error");
+      const result = command.testFormatErrorMessage(error, "Fallback message");
 
-      assert.ok(result.includes("SVN: Cleanup"));
+      // Should return fallback, NOT cleanup message
+      assert.strictEqual(result, "Fallback message");
     });
   });
 

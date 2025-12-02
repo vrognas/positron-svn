@@ -678,9 +678,25 @@ export abstract class Command implements Disposable {
       return "Network timeout: The operation took too long. Try again or check your network connection.";
     }
 
-    // Repository locked (E155004)
-    if (fullError.includes("e155004") || fullError.includes("locked")) {
-      return "Working copy is locked: Run 'SVN: Cleanup' to unlock.";
+    // Working copy needs cleanup (E155004, E155037, E200030, E155032, E200033)
+    // E155004: Working copy is locked
+    // E155037: Previous operation has not finished
+    // E200030/E200033: SQLite database issue (busy, locked, corrupt)
+    // E155032: Working copy database storage problem
+    // Note: Use \b word boundary to avoid matching "unlocked"
+    // Note: Use sqlite[:\[] to match "sqlite:" or "sqlite[S5]" but not paths
+    if (
+      fullError.includes("e155004") ||
+      fullError.includes("e155037") ||
+      fullError.includes("e200030") ||
+      fullError.includes("e200033") ||
+      fullError.includes("e155032") ||
+      /\blocked\b/.test(fullError) ||
+      fullError.includes("previous operation") ||
+      fullError.includes("run 'cleanup'") ||
+      /sqlite[:\[]/.test(fullError)
+    ) {
+      return "Working copy needs cleanup: Run 'SVN: Cleanup' to fix.";
     }
 
     // Use fallback message for other errors
@@ -688,8 +704,34 @@ export abstract class Command implements Disposable {
   }
 
   /**
+   * Check if an error indicates that cleanup is needed.
+   * Returns true for E155004, E155037, E200030, E200033, E155032, and related text patterns.
+   */
+  private needsCleanup(error: unknown): boolean {
+    const err = error as
+      | { message?: string; stderr?: string; stderrFormated?: string }
+      | undefined;
+    const errorStr = err?.message || String(error) || "";
+    const rawStderr = err?.stderr || err?.stderrFormated || "";
+    const fullError = `${errorStr} ${rawStderr}`.toLowerCase();
+
+    return (
+      fullError.includes("e155004") ||
+      fullError.includes("e155037") ||
+      fullError.includes("e200030") ||
+      fullError.includes("e200033") ||
+      fullError.includes("e155032") ||
+      /\blocked\b/.test(fullError) ||
+      fullError.includes("previous operation") ||
+      fullError.includes("run 'cleanup'") ||
+      /sqlite[:\[]/.test(fullError)
+    );
+  }
+
+  /**
    * Handle repository operation with consistent error handling.
    * Pattern: try/catch with console.log + showErrorMessage
+   * Offers "Run Cleanup" button for cleanup-related errors.
    */
   protected async handleRepositoryOperation<T>(
     operation: () => Promise<T>,
@@ -700,7 +742,18 @@ export abstract class Command implements Disposable {
     } catch (error) {
       logError("Repository operation failed", error);
       const userMessage = this.formatErrorMessage(error, errorMsg);
-      window.showErrorMessage(userMessage);
+
+      // Offer cleanup button for cleanup-related errors
+      if (this.needsCleanup(error)) {
+        const runCleanup = "Run Cleanup";
+        const choice = await window.showErrorMessage(userMessage, runCleanup);
+        if (choice === runCleanup) {
+          await commands.executeCommand("svn.cleanup");
+        }
+      } else {
+        window.showErrorMessage(userMessage);
+      }
+
       return undefined;
     }
   }
