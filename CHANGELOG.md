@@ -1,3 +1,12 @@
+## [2.31.3] (2025-12-02)
+
+### Fix: Missing Cleanup Error Codes
+
+- **Added**: E155009 (failed to run WC DB work queue)
+- **Added**: E200033 to svnErrorCodes constant
+- **Added**: "work queue" text pattern detection
+- **Tests**: +3 tests (E155009, E200033, work queue)
+
 ## [2.31.2] (2025-12-02)
 
 ### Fix: SQLite False Positive in Cleanup Detection

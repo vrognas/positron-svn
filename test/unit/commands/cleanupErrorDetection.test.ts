@@ -4,17 +4,18 @@ import { describe, it, expect } from "vitest";
  * Cleanup Error Detection Tests
  *
  * Tests error patterns that should suggest running SVN cleanup.
- * Error codes: E155004, E155037, E200030, E155032
+ * Error codes: E155004, E155009, E155037, E200030, E200033, E155032
  */
 
 /**
  * Detect if an error message indicates cleanup is needed.
- * This mirrors the logic in command.ts formatErrorMessage()
+ * This mirrors the logic in command.ts needsCleanup()
  */
 function needsCleanup(errorMessage: string): boolean {
   const fullError = errorMessage.toLowerCase();
   return (
     fullError.includes("e155004") ||
+    fullError.includes("e155009") ||
     fullError.includes("e155037") ||
     fullError.includes("e200030") ||
     fullError.includes("e200033") ||
@@ -22,6 +23,7 @@ function needsCleanup(errorMessage: string): boolean {
     /\blocked\b/.test(fullError) ||
     fullError.includes("previous operation") ||
     fullError.includes("run 'cleanup'") ||
+    fullError.includes("work queue") ||
     /sqlite[:\[]/.test(fullError)
   );
 }
@@ -48,6 +50,17 @@ describe("Cleanup Error Detection", () => {
       const error = "svn: E155032: The working copy database is corrupted";
       expect(needsCleanup(error)).toBe(true);
     });
+
+    it("detects E155009 (failed to run WC DB work queue)", () => {
+      const error =
+        "svn: E155009: Failed to run the WC DB work queue associated with '/path'";
+      expect(needsCleanup(error)).toBe(true);
+    });
+
+    it("detects E200033 (sqlite database busy)", () => {
+      const error = "svn: E200033: sqlite[S5]: database is busy";
+      expect(needsCleanup(error)).toBe(true);
+    });
   });
 
   describe("Text Pattern Detection", () => {
@@ -69,6 +82,10 @@ describe("Cleanup Error Detection", () => {
 
     it("detects 'sqlite[S5]' errors", () => {
       expect(needsCleanup("sqlite[S5]: database is locked")).toBe(true);
+    });
+
+    it("detects 'work queue' text", () => {
+      expect(needsCleanup("Failed to run the WC DB work queue")).toBe(true);
     });
 
     it("is case-insensitive", () => {

@@ -118,8 +118,10 @@ export const svnErrorCodes: { [key: string]: string } = {
   UnableToConnect: "E170013",
   NetworkTimeout: "E175002",
   // Cleanup-related errors
+  WorkQueueFailed: "E155009",
   PreviousOperationInterrupted: "E155037",
   SqliteDatabaseIssue: "E200030",
+  SqliteDatabaseBusy: "E200033",
   WorkingCopyDatabaseProblem: "E155032"
 };
 

@@ -705,7 +705,7 @@ export abstract class Command implements Disposable {
 
   /**
    * Check if an error indicates that cleanup is needed.
-   * Returns true for E155004, E155037, E200030, E200033, E155032, and related text patterns.
+   * Returns true for E155004, E155009, E155037, E200030, E200033, E155032, and related text patterns.
    */
   private needsCleanup(error: unknown): boolean {
     const err = error as
@@ -717,6 +717,7 @@ export abstract class Command implements Disposable {
 
     return (
       fullError.includes("e155004") ||
+      fullError.includes("e155009") ||
       fullError.includes("e155037") ||
       fullError.includes("e200030") ||
       fullError.includes("e200033") ||
@@ -724,6 +725,7 @@ export abstract class Command implements Disposable {
       /\blocked\b/.test(fullError) ||
       fullError.includes("previous operation") ||
       fullError.includes("run 'cleanup'") ||
+      fullError.includes("work queue") ||
       /sqlite[:\[]/.test(fullError)
     );
   }
