@@ -49,7 +49,7 @@ const cleanupOptions: CleanupQuickPickItem[] = [
     detail: "Cleans up internal SVN cache to free disk space. Safe operation.",
     id: "vacuumPristines",
     shortName: "disk space",
-    picked: false
+    picked: true // Safe, recommended default
   },
   {
     label: "$(link-external) Include External Folders",
@@ -76,8 +76,7 @@ export class Cleanup extends Command {
     // Show multi-select picker
     const selected = await window.showQuickPick(cleanupOptions, {
       canPickMany: true,
-      placeHolder:
-        "Select additional options (or press Enter for basic cleanup)",
+      placeHolder: "Space to toggle, Enter to run (empty = basic cleanup)",
       title: "SVN Cleanup — Repairs locks & timestamps automatically"
     });
 

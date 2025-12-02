@@ -256,7 +256,7 @@ describe("Repository Cleanup Advanced", () => {
         label: "$(database) Reclaim Disk Space",
         id: "vacuumPristines",
         shortName: "disk space",
-        picked: false
+        picked: true // Safe, recommended default
       },
       {
         label: "$(link-external) Include External Folders",
@@ -280,8 +280,14 @@ describe("Repository Cleanup Advanced", () => {
       expect(safe.map(o => o.id)).toContain("includeExternals");
     });
 
-    it("all options start unpicked (safe default)", () => {
-      expect(cleanupOptions.every(o => o.picked === false)).toBe(true);
+    it("vacuumPristines defaults to picked (safe operation)", () => {
+      const vacuum = cleanupOptions.find(o => o.id === "vacuumPristines");
+      expect(vacuum?.picked).toBe(true);
+    });
+
+    it("destructive options default to unpicked", () => {
+      const destructive = cleanupOptions.filter(o => o.destructive);
+      expect(destructive.every(o => o.picked === false)).toBe(true);
     });
 
     it("shortNames exclude modifiers from operations list", () => {
