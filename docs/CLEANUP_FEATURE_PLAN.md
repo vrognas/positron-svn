@@ -15,6 +15,31 @@ Implement enhanced SVN cleanup with TortoiseSVN-inspired options dialog. Expands
 
 ---
 
+## Timestamp Fix Note
+
+**Important**: Basic `svn cleanup` already repairs timestamps automatically.
+
+The SVN CLI hardcodes `fix_timestamps = TRUE` in `svn_client_cleanup2()`:
+
+```c
+// From subversion/svn/cleanup-cmd.c
+svn_error_t *err = svn_client_cleanup2(target_abspath,
+                                       TRUE /* break_locks */,
+                                       TRUE /* fix_timestamps */,  // <-- Always TRUE
+                                       TRUE /* clear_dav_cache */,
+                                       TRUE /* vacuum_pristines */,
+                                       opt_state->include_externals,
+                                       ctx, iterpool);
+```
+
+**Source**: [subversion/svn/cleanup-cmd.c](https://github.com/freebsd/freebsd-src/blob/master/contrib/subversion/subversion/svn/cleanup-cmd.c)
+
+**Why TortoiseSVN has separate option**: TortoiseSVN calls `svn_client_cleanup2()` API directly, allowing granular control over each parameter. This is useful for users who want to skip timestamp repair (performance on large repos). The CLI doesn't expose this because it's always beneficial to run.
+
+**Implication for us**: No separate "Fix Timestamps" feature needed - users get it automatically.
+
+---
+
 ## Phase Overview
 
 | Phase | Description           | Effort | Priority |
@@ -785,7 +810,7 @@ Per LESSONS_LEARNED.md: Small focused commits, one concern each.
 
 1. **Revert in cleanup?** TortoiseSVN includes "Revert all changes" - include in dialog or keep separate?
 
-2. **Fix timestamps?** No CLI equivalent - worth adding note that this isn't available?
+2. ~~**Fix timestamps?**~~ **RESOLVED**: Basic `svn cleanup` already does this automatically (see Timestamp Fix Note above).
 
 3. **Shell overlays?** Document as Windows-only TortoiseSVN feature, not implementable?
 
@@ -827,6 +852,6 @@ Per LESSONS_LEARNED.md: Small focused commits, one concern each.
 
 ---
 
-**Document Version**: 1.0
+**Document Version**: 1.1
 **Author**: Claude
-**Last Updated**: 2025-12-01
+**Last Updated**: 2025-12-02
