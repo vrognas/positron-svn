@@ -11,7 +11,23 @@ export class VacuumPristines extends Command {
   }
 
   public async execute(repository: Repository) {
-    await repository.vacuumPristines();
-    window.showInformationMessage("Pristine copies cleaned up");
+    const answer = await window.showWarningMessage(
+      "Reclaim disk space by removing unreferenced pristine copies?",
+      { modal: true },
+      "Clean Up",
+      "Cancel"
+    );
+
+    if (answer !== "Clean Up") {
+      return;
+    }
+
+    try {
+      await repository.vacuumPristines();
+      window.showInformationMessage("Pristine copies cleaned up");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      window.showErrorMessage(`Failed to vacuum pristines: ${message}`);
+    }
   }
 }

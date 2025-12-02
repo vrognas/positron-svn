@@ -49,7 +49,7 @@ const cleanupOptions: CleanupQuickPickItem[] = [
     description: "Process svn:externals directories",
     detail: "Applies cleanup to external working copies too.",
     id: "includeExternals",
-    picked: true // Default on
+    picked: false // Safe default - user must opt-in
   }
 ];
 
@@ -94,17 +94,21 @@ export class CleanupAdvanced extends Command {
     }
 
     // Run cleanup with progress
-    await window.withProgress(
-      {
-        location: ProgressLocation.Notification,
-        title: "Running SVN Cleanup...",
-        cancellable: false
-      },
-      async () => {
-        await repository.cleanupAdvanced(options);
-      }
-    );
-
-    window.showInformationMessage("Cleanup completed");
+    try {
+      await window.withProgress(
+        {
+          location: ProgressLocation.Notification,
+          title: "Running SVN Cleanup...",
+          cancellable: false
+        },
+        async () => {
+          await repository.cleanupAdvanced(options);
+        }
+      );
+      window.showInformationMessage("Cleanup completed");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      window.showErrorMessage(`Cleanup failed: ${message}`);
+    }
   }
 }

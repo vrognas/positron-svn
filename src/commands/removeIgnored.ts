@@ -22,7 +22,12 @@ export class RemoveIgnored extends Command {
       return;
     }
 
-    await repository.removeIgnored();
-    window.showInformationMessage("Ignored files removed");
+    try {
+      await repository.removeIgnored();
+      window.showInformationMessage("Ignored files removed");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      window.showErrorMessage(`Failed to remove ignored files: ${message}`);
+    }
   }
 }
