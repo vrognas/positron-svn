@@ -1,17 +1,17 @@
 # SVN Cleanup Feature - Implementation Plan
 
-**Version**: 1.0.0
-**Date**: 2025-12-01
-**Status**: Draft
+**Version**: 2.0.0
+**Date**: 2025-12-02
+**Status**: Complete
 
 ---
 
 ## Executive Summary
 
-Implement enhanced SVN cleanup with TortoiseSVN-inspired options dialog. Expands basic `svn cleanup` to include vacuum pristines, remove ignored, externals support, and multi-option selection.
+Single consolidated `SVN: Cleanup...` command with TortoiseSVN-inspired options dialog.
 
-**Current state**: Basic `cleanup()` and `removeUnversioned()` exist
-**Target state**: Full cleanup dialog with 6 options + advanced command
+**Implemented**: v2.30.0 - Single command with multi-select dialog
+**Removed**: Separate `Cleanup (Advanced)`, `Remove ignored files`, `Vacuum pristine copies` commands
 
 ---
 
