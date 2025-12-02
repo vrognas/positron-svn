@@ -136,6 +136,24 @@ export enum Operation {
   List = "List"
 }
 
+/**
+ * Options for advanced cleanup operations.
+ * Most options require SVN 1.9+; vacuumPristines requires SVN 1.10+.
+ *
+ * Note: Basic `svn cleanup` always fixes timestamps automatically
+ * (hardcoded fix_timestamps=TRUE in CLI). No separate option needed.
+ */
+export interface ICleanupOptions {
+  /** Remove unreferenced pristine copies (SVN 1.10+) */
+  vacuumPristines?: boolean;
+  /** Remove files matching svn:ignore patterns (SVN 1.9+) */
+  removeIgnored?: boolean;
+  /** Remove unversioned files (SVN 1.9+) */
+  removeUnversioned?: boolean;
+  /** Process svn:externals directories (SVN 1.9+) */
+  includeExternals?: boolean;
+}
+
 export interface ISvnResourceGroup extends SourceControlResourceGroup {
   resourceStates: Resource[];
   repository?: Repository;

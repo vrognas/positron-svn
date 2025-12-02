@@ -54,6 +54,7 @@ import { ResourceGroupManager } from "./services/ResourceGroupManager";
 import { RemoteChangeService } from "./services/RemoteChangeService";
 import {
   IAuth,
+  ICleanupOptions,
   IFileStatus,
   ILockOptions,
   IOperations,
@@ -852,6 +853,26 @@ export class Repository implements IRemoteRepository {
   public async removeUnversioned() {
     return this.run(Operation.CleanUp, () =>
       this.repository.removeUnversioned()
+    );
+  }
+
+  public async removeIgnored() {
+    return this.run(Operation.CleanUp, () => this.repository.removeIgnored());
+  }
+
+  public async vacuumPristines() {
+    return this.run(Operation.CleanUp, () => this.repository.vacuumPristines());
+  }
+
+  public async cleanupWithExternals() {
+    return this.run(Operation.CleanUp, () =>
+      this.repository.cleanupWithExternals()
+    );
+  }
+
+  public async cleanupAdvanced(options: ICleanupOptions) {
+    return this.run(Operation.CleanUp, () =>
+      this.repository.cleanupAdvanced(options)
     );
   }
 

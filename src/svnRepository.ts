@@ -8,6 +8,7 @@ import { Uri, workspace } from "vscode";
 import {
   ConstructorPolicy,
   ICpOptions,
+  ICleanupOptions,
   IExecutionResult,
   IFileStatus,
   ILockOptions,
@@ -1353,6 +1354,67 @@ export class Repository {
 
     this.svn.logOutput(result.stdout);
 
+    return result.stdout;
+  }
+
+  /**
+   * Remove files matching svn:ignore patterns.
+   * WARNING: Permanent deletion, no recovery via SVN.
+   * @requires SVN 1.9+
+   */
+  public async removeIgnored(): Promise<string> {
+    const result = await this.exec(["cleanup", "--remove-ignored"]);
+    this.svn.logOutput(result.stdout);
+    return result.stdout;
+  }
+
+  /**
+   * Reclaim disk space by removing unreferenced pristine copies.
+   * Safe operation - only removes truly unreferenced files.
+   * @requires SVN 1.10+
+   */
+  public async vacuumPristines(): Promise<string> {
+    const result = await this.exec(["cleanup", "--vacuum-pristines"]);
+    return result.stdout;
+  }
+
+  /**
+   * Run cleanup with externals support.
+   * Processes all svn:externals directories recursively.
+   * @requires SVN 1.9+
+   */
+  public async cleanupWithExternals(): Promise<string> {
+    const result = await this.exec(["cleanup", "--include-externals"]);
+    return result.stdout;
+  }
+
+  /**
+   * Advanced cleanup with multiple options.
+   * Combines multiple cleanup operations in single SVN call.
+   *
+   * Note: Timestamps are always fixed automatically (hardcoded in SVN CLI).
+   *
+   * @param options Cleanup options to enable
+   * @requires SVN 1.9+ for most options, 1.10+ for vacuumPristines
+   */
+  public async cleanupAdvanced(options: ICleanupOptions): Promise<string> {
+    const args = ["cleanup"];
+
+    if (options.vacuumPristines) {
+      args.push("--vacuum-pristines");
+    }
+    if (options.removeUnversioned) {
+      args.push("--remove-unversioned");
+    }
+    if (options.removeIgnored) {
+      args.push("--remove-ignored");
+    }
+    if (options.includeExternals) {
+      args.push("--include-externals");
+    }
+
+    const result = await this.exec(args);
+    this.svn.logOutput(result.stdout);
     return result.stdout;
   }
 
