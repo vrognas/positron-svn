@@ -1,3 +1,16 @@
+## [2.31.4] (2025-12-02)
+
+### Feature: Complete Cleanup Error Detection
+
+Based on [SVN error codes source](https://svn.apache.org/repos/asf/subversion/trunk/subversion/include/svn_error_codes.h):
+
+- **Added**: E155016 (WC_CORRUPT - working copy is corrupt)
+- **Added**: E200034 (SQLITE_RESETTING_FOR_ROLLBACK - sqlite busy at rollback)
+- **Added**: "is corrupt" text pattern
+- **Tests**: +3 tests (24 total)
+
+Now detects 8 error codes: E155004, E155009, E155016, E155032, E155037, E200030, E200033, E200034
+
 ## [2.31.3] (2025-12-02)
 
 ### Fix: Missing Cleanup Error Codes

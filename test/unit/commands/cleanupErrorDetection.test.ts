@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
  * Cleanup Error Detection Tests
  *
  * Tests error patterns that should suggest running SVN cleanup.
- * Error codes: E155004, E155009, E155037, E200030, E200033, E155032
+ * Error codes: E155004, E155009, E155016, E155032, E155037, E200030, E200033, E200034
  */
 
 /**
@@ -16,14 +16,17 @@ function needsCleanup(errorMessage: string): boolean {
   return (
     fullError.includes("e155004") ||
     fullError.includes("e155009") ||
+    fullError.includes("e155016") ||
+    fullError.includes("e155032") ||
     fullError.includes("e155037") ||
     fullError.includes("e200030") ||
     fullError.includes("e200033") ||
-    fullError.includes("e155032") ||
+    fullError.includes("e200034") ||
     /\blocked\b/.test(fullError) ||
     fullError.includes("previous operation") ||
     fullError.includes("run 'cleanup'") ||
     fullError.includes("work queue") ||
+    fullError.includes("is corrupt") ||
     /sqlite[:\[]/.test(fullError)
   );
 }
@@ -61,6 +64,17 @@ describe("Cleanup Error Detection", () => {
       const error = "svn: E200033: sqlite[S5]: database is busy";
       expect(needsCleanup(error)).toBe(true);
     });
+
+    it("detects E155016 (working copy corrupt)", () => {
+      const error = "svn: E155016: Working copy is corrupt";
+      expect(needsCleanup(error)).toBe(true);
+    });
+
+    it("detects E200034 (sqlite rollback reset)", () => {
+      const error =
+        "svn: E200034: SQLite busy at transaction rollback; resetting all statements";
+      expect(needsCleanup(error)).toBe(true);
+    });
   });
 
   describe("Text Pattern Detection", () => {
@@ -86,6 +100,10 @@ describe("Cleanup Error Detection", () => {
 
     it("detects 'work queue' text", () => {
       expect(needsCleanup("Failed to run the WC DB work queue")).toBe(true);
+    });
+
+    it("detects 'is corrupt' text", () => {
+      expect(needsCleanup("Working copy is corrupt")).toBe(true);
     });
 
     it("is case-insensitive", () => {

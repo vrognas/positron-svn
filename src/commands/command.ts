@@ -718,14 +718,17 @@ export abstract class Command implements Disposable {
     return (
       fullError.includes("e155004") ||
       fullError.includes("e155009") ||
+      fullError.includes("e155016") ||
+      fullError.includes("e155032") ||
       fullError.includes("e155037") ||
       fullError.includes("e200030") ||
       fullError.includes("e200033") ||
-      fullError.includes("e155032") ||
+      fullError.includes("e200034") ||
       /\blocked\b/.test(fullError) ||
       fullError.includes("previous operation") ||
       fullError.includes("run 'cleanup'") ||
       fullError.includes("work queue") ||
+      fullError.includes("is corrupt") ||
       /sqlite[:\[]/.test(fullError)
     );
   }
