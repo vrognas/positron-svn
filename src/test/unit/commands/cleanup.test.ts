@@ -10,15 +10,18 @@ suite("Cleanup and Upgrade Commands Tests", () => {
   let origShowInfo: typeof window.showInformationMessage;
   let origShowError: typeof window.showErrorMessage;
   let origShowWarning: typeof window.showWarningMessage;
+  let origShowQuickPick: typeof window.showQuickPick;
   let origConfigGet: typeof configuration.get;
   let origConfigUpdate: typeof configuration.update;
   let origCommandsExecute: typeof commands.executeCommand;
   let origFixPathSeparator: typeof util.fixPathSeparator;
+  let origWithProgress: typeof window.withProgress;
 
   // Call tracking
   let showInfoCalls: any[] = [];
   let showErrorCalls: any[] = [];
   let showWarningCalls: any[] = [];
+  let showQuickPickCalls: any[] = [];
   let configGetCalls: any[] = [];
   let configUpdateCalls: any[] = [];
   let commandsExecuteCalls: any[] = [];
@@ -47,6 +50,19 @@ suite("Cleanup and Upgrade Commands Tests", () => {
     ) => {
       showWarningCalls.push({ message, items });
       return Promise.resolve(undefined);
+    };
+
+    // Mock window.showQuickPick
+    origShowQuickPick = window.showQuickPick;
+    (window as any).showQuickPick = (items: any[], options: any) => {
+      showQuickPickCalls.push({ items, options });
+      return Promise.resolve([]); // Empty selection = basic cleanup
+    };
+
+    // Mock window.withProgress
+    origWithProgress = window.withProgress;
+    (window as any).withProgress = async (_options: any, task: any) => {
+      return task({ report: () => {} });
     };
 
     // Mock configuration.get
@@ -84,6 +100,7 @@ suite("Cleanup and Upgrade Commands Tests", () => {
     showInfoCalls = [];
     showErrorCalls = [];
     showWarningCalls = [];
+    showQuickPickCalls = [];
     configGetCalls = [];
     configUpdateCalls = [];
     commandsExecuteCalls = [];
@@ -94,6 +111,8 @@ suite("Cleanup and Upgrade Commands Tests", () => {
     (window as any).showInformationMessage = origShowInfo;
     (window as any).showErrorMessage = origShowError;
     (window as any).showWarningMessage = origShowWarning;
+    (window as any).showQuickPick = origShowQuickPick;
+    (window as any).withProgress = origWithProgress;
     (configuration as any).get = origConfigGet;
     (configuration as any).update = origConfigUpdate;
     (commands as any).executeCommand = origCommandsExecute;
@@ -103,16 +122,16 @@ suite("Cleanup and Upgrade Commands Tests", () => {
   suite("Cleanup Command", () => {
     let cleanup: Cleanup;
     let mockRepository: Partial<Repository>;
-    let cleanupCalls: any[] = [];
+    let cleanupAdvancedCalls: any[] = [];
 
     setup(() => {
       cleanup = new Cleanup();
-      cleanupCalls = [];
+      cleanupAdvancedCalls = [];
 
-      // Mock Repository
+      // Mock Repository with cleanupAdvanced (new API)
       mockRepository = {
-        cleanup: async () => {
-          cleanupCalls.push({});
+        cleanupAdvanced: async (options: any) => {
+          cleanupAdvancedCalls.push({ options });
           return "Cleanup complete";
         }
       };
@@ -122,51 +141,43 @@ suite("Cleanup and Upgrade Commands Tests", () => {
       cleanup.dispose();
     });
 
-    test("should execute cleanup on repository", async () => {
+    test("should show QuickPick dialog", async () => {
       await cleanup.execute(mockRepository as Repository);
 
-      assert.strictEqual(cleanupCalls.length, 1);
+      assert.strictEqual(showQuickPickCalls.length, 1);
+      assert.strictEqual(showQuickPickCalls[0].options.canPickMany, true);
     });
 
-    test("should handle successful cleanup", async () => {
-      mockRepository.cleanup = async () => {
-        cleanupCalls.push({});
-        return "Cleanup successful";
-      };
+    test("should execute cleanupAdvanced on repository", async () => {
+      await cleanup.execute(mockRepository as Repository);
+
+      assert.strictEqual(cleanupAdvancedCalls.length, 1);
+    });
+
+    test("should not execute cleanup when user cancels", async () => {
+      (window as any).showQuickPick = () => Promise.resolve(undefined);
 
       await cleanup.execute(mockRepository as Repository);
 
-      assert.strictEqual(cleanupCalls.length, 1);
+      assert.strictEqual(cleanupAdvancedCalls.length, 0);
     });
 
     test("should handle cleanup error", async () => {
-      mockRepository.cleanup = async () => {
+      mockRepository.cleanupAdvanced = async () => {
         throw new Error("svn: E155037: Working copy locked");
       };
 
-      try {
-        await cleanup.execute(mockRepository as Repository);
-        assert.fail("Should throw error");
-      } catch (err) {
-        assert.ok(err);
-      }
-    });
-
-    test("should handle cleanup with empty return", async () => {
-      mockRepository.cleanup = async () => {
-        cleanupCalls.push({});
-        return "";
-      };
-
       await cleanup.execute(mockRepository as Repository);
 
-      assert.strictEqual(cleanupCalls.length, 1);
+      assert.strictEqual(showErrorCalls.length, 1);
+      assert.ok(showErrorCalls[0].message.includes("Cleanup failed"));
     });
 
-    test("should call cleanup exactly once", async () => {
+    test("should show success message on completion", async () => {
       await cleanup.execute(mockRepository as Repository);
 
-      assert.strictEqual(cleanupCalls.length, 1);
+      assert.strictEqual(showInfoCalls.length, 1);
+      assert.ok(showInfoCalls[0].message.includes("Cleanup completed"));
     });
   });
 
