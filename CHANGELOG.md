@@ -1,3 +1,15 @@
+## [2.33.1] (2025-12-03)
+
+### Perf: Optimistic UI for Stage/Unstage
+
+- **New**: Instant UI feedback for stage/unstage operations (skips full svn status refresh)
+- **Feat**: Warn when staging files already in changelists (prevents data loss)
+- **Feat**: Restore original changelist on unstage (non-destructive staging)
+- **Removed**: Redundant `removeChangelist` after commit (SVN auto-clears)
+- **Services**: `moveToStaged()`, `moveFromStaged()` in ResourceGroupManager
+- **Services**: `stageOptimistic()`, `unstageOptimistic()` in Repository
+- **Affected**: stage.ts, unstage.ts, repository.ts, ResourceGroupManager.ts, stagingService.ts
+
 ## [2.33.0] (2025-12-03)
 
 ### Feat: Modernized Commit UX

@@ -847,3 +847,50 @@ sourceControl.acceptInputCommand = {
 **Rule**: Prefer native VS Code UI (QuickPick, InputBox, Progress) over webviews for simple workflows.
 
 ---
+
+### 26. Optimistic UI Updates: Skip Status Refresh for SCM Operations
+
+**Lesson**: For stage/unstage operations, update UI immediately without waiting for full `svn status` refresh.
+
+**Issue** (v2.33.x):
+
+- Stage/unstage called full `svn status --xml` after each SVN changelist operation
+- Each status call: ~100-500ms depending on working copy size
+- Multiple rapid stage operations = cumulative delay (user sees lag)
+
+**Fix**:
+
+```typescript
+// BEFORE: Full refresh after every operation
+await repository.addChangelist(files, STAGING_CHANGELIST);
+await repository.updateModelState(); // Full svn status --xml
+
+// AFTER: Optimistic UI update
+await repository.addChangelist(files, STAGING_CHANGELIST);
+groupManager.moveToStaged(files); // Move Resource objects directly
+```
+
+**Pattern**:
+
+1. Execute SVN operation (addChangelist/removeChangelist)
+2. Directly manipulate Resource groups in memory
+3. Skip updateModelState() refresh
+4. Eventual consistency: next status poll corrects any drift
+
+**Implementation**:
+
+- `moveToStaged(paths)`: Remove from changes/changelists, add to staged
+- `moveFromStaged(paths, targetChangelist?)`: Remove from staged, add to target
+- Both methods update staging cache via `syncFromChangelist()`
+
+**When to use**:
+
+- ✅ Operations with predictable outcome (stage = move to staged group)
+- ✅ User expects instant feedback (<100ms)
+- ✅ Background refresh will eventually correct state
+- ❌ Operations with uncertain outcome (merge, update with conflicts)
+- ❌ Critical operations where accuracy > speed
+
+**Rule**: For predictable SCM operations, update UI optimistically. Let background refresh handle edge cases.
+
+---
