@@ -13,6 +13,7 @@ import {
 import { SourceControlManager } from "../source_control_manager";
 import { ISvnPathChange, Status } from "../common/types";
 import { openDiff, getIconObject, openFileRemote } from "./common";
+import { logError } from "../util/errorLogger";
 import { dispose } from "../util";
 
 export class BranchChangesProvider
@@ -87,7 +88,7 @@ export class BranchChangesProvider
     return Promise.all(changes)
       .then(value => value.reduce((prev, curr) => prev.concat(curr), []))
       .catch(err => {
-        console.error('[BranchChangesProvider] Failed to load changes:', err);
+        logError("[BranchChangesProvider] Failed to load changes", err);
         // Return empty array as fallback
         return [];
       });

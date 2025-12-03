@@ -7,6 +7,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { spawn } from "child_process";
+import { logError } from "../util/errorLogger";
 
 /**
  * SVN Credential Cache Service
@@ -158,10 +159,7 @@ export class SvnAuthCache {
           fs.unlinkSync(filePath);
         }
       } catch (err) {
-        // Security: Don't log raw error (may contain sensitive paths)
-        console.error(
-          `[SvnAuthCache] Failed to delete credential file: ${(err as Error).message}`
-        );
+        logError("[SvnAuthCache] Failed to delete credential file", err);
       }
     }
     this.writtenFiles.clear();

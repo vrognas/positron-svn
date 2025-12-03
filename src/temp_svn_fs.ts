@@ -81,7 +81,6 @@ class TempSvnFs implements FileSystemProvider, Disposable {
   }
 
   watch(_resource: Uri): Disposable {
-     
     return new Disposable(() => {});
   }
 
@@ -227,6 +226,12 @@ class TempSvnFs implements FileSystemProvider, Disposable {
   }
 
   dispose(): void {
+    // Clear pending fire timer to prevent leak
+    if (this._fireSoonHandler) {
+      clearTimeout(this._fireSoonHandler);
+      this._fireSoonHandler = undefined;
+    }
+
     this._disposables.forEach(disposable => disposable.dispose());
     this._disposables = [];
 

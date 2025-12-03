@@ -13,9 +13,30 @@ import { getSvnDir } from "./util";
 import { logError } from "./util/errorLogger";
 
 export function fromSvnUri(uri: Uri): ISvnUriParams {
-  // Phase 20.C fix: Safe JSON.parse to prevent crash on malformed URI queries
+  // Phase 20.C fix: Safe JSON.parse with prototype pollution protection
   try {
-    return JSON.parse(uri.query);
+    const parsed = JSON.parse(uri.query);
+
+    // Security: Validate structure and reject prototype pollution vectors
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed) ||
+      "__proto__" in parsed ||
+      "constructor" in parsed ||
+      "prototype" in parsed
+    ) {
+      logError("Invalid SVN URI params structure");
+      return { action: SvnUriAction.SHOW, fsPath: "", extra: {} };
+    }
+
+    // Validate action is a known value
+    if (!Object.values(SvnUriAction).includes(parsed.action)) {
+      logError("Invalid SVN URI action");
+      return { action: SvnUriAction.SHOW, fsPath: "", extra: {} };
+    }
+
+    return parsed as ISvnUriParams;
   } catch (error) {
     logError("Failed to parse SVN URI query", error);
     // Return safe default params to prevent extension crash

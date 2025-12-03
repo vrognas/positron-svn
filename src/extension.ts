@@ -32,7 +32,7 @@ import { IsSvn18orGreater } from "./contexts/isSvn18orGreater";
 import { tempSvnFs } from "./temp_svn_fs";
 import { SvnFileSystemProvider } from "./svnFileSystemProvider";
 import { isPositron, getEnvironmentName } from "./positron/runtime";
-import { logError } from "./util/errorLogger";
+import { logError, logWarning } from "./util/errorLogger";
 import { registerSvnConnectionsProvider } from "./positron/connectionsProvider";
 import { BlameStatusBar } from "./blame/blameStatusBar";
 
@@ -158,7 +158,7 @@ async function _activate(context: ExtensionContext, disposables: Disposable[]) {
         return;
       }
 
-      console.warn(error.message);
+      logWarning("SVN not found", error.message);
       outputChannel.appendLine(error.message);
       outputChannel.show();
 

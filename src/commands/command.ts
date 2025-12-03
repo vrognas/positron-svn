@@ -33,7 +33,7 @@ import { Resource } from "../resource";
 import IncomingChangeNode from "../treeView/nodes/incomingChangeNode";
 import { fromSvnUri, toSvnUri } from "../uri";
 import { getSvnDir } from "../util";
-import { logError } from "../util/errorLogger";
+import { logError, logWarning } from "../util/errorLogger";
 
 /**
  * Type-safe command argument patterns used across all commands.
@@ -190,7 +190,7 @@ export abstract class Command implements Disposable {
       const repository = sourceControlManager.getRepository(resource);
 
       if (!repository) {
-        console.warn("Could not find Svn repository for ", resource);
+        logWarning("Could not find Svn repository for resource");
         continue;
       }
 

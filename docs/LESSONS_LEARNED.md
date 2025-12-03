@@ -622,5 +622,39 @@ return `Working copy locked (${code}). Run cleanup to fix.`;
 
 ---
 
-**Document Version**: 2.9
-**Last Updated**: 2025-12-02
+### 22. Timer Disposal: Store References
+
+**Lesson**: Always store timer references and clear them in dispose().
+
+**Issue** (v2.32.12):
+
+- `setInterval()` and `setTimeout()` not cleared on extension reload
+- Timers accumulate over reloads, causing memory leaks
+- Especially problematic during development with frequent reloads
+
+**Pattern**:
+
+```typescript
+// BAD: Timer created but never cleared
+setInterval(() => this.cleanup(), FIVE_MINUTES);
+
+// GOOD: Store reference, clear in dispose
+private cleanupInterval?: ReturnType<typeof setInterval>;
+
+constructor() {
+  this.cleanupInterval = setInterval(() => this.cleanup(), FIVE_MINUTES);
+}
+
+dispose(): void {
+  if (this.cleanupInterval) {
+    clearInterval(this.cleanupInterval);
+  }
+}
+```
+
+**Rule**: Every `setInterval`/`setTimeout` needs corresponding `clearInterval`/`clearTimeout` in dispose().
+
+---
+
+**Document Version**: 2.10
+**Last Updated**: 2025-12-03

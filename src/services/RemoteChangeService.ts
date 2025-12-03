@@ -2,6 +2,8 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
+import { logError } from "../util/errorLogger";
+
 /**
  * Configuration for remote change polling
  */
@@ -92,7 +94,7 @@ export class RemoteChangeService implements IRemoteChangeService {
 
     this.interval = setInterval(() => {
       void Promise.resolve(this.onPoll()).catch((err: unknown) => {
-        console.error("[RemoteChangeService] Polling failed:", err);
+        logError("[RemoteChangeService] Polling failed", err);
         // Continue polling despite errors
       });
     }, frequencyMs);

@@ -407,5 +407,5 @@ See IMPLEMENTATION_PLAN.md for details.
 
 ---
 
-**Version**: 3.26
-**Updated**: 2025-12-03 (v2.32.11)
+**Version**: 3.30
+**Updated**: 2025-12-03 (v2.32.15)

@@ -1,3 +1,34 @@
+## [2.32.15] (2025-12-03)
+
+### Cleanup: Remove Debug Logs from BlameProvider
+
+- **Removed**: 12 console.log statements from blameProvider.ts
+- **Purpose**: Production code cleanup (debug logs left during development)
+
+## [2.32.14] (2025-12-03)
+
+### Perf: Config Cache Invalidation Fix
+
+- **Fixed**: Config cache only invalidates on svn.\* setting changes
+- **Before**: Invalidated on ANY VS Code config change (wasteful)
+- **Affected**: repository.ts config change handler
+
+## [2.32.13] (2025-12-03)
+
+### Security: Console Log Sanitization & JSON Validation
+
+- **Fixed**: Console.warn/log calls now use sanitized logWarning/logError
+- **Fixed**: JSON.parse in uri.ts validates structure, rejects prototype pollution
+- **Affected**: extension.ts, command.ts, branchChangesProvider.ts, RemoteChangeService.ts, svnAuthCache.ts
+
+## [2.32.12] (2025-12-03)
+
+### Fix: Timer Leaks & Performance
+
+- **Fixed**: Timer leak in SvnFileSystemProvider (cleanup interval not cleared on dispose)
+- **Fixed**: Timer leak in TempSvnFs (fireSoon timeout not cleared on dispose)
+- **Improved**: XML parser single-pass transformation (60-70% faster parsing)
+
 ## [2.32.11] (2025-12-03)
 
 ### UX: Error Message Action Buttons

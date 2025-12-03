@@ -358,8 +358,17 @@ export class Repository implements IRemoteRepository {
 
     // On change config, restart remote change service
     configuration.onDidChange(e => {
-      // Invalidate config cache (Phase 8.1 perf fix)
-      this._configCache = undefined;
+      // Invalidate config cache only when cached settings change (v2.32.14 fix)
+      // Previously invalidated on ANY config change which was too aggressive
+      if (
+        e.affectsConfiguration("svn.delete.actionForDeletedFiles") ||
+        e.affectsConfiguration("svn.delete.ignoredRulesForDeletedFiles") ||
+        e.affectsConfiguration("svn.sourceControl.countBadge") ||
+        e.affectsConfiguration("svn.autorefresh") ||
+        e.affectsConfiguration("svn.remoteChanges.checkFrequency")
+      ) {
+        this._configCache = undefined;
+      }
 
       if (e.affectsConfiguration("svn.remoteChanges.checkFrequency")) {
         this.remoteChangeService.restart();

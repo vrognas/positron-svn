@@ -40,6 +40,7 @@ interface CacheRow {
 export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
   private disposables: Disposable[] = [];
   private cache = new Map<string, CacheRow>();
+  private cleanupInterval?: ReturnType<typeof setInterval>;
 
   private _onDidChangeFile = new EventEmitter<FileChangeEvent[]>();
   readonly onDidChangeFile: Event<FileChangeEvent[]> =
@@ -59,7 +60,7 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
       })
     );
 
-    setInterval(() => this.cleanup(), FIVE_MINUTES);
+    this.cleanupInterval = setInterval(() => this.cleanup(), FIVE_MINUTES);
   }
 
   private onDidChangeRepository({ repository }: RepositoryChangeEvent): void {
@@ -224,6 +225,10 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
   }
 
   dispose(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = undefined;
+    }
     this.disposables.forEach(d => d.dispose());
   }
 }
