@@ -1,3 +1,11 @@
+## [2.32.4] (2025-12-03)
+
+### Fix: Memory Leak and Crash Prevention
+
+- **Fixed**: Timer memory leak in repository disposal - RemoteChangeService now properly stopped
+- **Fixed**: Potential crash in file watcher when Uri.parse fails on malformed paths
+- **Fixed**: Array bounds check in SVN auth cache parser - prevents crash on truncated files
+
 ## [2.32.3] (2025-12-03)
 
 ### Fix: Revert Always Uses Infinity Depth

@@ -1350,6 +1350,8 @@ export class Repository implements IRemoteRepository {
       clearTimeout(this.promptAuthCooldownTimer);
       this.promptAuthCooldownTimer = undefined;
     }
+    // Stop remote change polling to prevent timer leak
+    this.remoteChangeService.dispose();
     this.statusService.dispose();
     this.repository.clearInfoCacheTimers(); // Phase 8.2 perf fix - clear timers
     this.disposables = dispose(this.disposables);

@@ -81,9 +81,18 @@ export class RepositoryFilesWatcher implements IDisposable {
     const isRelevant = (uri: Uri) => !isTmp(uri);
 
     // Phase 8.3 perf fix - throttle events to prevent flooding on bulk file changes
-    this.onDidChange = throttleEvent(filterEvent(fsWatcher.onDidChange, isRelevant), 100);
-    this.onDidCreate = throttleEvent(filterEvent(fsWatcher.onDidCreate, isRelevant), 100);
-    this.onDidDelete = throttleEvent(filterEvent(fsWatcher.onDidDelete, isRelevant), 100);
+    this.onDidChange = throttleEvent(
+      filterEvent(fsWatcher.onDidChange, isRelevant),
+      100
+    );
+    this.onDidCreate = throttleEvent(
+      filterEvent(fsWatcher.onDidCreate, isRelevant),
+      100
+    );
+    this.onDidDelete = throttleEvent(
+      filterEvent(fsWatcher.onDidDelete, isRelevant),
+      100
+    );
 
     this.onDidAny = anyEvent(
       this.onDidChange,
@@ -129,19 +138,40 @@ export class RepositoryFilesWatcher implements IDisposable {
     if (!filename) {
       return;
     }
+
+    // Safely parse filename to Uri - fs.watch returns relative paths
+    // that Uri.parse may reject if malformed
+    const safeParseUri = (name: string): Uri | null => {
+      try {
+        return Uri.parse(name);
+      } catch (err) {
+        logError(`[RepositoryFilesWatcher] Failed to parse URI: ${name}`, err);
+        return null;
+      }
+    };
+
     if (event === "change") {
-      this._onRepoChange.fire(Uri.parse(filename));
+      const uri = safeParseUri(filename);
+      if (uri) {
+        this._onRepoChange.fire(uri);
+      }
     } else if (event === "rename") {
       exists(filename)
         .then(doesExist => {
-          if (doesExist) {
-            this._onRepoCreate.fire(Uri.parse(filename));
-          } else {
-            this._onRepoDelete.fire(Uri.parse(filename));
+          const uri = safeParseUri(filename);
+          if (uri) {
+            if (doesExist) {
+              this._onRepoCreate.fire(uri);
+            } else {
+              this._onRepoDelete.fire(uri);
+            }
           }
         })
         .catch(err => {
-          console.error(`[RepositoryFilesWatcher] Rename detection failed for ${filename}:`, err);
+          logError(
+            `[RepositoryFilesWatcher] Rename detection failed for ${filename}`,
+            err
+          );
         });
     }
   }
