@@ -2,10 +2,11 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
-import { Disposable, SourceControl, Uri } from "vscode";
+import { Disposable, Memento, SourceControl, Uri } from "vscode";
 import { ISvnResourceGroup } from "../common/types";
 import { Resource } from "../resource";
 import { StatusResult } from "./StatusService";
+import { StagingService } from "./stagingService";
 import { normalizePath, toDisposable } from "../util";
 
 /**
@@ -60,6 +61,7 @@ export interface IResourceGroupManager {
   /**
    * Access to static groups
    */
+  readonly staged: ISvnResourceGroup;
   readonly changes: ISvnResourceGroup;
   readonly conflicts: ISvnResourceGroup;
   readonly unversioned: ISvnResourceGroup;
@@ -71,6 +73,11 @@ export interface IResourceGroupManager {
   readonly remoteChanges: ISvnResourceGroup | undefined;
 
   /**
+   * Staging service for managing staged files
+   */
+  readonly staging: StagingService;
+
+  /**
    * Dispose all managed groups
    */
   dispose(): void;
@@ -80,6 +87,7 @@ export interface IResourceGroupManager {
  * Implementation of resource group manager
  */
 export class ResourceGroupManager implements IResourceGroupManager {
+  private _staged: ISvnResourceGroup;
   private _changes: ISvnResourceGroup;
   private _conflicts: ISvnResourceGroup;
   private _unversioned: ISvnResourceGroup;
@@ -89,6 +97,11 @@ export class ResourceGroupManager implements IResourceGroupManager {
   private _prevChangelistsSize = 0;
   private _resourceIndex = new Map<string, Resource>(); // Phase 8.1 perf fix - O(1) lookup
   private _resourceHash = ""; // Phase 16 perf fix - conditional rebuild
+  private _staging: StagingService;
+
+  get staged(): ISvnResourceGroup {
+    return this._staged;
+  }
 
   get changes(): ISvnResourceGroup {
     return this._changes;
@@ -110,15 +123,30 @@ export class ResourceGroupManager implements IResourceGroupManager {
     return this._remoteChanges;
   }
 
+  get staging(): StagingService {
+    return this._staging;
+  }
+
   /**
    * @param sourceControl VS Code SourceControl instance
    * @param parentDisposables Parent's disposable array to register cleanup
+   * @param repoRoot Repository root path for staging persistence
+   * @param workspaceState Workspace state for staging persistence
    */
   constructor(
     private readonly sourceControl: SourceControl,
-    parentDisposables: Disposable[]
+    parentDisposables: Disposable[],
+    repoRoot: string,
+    workspaceState?: Memento
   ) {
-    // Create static groups
+    // Create staging service
+    this._staging = new StagingService(repoRoot, workspaceState);
+
+    // Create static groups (order matters for UI display)
+    // Staged appears first
+    this._staged = this.createGroup("staged", "Staged Changes");
+    this._staged.hideWhenEmpty = true;
+
     this._changes = this.createGroup("changes", "Changes");
     this._changes.hideWhenEmpty = true;
 
@@ -129,7 +157,8 @@ export class ResourceGroupManager implements IResourceGroupManager {
     this._unversioned.hideWhenEmpty = true;
 
     // Register with parent for disposal
-    this._disposables.push(this._changes, this._conflicts);
+    this._disposables.push(this._staged, this._changes, this._conflicts);
+    this._disposables.push(this._staging);
 
     // Unversioned can be recreated, use toDisposable wrapper
     this._disposables.push(toDisposable(() => this._unversioned.dispose()));
@@ -144,9 +173,7 @@ export class ResourceGroupManager implements IResourceGroupManager {
     );
 
     // Add to parent disposables for cleanup
-    parentDisposables.push(
-      toDisposable(() => this.dispose())
-    );
+    parentDisposables.push(toDisposable(() => this.dispose()));
   }
 
   /**
@@ -156,12 +183,31 @@ export class ResourceGroupManager implements IResourceGroupManager {
   updateGroups(data: ResourceGroupUpdateData): number {
     const { result, config } = data;
 
-    // Update static groups (no spread needed - StatusService returns new arrays)
-    this._changes.resourceStates = result.changes;
+    // Split changes into staged and unstaged
+    const stagedResources: Resource[] = [];
+    const unstagedResources: Resource[] = [];
+
+    for (const resource of result.changes) {
+      if (this._staging.isStaged(resource.resourceUri)) {
+        stagedResources.push(resource);
+      } else {
+        unstagedResources.push(resource);
+      }
+    }
+
+    // Update staged and changes groups
+    this._staged.resourceStates = stagedResources;
+    this._changes.resourceStates = unstagedResources;
     this._conflicts.resourceStates = result.conflicts;
 
+    // Cleanup stale staged paths (files that are no longer changed)
+    const validPaths = new Set(
+      result.changes.map(r => normalizePath(r.resourceUri.fsPath))
+    );
+    this._staging.cleanupStalePaths(validPaths);
+
     // Clear existing changelist groups
-    this._changelists.forEach((group) => {
+    this._changelists.forEach(group => {
       group.resourceStates = [];
     });
 
@@ -201,8 +247,12 @@ export class ResourceGroupManager implements IResourceGroupManager {
     this._unversioned.resourceStates = result.unversioned;
 
     // Recreate or create remote changes group (must be last)
-    if (!this._remoteChanges || this._prevChangelistsSize !== this._changelists.size) {
-      const tempResourceStates: Resource[] = this._remoteChanges?.resourceStates ?? [];
+    if (
+      !this._remoteChanges ||
+      this._prevChangelistsSize !== this._changelists.size
+    ) {
+      const tempResourceStates: Resource[] =
+        this._remoteChanges?.resourceStates ?? [];
       this._remoteChanges?.dispose();
 
       this._remoteChanges = this.createGroup("remotechanges", "Remote Changes");
@@ -261,6 +311,7 @@ export class ResourceGroupManager implements IResourceGroupManager {
     this._resourceIndex.clear();
 
     const allResources = [
+      ...this._staged.resourceStates,
       ...this._changes.resourceStates,
       ...this._conflicts.resourceStates,
       ...this._unversioned.resourceStates
@@ -311,7 +362,11 @@ export class ResourceGroupManager implements IResourceGroupManager {
    * Calculate source control count based on configuration
    */
   private calculateCount(config: ResourceGroupConfig): number {
-    const counts: ISvnResourceGroup[] = [this._changes, this._conflicts];
+    const counts: ISvnResourceGroup[] = [
+      this._staged,
+      this._changes,
+      this._conflicts
+    ];
 
     // Add changelists not in ignore list
     this._changelists.forEach((group, changelist) => {
@@ -342,6 +397,7 @@ export class ResourceGroupManager implements IResourceGroupManager {
    * Clear all resource states and dispose remote changes
    */
   clearAll(): void {
+    this._staged.resourceStates = [];
     this._changes.resourceStates = [];
     this._unversioned.resourceStates = [];
     this._conflicts.resourceStates = [];

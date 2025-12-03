@@ -143,6 +143,10 @@ export class Repository implements IRemoteRepository {
   private _configCache: RepositoryConfig | undefined;
 
   // Property accessors for backward compatibility
+  get staged(): ISvnResourceGroup {
+    return this.groupManager.staged;
+  }
+
   get changes(): ISvnResourceGroup {
     return this.groupManager.changes;
   }
@@ -161,6 +165,10 @@ export class Repository implements IRemoteRepository {
 
   get remoteChanges(): ISvnResourceGroup | undefined {
     return this.groupManager.remoteChanges;
+  }
+
+  get staging() {
+    return this.groupManager.staging;
   }
 
   private lastPromptAuth?: Thenable<IAuth | undefined>;
@@ -325,7 +333,8 @@ export class Repository implements IRemoteRepository {
     // Initialize ResourceGroupManager
     this.groupManager = new ResourceGroupManager(
       this.sourceControl,
-      this.disposables
+      this.disposables,
+      this.root
     );
 
     // Initialize RemoteChangeService
