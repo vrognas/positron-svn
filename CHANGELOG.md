@@ -6,10 +6,14 @@
 - **Feat**: Warn when staging files already in changelists (prevents data loss)
 - **Feat**: Restore original changelist on unstage (non-destructive staging)
 - **Fix**: Ctrl+Enter commits staged files if present (Git-like behavior)
+- **Fix**: Auto-unstage reverted files (no changes to commit)
+- **Fix**: Hide changelist command on staged files (prevents breaking staging state)
+- **Feat**: Stage button now available on changelist groups (with warning dialog)
+- **Feat**: External diff tool now available on staged files
 - **Removed**: Redundant `removeChangelist` after commit (SVN auto-clears)
 - **Services**: `moveToStaged()`, `moveFromStaged()` in ResourceGroupManager
 - **Services**: `stageOptimistic()`, `unstageOptimistic()` in Repository
-- **Affected**: stage.ts, unstage.ts, repository.ts, ResourceGroupManager.ts, stagingService.ts, commitFromInputBox.ts
+- **Affected**: stage.ts, unstage.ts, repository.ts, ResourceGroupManager.ts, stagingService.ts, commitFromInputBox.ts, revert.ts, revertAll.ts, package.json
 
 ## [2.33.0] (2025-12-03)
 
