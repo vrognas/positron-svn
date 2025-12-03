@@ -165,6 +165,7 @@ export class Repository implements IRemoteRepository {
 
   private lastPromptAuth?: Thenable<IAuth | undefined>;
   private saveAuthLock: Promise<void> = Promise.resolve();
+  private credentialLock: Promise<void> = Promise.resolve(); // Mutex for credential assignment
   private promptAuthCooldown: boolean = false;
   private promptAuthCooldownTimer?: ReturnType<typeof setTimeout>;
   private storedAuthsCache?: { accounts: IStoredAuth[]; expiry: number };
@@ -368,8 +369,9 @@ export class Repository implements IRemoteRepository {
       // Clear runtime credentials and caches when auth mode changes
       // Forces re-authentication with new storage mode
       if (e.affectsConfiguration("svn.auth.credentialMode")) {
-        // Wait for any in-flight save to complete before clearing
-        void this.saveAuthLock.then(() => {
+        // Chain credential clearing to saveAuthLock to serialize properly
+        // This ensures any concurrent operation waits for clearing to complete
+        this.saveAuthLock = this.saveAuthLock.then(() => {
           this.username = undefined;
           this.password = undefined;
           this.canSaveAuth = false;
@@ -1206,56 +1208,70 @@ export class Repository implements IRemoteRepository {
     // Phase 8.2 perf fix - pre-load accounts before retry loop to avoid blocking
     const accounts: IStoredAuth[] = await this.loadStoredAuths();
 
-    // Fix Bug 2: Pre-set credentials from first stored account if none set
-    // Prevents first attempt failing with empty credentials in remote sessions
-    if (!this.username && !this.password && accounts.length > 0) {
-      this.username = accounts[0]!.account;
-      this.password = accounts[0]!.password;
-    }
+    // Serialize credential initialization to prevent race condition
+    // Multiple concurrent retryRun calls could otherwise both set credentials
+    // from accounts[0], then both fail and try accounts[1], causing lockout
+    await this.credentialLock;
+    let releaseLock: () => void = () => {};
+    this.credentialLock = new Promise(resolve => {
+      releaseLock = resolve;
+    });
 
-    while (true) {
-      try {
-        attempt++;
-        const result = await runOperation();
-        this.saveAuth();
-        return result;
-      } catch (err) {
-        const svnError = err as ISvnErrorData;
+    try {
+      // Pre-set credentials from first stored account if none set
+      // Prevents first attempt failing with empty credentials in remote sessions
+      if (!this.username && !this.password && accounts.length > 0) {
+        this.username = accounts[0]!.account;
+        this.password = accounts[0]!.password;
+      }
 
-        if (
-          svnError.svnErrorCode === svnErrorCodes.RepositoryIsLocked &&
-          attempt <= 10
-        ) {
-          // quadratic backoff
-          await timeout(Math.pow(attempt, 2) * 50);
-        } else if (
-          svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&
-          attempt <= accounts.length
-        ) {
-          // Backoff with jitter before trying next stored account
-          await timeout(400 + Math.random() * 200); // 400-600ms
-          // Fix Bug 1: Cycle through stored accounts properly
-          // attempt 1 failed with accounts[0], try accounts[1], etc.
-          const index = attempt;
-          const account = accounts[index];
-          if (account) {
-            this.username = account.account;
-            this.password = account.password;
-          }
-        } else if (
-          svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&
-          attempt <= 3 + accounts.length
-        ) {
-          // Backoff with jitter before prompting user
-          await timeout(800 + Math.random() * 400); // 800-1200ms
-          const result = await this.promptAuth();
-          if (!result) {
+      while (true) {
+        try {
+          attempt++;
+          const result = await runOperation();
+          this.saveAuth();
+          return result;
+        } catch (err) {
+          const svnError = err as ISvnErrorData;
+
+          if (
+            svnError.svnErrorCode === svnErrorCodes.RepositoryIsLocked &&
+            attempt <= 10
+          ) {
+            // quadratic backoff
+            await timeout(Math.pow(attempt, 2) * 50);
+          } else if (
+            svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&
+            attempt <= accounts.length
+          ) {
+            // Backoff with jitter before trying next stored account
+            await timeout(400 + Math.random() * 200); // 400-600ms
+            // Cycle through stored accounts properly
+            // attempt 1 failed with accounts[0], try accounts[1], etc.
+            const index = attempt;
+            const account = accounts[index];
+            if (account) {
+              this.username = account.account;
+              this.password = account.password;
+            }
+          } else if (
+            svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&
+            attempt <= 3 + accounts.length
+          ) {
+            // Backoff with jitter before prompting user
+            await timeout(800 + Math.random() * 400); // 800-1200ms
+            const result = await this.promptAuth();
+            if (!result) {
+              throw err;
+            }
+          } else {
             throw err;
           }
-        } else {
-          throw err;
         }
       }
+    } finally {
+      // Release lock so next operation can proceed
+      releaseLock();
     }
   }
 
@@ -1350,6 +1366,8 @@ export class Repository implements IRemoteRepository {
       clearTimeout(this.promptAuthCooldownTimer);
       this.promptAuthCooldownTimer = undefined;
     }
+    // Stop remote change polling to prevent timer leak
+    this.remoteChangeService.dispose();
     this.statusService.dispose();
     this.repository.clearInfoCacheTimers(); // Phase 8.2 perf fix - clear timers
     this.disposables = dispose(this.disposables);

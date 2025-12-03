@@ -1,3 +1,26 @@
+## [2.32.6] (2025-12-03)
+
+### Refactor: Reduce Bloat
+
+- **Removed**: `dayjs` dependency - replaced with native `Intl.RelativeTimeFormat` (-46KB)
+- **Removed**: `performanceComparison.ts` - benchmarking code shipped to production
+
+## [2.32.5] (2025-12-03)
+
+### Fix: Race Conditions and Resource Cleanup
+
+- **Fixed**: Credential race condition - mutex prevents concurrent auth from causing lockout
+- **Fixed**: Config handler serializes credential clearing to saveAuthLock chain
+- **Fixed**: BlameProvider disposal on setup failure - try-catch ensures cleanup
+
+## [2.32.4] (2025-12-03)
+
+### Fix: Memory Leak and Crash Prevention
+
+- **Fixed**: Timer memory leak in repository disposal - RemoteChangeService now properly stopped
+- **Fixed**: Potential crash in file watcher when Uri.parse fails on malformed paths
+- **Fixed**: Array bounds check in SVN auth cache parser - prevents crash on truncated files
+
 ## [2.32.3] (2025-12-03)
 
 ### Fix: Revert Always Uses Infinity Depth

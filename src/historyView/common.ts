@@ -3,8 +3,6 @@
 // Licensed under MIT License
 
 import * as path from "path";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
 import {
   commands,
   env,
@@ -22,7 +20,32 @@ import { SvnRI } from "../svnRI";
 import { tempSvnFs } from "../temp_svn_fs";
 import { getAuthorColorDot } from "./letterAvatar";
 
-dayjs.extend(relativeTime);
+/**
+ * Format a date as relative time ("2 days ago", "3 months ago")
+ * Replaces dayjs dependency (-46KB bundle size)
+ */
+function formatRelativeTime(date: string | Date): string {
+  const now = Date.now();
+  const then = new Date(date).getTime();
+  const diffMs = now - then;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+  const diffWeek = Math.floor(diffDay / 7);
+  const diffMonth = Math.floor(diffDay / 30);
+  const diffYear = Math.floor(diffDay / 365);
+
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+  if (diffYear > 0) return rtf.format(-diffYear, "year");
+  if (diffMonth > 0) return rtf.format(-diffMonth, "month");
+  if (diffWeek > 0) return rtf.format(-diffWeek, "week");
+  if (diffDay > 0) return rtf.format(-diffDay, "day");
+  if (diffHour > 0) return rtf.format(-diffHour, "hour");
+  if (diffMin > 0) return rtf.format(-diffMin, "minute");
+  return rtf.format(-diffSec, "second");
+}
 
 export enum LogTreeItemKind {
   Repo = 1,
@@ -218,7 +241,7 @@ export function getCommitIcon(
 }
 
 export function getCommitDescription(commit: ISvnLogEntry): string {
-  const relativeDate = dayjs(commit.date).fromNow();
+  const relativeDate = formatRelativeTime(commit.date);
   return `r${commit.revision}, ${relativeDate} by ${commit.author}`;
 }
 

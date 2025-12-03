@@ -266,17 +266,22 @@ export class SvnAuthCache {
 
         // Key line: K <length>
         if (line.startsWith("K ")) {
-          const key = lines[i + 1]!;
+          // Bounds check: need at least 3 more lines (key, V, value)
+          if (i + 3 >= lines.length) {
+            return null; // Truncated file - not enough lines
+          }
+
+          const key = lines[i + 1];
 
           // Value line: V <length>
-          const valueLine = lines[i + 2]!;
+          const valueLine = lines[i + 2];
           if (!valueLine || !valueLine.startsWith("V ")) {
             return null; // Corrupt format
           }
 
-          const value = lines[i + 3]!;
+          const value = lines[i + 3];
 
-          if (key && value) {
+          if (key && value !== undefined) {
             values[key] = value;
           }
 

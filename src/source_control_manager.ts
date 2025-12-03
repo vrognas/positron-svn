@@ -456,8 +456,6 @@ export class SourceControlManager implements IDisposable {
       state => state === RepositoryState.Disposed
     );
 
-    const disappearListener = onDidDisappearRepository(() => dispose());
-
     const changeListener = repository.onDidChangeRepository(uri =>
       this._onDidChangeRepository.fire({ repository, uri })
     );
@@ -467,8 +465,16 @@ export class SourceControlManager implements IDisposable {
     });
 
     // Initialize blame provider for this repository
+    // Track for cleanup if any subsequent setup fails
     const blameProvider = new BlameProvider(repository);
-    blameProvider.activate();
+    const localDisposables: { dispose(): void }[] = [
+      blameProvider,
+      changeListener,
+      changeStatus
+    ];
+
+    // Mutable reference for statusListener (defined in try block)
+    let statusListener: { dispose(): void } | undefined;
 
     // Phase 15 perf fix - build excluded paths cache for O(1) lookup
     const buildExcludedCache = () => {
@@ -482,20 +488,13 @@ export class SourceControlManager implements IDisposable {
       this.excludedPathsCache.set(repository.workspaceRoot, excluded);
     };
 
-    const statusListener = repository.onDidChangeStatus(() => {
-      buildExcludedCache();
-      this.scanExternals(repository);
-      this.scanIgnored(repository);
-    });
-    buildExcludedCache();
-    this.scanExternals(repository);
-    this.scanIgnored(repository);
-
     const dispose = () => {
       disappearListener.dispose();
       changeListener.dispose();
       changeStatus.dispose();
-      statusListener.dispose();
+      if (statusListener) {
+        statusListener.dispose();
+      }
       blameProvider.dispose();
       repository.dispose();
 
@@ -506,9 +505,37 @@ export class SourceControlManager implements IDisposable {
       this._onDidCloseRepository.fire(repository);
     };
 
+    const disappearListener = onDidDisappearRepository(() => dispose());
     const openRepository = { repository, dispose };
-    this.openRepositories.push(openRepository);
-    this._onDidOpenRepository.fire(repository);
+
+    try {
+      blameProvider.activate();
+
+      statusListener = repository.onDidChangeStatus(() => {
+        buildExcludedCache();
+        this.scanExternals(repository);
+        this.scanIgnored(repository);
+      });
+      localDisposables.push(statusListener);
+
+      buildExcludedCache();
+      this.scanExternals(repository);
+      this.scanIgnored(repository);
+
+      this.openRepositories.push(openRepository);
+      this._onDidOpenRepository.fire(repository);
+    } catch (error) {
+      // Cleanup on failure to prevent resource leaks
+      disappearListener.dispose();
+      for (const d of localDisposables) {
+        try {
+          d.dispose();
+        } catch {
+          // Ignore disposal errors during cleanup
+        }
+      }
+      throw error;
+    }
   }
 
   public close(repository: Repository): void {
