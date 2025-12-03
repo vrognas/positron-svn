@@ -37,6 +37,17 @@ interface ParseOptions {
 }
 
 /**
+ * Default XML parse options used by most SVN XML parsers.
+ * Merges attributes, strips root, unwraps single-element arrays, camelCases keys.
+ */
+export const DEFAULT_PARSE_OPTIONS: ParseOptions = {
+  mergeAttrs: true,
+  explicitRoot: false,
+  explicitArray: false,
+  camelcase: true
+};
+
+/**
  * XML Parser Adapter providing xml2js-compatible parsing using fast-xml-parser
  *
  * Implements key xml2js behaviors:

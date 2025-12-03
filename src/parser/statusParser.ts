@@ -2,7 +2,7 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
-import { XmlParserAdapter } from "./xmlParserAdapter";
+import { XmlParserAdapter, DEFAULT_PARSE_OPTIONS } from "./xmlParserAdapter";
 import { IEntry, IFileStatus, IWcStatus, LockStatus } from "../common/types";
 import { logError } from "../util/errorLogger";
 
@@ -144,12 +144,7 @@ function xmlToStatus(xml: Record<string, unknown>) {
 export async function parseStatusXml(content: string): Promise<IFileStatus[]> {
   return new Promise<IFileStatus[]>((resolve, reject) => {
     try {
-      const parsed = XmlParserAdapter.parse(content, {
-        mergeAttrs: true,
-        explicitRoot: false,
-        explicitArray: false,
-        camelcase: true
-      });
+      const parsed = XmlParserAdapter.parse(content, DEFAULT_PARSE_OPTIONS);
 
       const result = parsed as Record<string, unknown>;
       const statusList: IFileStatus[] = xmlToStatus(result);

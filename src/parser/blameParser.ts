@@ -3,7 +3,7 @@
 // Licensed under MIT License
 
 import { ISvnBlameLine } from "../common/types";
-import { XmlParserAdapter } from "./xmlParserAdapter";
+import { XmlParserAdapter, DEFAULT_PARSE_OPTIONS } from "./xmlParserAdapter";
 import { logError } from "../util/errorLogger";
 
 /**
@@ -27,12 +27,7 @@ import { logError } from "../util/errorLogger";
 export async function parseSvnBlame(content: string): Promise<ISvnBlameLine[]> {
   return new Promise<ISvnBlameLine[]>((resolve, reject) => {
     try {
-      const parsed = XmlParserAdapter.parse(content, {
-        mergeAttrs: true,
-        explicitRoot: false,
-        explicitArray: false,
-        camelcase: true
-      });
+      const parsed = XmlParserAdapter.parse(content, DEFAULT_PARSE_OPTIONS);
 
       const result = parsed as Record<string, unknown>;
 

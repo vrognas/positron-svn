@@ -86,10 +86,7 @@ export class ChangeList extends Command {
         })
       ) {
         canRemove = true;
-        return false;
       }
-
-      return;
     });
 
     const changelistName = await inputSwitchChangelist(repository, canRemove);
