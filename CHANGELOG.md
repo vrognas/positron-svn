@@ -1,3 +1,10 @@
+## [2.32.6] (2025-12-03)
+
+### Refactor: Reduce Bloat
+
+- **Removed**: `dayjs` dependency - replaced with native `Intl.RelativeTimeFormat` (-46KB)
+- **Removed**: `performanceComparison.ts` - benchmarking code shipped to production
+
 ## [2.32.5] (2025-12-03)
 
 ### Fix: Race Conditions and Resource Cleanup
