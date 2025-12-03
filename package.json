@@ -158,7 +158,7 @@
         },
         {
           "id": "repolog",
-          "name": "Repository Log",
+          "name": "Repo History",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         },
         {
