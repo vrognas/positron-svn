@@ -10,11 +10,57 @@
 import { configuration } from "../helpers/configuration";
 
 /**
+ * Debug mode auto-timeout (5 minutes)
+ * Prevents accidental credential exposure if user forgets to disable debug mode
+ */
+const DEBUG_MODE_TIMEOUT_MS = 5 * 60 * 1000;
+let debugModeEnabledAt: number | null = null;
+let debugModeWarningShown = false;
+
+/**
  * Check if sanitization is disabled for debugging
  * WARNING: When disabled, credentials and paths will be exposed in logs
+ * Auto-disables after 5 minutes for security
  */
 function isSanitizationDisabled(): boolean {
-  return configuration.get<boolean>("debug.disableSanitization", false);
+  const setting = configuration.get<boolean>(
+    "debug.disableSanitization",
+    false
+  );
+
+  if (!setting) {
+    // Reset tracking when disabled
+    debugModeEnabledAt = null;
+    debugModeWarningShown = false;
+    return false;
+  }
+
+  // Track when debug mode was enabled
+  if (debugModeEnabledAt === null) {
+    debugModeEnabledAt = Date.now();
+    if (!debugModeWarningShown) {
+      debugModeWarningShown = true;
+      console.warn(
+        "⚠️ SVN Debug: Sanitization DISABLED - credentials visible in logs. " +
+          "Auto-disable in 5 minutes."
+      );
+    }
+  }
+
+  // Auto-disable after timeout
+  const elapsed = Date.now() - debugModeEnabledAt;
+  if (elapsed > DEBUG_MODE_TIMEOUT_MS) {
+    console.warn(
+      "⚠️ SVN Debug: Sanitization auto-enabled after 5 minute timeout."
+    );
+    debugModeEnabledAt = null;
+    debugModeWarningShown = false;
+    // Note: We don't update the setting, just ignore it
+    // This allows user to re-enable if needed
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -23,7 +69,8 @@ function isSanitizationDisabled(): boolean {
  * @returns Sanitized error message with sensitive data redacted
  */
 export function sanitizeError(error: Error | string): string {
-  const errorStr = typeof error === "string" ? error : error.message || String(error);
+  const errorStr =
+    typeof error === "string" ? error : error.message || String(error);
   return sanitizeString(errorStr);
 }
 
@@ -43,10 +90,16 @@ export function sanitizeString(input: string): string {
   let sanitized = input;
 
   // Strip Windows paths: C:\path\to\file → [PATH]
-  sanitized = sanitized.replace(/[A-Z]:\\(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*/gi, "[PATH]");
+  sanitized = sanitized.replace(
+    /[A-Z]:\\(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*/gi,
+    "[PATH]"
+  );
 
   // Strip Unix paths: /path/to/file → [PATH]
-  sanitized = sanitized.replace(/\/(?:[a-zA-Z0-9._\-~]+\/)*[a-zA-Z0-9._\-~]*/g, "[PATH]");
+  sanitized = sanitized.replace(
+    /\/(?:[a-zA-Z0-9._\-~]+\/)*[a-zA-Z0-9._\-~]*/g,
+    "[PATH]"
+  );
 
   // Strip URLs: https://example.com/path → [DOMAIN]
   sanitized = sanitized.replace(
@@ -58,7 +111,10 @@ export function sanitizeString(input: string): string {
   sanitized = sanitized.replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, "[IP]");
 
   // Strip IPv6 addresses: fe80::1 → [IP]
-  sanitized = sanitized.replace(/\b(?:[0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}\b/g, "[IP]");
+  sanitized = sanitized.replace(
+    /\b(?:[0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}\b/g,
+    "[IP]"
+  );
 
   // Strip credentials in format: key=value (password, token, secret, etc.)
   sanitized = sanitized.replace(
@@ -69,14 +125,17 @@ export function sanitizeString(input: string): string {
   // Strip credentials in query strings: ?password=abc&token=xyz → ?password=[REDACTED]&token=[REDACTED]
   sanitized = sanitized.replace(
     /[?&](?:password|passwd|pwd|token|secret|api[_-]?key|auth|credential|apikey)\s*=\s*[^\s&;]+/gi,
-    (match) => {
+    match => {
       const [key] = match.split("=");
       return key + "=[REDACTED]";
     }
   );
 
   // Strip Bearer tokens: Bearer eyJhbGciOiJIUzI1NiI... → Bearer [REDACTED]
-  sanitized = sanitized.replace(/Bearer\s+[A-Za-z0-9._\-~+/=]+/g, "Bearer [REDACTED]");
+  sanitized = sanitized.replace(
+    /Bearer\s+[A-Za-z0-9._\-~+/=]+/g,
+    "Bearer [REDACTED]"
+  );
 
   // Strip Basic auth: Basic base64string → Basic [REDACTED]
   sanitized = sanitized.replace(/Basic\s+[A-Za-z0-9+/=]+/g, "Basic [REDACTED]");
@@ -95,7 +154,10 @@ export function sanitizeString(input: string): string {
   sanitized = sanitized.replace(/AKIA[0-9A-Z]{16}/g, "[AWS_KEY]");
 
   // Strip email addresses: user@example.com → [EMAIL]
-  sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, "[EMAIL]");
+  sanitized = sanitized.replace(
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    "[EMAIL]"
+  );
 
   return sanitized;
 }
@@ -133,7 +195,7 @@ export function sanitizeObject(obj: Record<string, unknown>): SanitizedObject {
       sanitized[key] = sanitizeString(value);
     } else if (Array.isArray(value)) {
       // Array values: sanitize string items, preserve others
-      sanitized[key] = value.map((item) =>
+      sanitized[key] = value.map(item =>
         typeof item === "string" ? sanitizeString(item) : item
       );
     } else if (isPlainObject(value)) {
@@ -186,7 +248,9 @@ function getNumericProperty(obj: unknown, key: string): number | undefined {
  * @param error Error object (standard Error or SvnError-like object)
  * @returns Sanitized error details object
  */
-export function createSanitizedErrorLog(error: Error | Record<string, unknown> | unknown): Record<string, string | number> {
+export function createSanitizedErrorLog(
+  error: Error | Record<string, unknown> | unknown
+): Record<string, string | number> {
   if (!error || typeof error !== "object") {
     return {};
   }

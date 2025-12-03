@@ -1,3 +1,11 @@
+## [2.32.9] (2025-12-03)
+
+### Security: Debug Mode Auto-Timeout
+
+- **Added**: 5-minute auto-timeout for `svn.debug.disableSanitization`
+- **Purpose**: Prevents accidental credential exposure if user forgets to re-enable
+- **Behavior**: After 5 minutes, sanitization auto-resumes (setting remains, ignored)
+
 ## [2.32.8] (2025-12-03)
 
 ### UX: Apply Recommended Settings Command
