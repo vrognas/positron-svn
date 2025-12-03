@@ -242,7 +242,9 @@ export function getCommitIcon(
 
 export function getCommitDescription(commit: ISvnLogEntry): string {
   const relativeDate = formatRelativeTime(commit.date);
-  return `r${commit.revision}, ${relativeDate} by ${commit.author}`;
+  const hasMsg = commit.msg && commit.msg.trim();
+  const prefix = hasMsg ? "· " : "";
+  return `${prefix}r${commit.revision} · ${commit.author} · ${relativeDate}`;
 }
 
 export function getCommitLabel(commit: ISvnLogEntry): string {
