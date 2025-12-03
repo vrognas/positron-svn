@@ -1,3 +1,47 @@
+## [2.32.11] (2025-12-03)
+
+### UX: Error Message Action Buttons
+
+- **Added**: "Open Settings" action on diff tool errors
+- **Purpose**: Direct path to fix config issues (no searching)
+
+## [2.32.10] (2025-12-03)
+
+### Security: Block % in Windows Username
+
+- **Fixed**: Username validation now blocks `%` character
+- **Purpose**: Prevents environment variable expansion attacks (%APPDATA%, etc.)
+- **Also**: Removed unsafe `%USERNAME%` fallback from ACL code
+
+## [2.32.9] (2025-12-03)
+
+### Security: Debug Mode Auto-Timeout
+
+- **Added**: 5-minute auto-timeout for `svn.debug.disableSanitization`
+- **Purpose**: Prevents accidental credential exposure if user forgets to re-enable
+- **Behavior**: After 5 minutes, sanitization auto-resumes (setting remains, ignored)
+
+## [2.32.8] (2025-12-03)
+
+### UX: Apply Recommended Settings Command
+
+- **Added**: `SVN: Apply Recommended Settings` command
+- **Profiles**: Data Science (recommended), Minimal, Full Features
+- **Purpose**: Reduces configuration complexity (60+ settings → 3 profiles)
+
+## [2.32.7] (2025-12-03)
+
+### Docs: Comprehensive Quality Review
+
+- **Added**: Quality review section to ARCHITECTURE_ANALYSIS.md
+- **Methodology**: 5 specialized agent analysis (bugs, performance, security, UX, architecture)
+- **Results**:
+  - Stability: GOOD (307 tests pass, 0 critical bugs)
+  - Performance: EXCELLENT (caches, throttling, batch ops)
+  - Security: 8.5/10 (minor: debug timeout, Windows % validation)
+  - UX: NEEDS ATTENTION (60+ settings, 80+ commands)
+  - Architecture: ACCEPTABLE (features justified for data science audience)
+
 ## [2.32.6] (2025-12-03)
 
 ### Refactor: Reduce Bloat

@@ -181,6 +181,38 @@ suite("Security: ACL Command Injection", () => {
         assert.match(err.message, /Invalid Windows username/);
       }
     });
+
+    test("1.9: Blocks username with % (env var expansion)", async () => {
+      process.env.USERNAME = "%APPDATA%";
+
+      try {
+        await authCache.writeCredential(
+          "testuser",
+          "testpass",
+          "https://svn.example.com:443"
+        );
+        assert.fail("Should have thrown error for % in username");
+      } catch (err) {
+        assert.ok(err instanceof Error);
+        assert.match(err.message, /Invalid Windows username/);
+      }
+    });
+
+    test("1.10: Blocks username with embedded %VAR%", async () => {
+      process.env.USERNAME = "admin%COMPUTERNAME%";
+
+      try {
+        await authCache.writeCredential(
+          "testuser",
+          "testpass",
+          "https://svn.example.com:443"
+        );
+        assert.fail("Should have thrown error for embedded env var");
+      } catch (err) {
+        assert.ok(err instanceof Error);
+        assert.match(err.message, /Invalid Windows username/);
+      }
+    });
   });
 
   suite("2. Valid Usernames (Should Pass)", () => {

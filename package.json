@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.32.6",
+  "version": "2.32.11",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.105.0",
@@ -611,6 +611,12 @@
         "title": "Update",
         "category": "SVN",
         "icon": "$(cloud-download)"
+      },
+      {
+        "command": "svn.applyRecommendedSettings",
+        "title": "Apply Recommended Settings",
+        "category": "SVN",
+        "icon": "$(gear)"
       }
     ],
     "menus": {
@@ -850,6 +856,10 @@
         {
           "command": "svn.update",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "command": "svn.applyRecommendedSettings",
+          "when": "config.svn.enabled"
         }
       ],
       "view/title": [

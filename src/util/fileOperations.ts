@@ -54,7 +54,13 @@ export async function diffWithExternalTool(
       "External diff tool not configured. Set svn.diff.tool to path of bcsvn.bat"
     );
     logError("Diff tool not configured", error);
-    window.showErrorMessage(error.message);
+    const action = await window.showErrorMessage(
+      error.message,
+      "Open Settings"
+    );
+    if (action === "Open Settings") {
+      commands.executeCommand("workbench.action.openSettings", "svn.diff.tool");
+    }
     throw error;
   }
 
@@ -82,7 +88,13 @@ export async function diffWithExternalTool(
   if (!(await exists(diffToolPath))) {
     const error = new Error(`External diff tool not found at: ${diffToolPath}`);
     logError("Diff tool not found", error);
-    window.showErrorMessage(error.message);
+    const action = await window.showErrorMessage(
+      error.message,
+      "Open Settings"
+    );
+    if (action === "Open Settings") {
+      commands.executeCommand("workbench.action.openSettings", "svn.diff.tool");
+    }
     throw error;
   }
 

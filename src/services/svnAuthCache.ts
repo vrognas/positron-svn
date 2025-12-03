@@ -308,18 +308,19 @@ export class SvnAuthCache {
 
   /**
    * Validate Windows username to prevent command injection (defense in depth)
-   * Blocks shell metacharacters: & | ; < > ( ) $ ` \ " ' and control characters
+   * Blocks shell metacharacters: & | ; < > ( ) $ ` \ " ' % and control characters
+   * Note: % blocks environment variable expansion attacks (%APPDATA%, etc.)
    *
    * @param username - Username from environment variable
    * @returns true if username is safe for use in icacls command
    */
-  private isValidWindowsUsername(username: string): boolean {
+  private isValidWindowsUsername(username: string | undefined): boolean {
     if (!username || username.length === 0 || username.length > 255) {
       return false;
     }
 
-    // Block shell metacharacters and control characters
-    const dangerousChars = /[&|;<>()$`\\"'\n\r\t\x00-\x1F\x7F]/;
+    // Block shell metacharacters, % (env var expansion), and control characters
+    const dangerousChars = /[&|;<>()$`\\"'%\n\r\t\x00-\x1F\x7F]/;
     if (dangerousChars.test(username)) {
       return false;
     }
@@ -352,7 +353,7 @@ export class SvnAuthCache {
    */
   private async setWindowsACL(filePath: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const username = process.env.USERNAME || process.env.USER || "%USERNAME%";
+      const username = process.env.USERNAME || process.env.USER;
 
       // Validate username to block shell metacharacters (defense in depth)
       if (!this.isValidWindowsUsername(username)) {
