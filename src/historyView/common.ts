@@ -241,7 +241,7 @@ export function getCommitIcon(
 }
 
 /**
- * Build file change stats string (e.g., "1A 3M 2D")
+ * Build file change stats string (e.g., "1 A · 3 M · 2 D")
  */
 function getFileStats(paths: ISvnLogEntryPath[] | undefined): string {
   if (!paths || paths.length === 0) return "";
@@ -258,16 +258,16 @@ function getFileStats(paths: ISvnLogEntryPath[] | undefined): string {
 
   for (const action of order) {
     if (counts[action]) {
-      parts.push(`${counts[action]}${action}`);
+      parts.push(`${counts[action]} ${action}`);
       delete counts[action];
     }
   }
   // Add any remaining actions
   for (const [action, count] of Object.entries(counts)) {
-    parts.push(`${count}${action}`);
+    parts.push(`${count} ${action}`);
   }
 
-  return parts.join(" ");
+  return parts.join(" · ");
 }
 
 export function getCommitDescription(commit: ISvnLogEntry): string {
