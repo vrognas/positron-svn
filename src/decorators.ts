@@ -175,8 +175,18 @@ export function globalSequentialize(
       const currentPromise =
         (_seqList[repoKey] as Promise<any>) || Promise.resolve(null);
       const run = async () => fn.apply(this, args);
-      _seqList[repoKey] = currentPromise.then(run, run);
-      return _seqList[repoKey];
+      const resultPromise = currentPromise.then(run, run);
+      _seqList[repoKey] = resultPromise;
+
+      // Clean up key after promise settles to prevent memory leak
+      resultPromise.finally(() => {
+        // Only delete if this is still the current promise for this key
+        if (_seqList[repoKey] === resultPromise) {
+          delete _seqList[repoKey];
+        }
+      });
+
+      return resultPromise;
     } as any;
   });
 }

@@ -108,11 +108,22 @@ function xmlToStatus(xml: Record<string, unknown>) {
       changelists = [changelists];
     }
 
-    (changelists as Array<{ entry: IEntry | IEntry[]; name: string }>).forEach(
-      change => {
-        statusList.push(...processEntry(change.entry, change.name));
+    // Validate each changelist item has expected structure before processing
+    for (const change of changelists as unknown[]) {
+      if (
+        change &&
+        typeof change === "object" &&
+        "entry" in change &&
+        "name" in change &&
+        typeof (change as { name: unknown }).name === "string"
+      ) {
+        const validChange = change as {
+          entry: IEntry | IEntry[];
+          name: string;
+        };
+        statusList.push(...processEntry(validChange.entry, validChange.name));
       }
-    );
+    }
   }
 
   return statusList;
