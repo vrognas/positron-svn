@@ -299,6 +299,12 @@
         "category": "SVN"
       },
       {
+        "command": "svn.commitStaged",
+        "title": "Commit Staged",
+        "category": "SVN",
+        "icon": "$(check)"
+      },
+      {
         "command": "svn.deleteUnversioned",
         "title": "Delete selected files",
         "category": "SVN"
@@ -567,6 +573,30 @@
         "icon": "$(discard)"
       },
       {
+        "command": "svn.stage",
+        "title": "Stage",
+        "category": "SVN",
+        "icon": "$(add)"
+      },
+      {
+        "command": "svn.stageAll",
+        "title": "Stage All",
+        "category": "SVN",
+        "icon": "$(add)"
+      },
+      {
+        "command": "svn.unstage",
+        "title": "Unstage",
+        "category": "SVN",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "svn.unstageAll",
+        "title": "Unstage All",
+        "category": "SVN",
+        "icon": "$(remove)"
+      },
+      {
         "command": "svn.revertAll",
         "title": "Revert All Changes",
         "category": "SVN",
@@ -689,6 +719,10 @@
         {
           "command": "svn.commitWithMessage",
           "when": "false"
+        },
+        {
+          "command": "svn.commitStaged",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         },
         {
           "command": "svn.deleteUnversioned",
@@ -824,6 +858,22 @@
         },
         {
           "command": "svn.revert",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "command": "svn.stage",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "command": "svn.stageAll",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "command": "svn.unstage",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "command": "svn.unstageAll",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         },
         {
@@ -1092,6 +1142,36 @@
           "command": "svn.revertAll",
           "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == changes",
           "group": "inline"
+        },
+        {
+          "command": "svn.stageAll",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == changes",
+          "group": "navigation@1"
+        },
+        {
+          "command": "svn.stageAll",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == changes",
+          "group": "inline@1"
+        },
+        {
+          "command": "svn.unstageAll",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == staged",
+          "group": "navigation@1"
+        },
+        {
+          "command": "svn.unstageAll",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == staged",
+          "group": "inline@1"
+        },
+        {
+          "command": "svn.commitStaged",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == staged",
+          "group": "navigation"
+        },
+        {
+          "command": "svn.commitStaged",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == staged",
+          "group": "inline"
         }
       ],
       "scm/resourceState/context": [
@@ -1194,6 +1274,26 @@
           "command": "svn.revert",
           "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != conflicts && scmResourceGroup != remotechanges",
           "group": "inline"
+        },
+        {
+          "command": "svn.stage",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == changes",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "svn.stage",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == changes",
+          "group": "inline@1"
+        },
+        {
+          "command": "svn.unstage",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == staged",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "svn.unstage",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup == staged",
+          "group": "inline@1"
         },
         {
           "command": "svn.remove",
