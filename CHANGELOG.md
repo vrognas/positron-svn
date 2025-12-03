@@ -1,3 +1,12 @@
+## [2.32.17] (2025-12-03)
+
+### Fix: TreeView Startup Display
+
+- **Fixed**: "Repository Log" and "Selective Download" treeviews not displaying at startup
+- **Root cause**: SourceControlManager discovers repos asynchronously AFTER providers are created
+- **Solution**: Both providers now listen to onDidOpenRepository/onDidCloseRepository events
+- **Affected**: repoLogProvider.ts, sparseCheckoutProvider.ts
+
 ## [2.32.16] (2025-12-03)
 
 ### Fix: Tree View Error Handling

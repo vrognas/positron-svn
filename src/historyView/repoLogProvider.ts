@@ -207,7 +207,16 @@ export class RepoLogProvider
             this.refresh();
           }, this.DEBOUNCE_MS);
         }
-      )
+      ),
+      // Fix: Refresh when repositories are opened/closed (startup timing issue)
+      // SourceControlManager discovers repos asynchronously after providers are created,
+      // so we must listen for repo open/close events to update tree data
+      this.sourceControlManager.onDidOpenRepository(() => {
+        this.refresh();
+      }),
+      this.sourceControlManager.onDidCloseRepository(() => {
+        this.refresh();
+      })
     );
   }
 

@@ -656,5 +656,49 @@ dispose(): void {
 
 ---
 
-**Document Version**: 2.10
+**Document Version**: 2.11
 **Last Updated**: 2025-12-03
+
+### 23. VS Code TreeView Providers: Listen for Repository Open/Close Events
+
+**Lesson**: TreeDataProviders created during extension activation may miss initial data if async initialization isn't complete.
+
+**Issue** (v2.32.17):
+
+- Repository Log and Selective Download treeviews displayed empty at startup
+- Required manual refresh to show data
+- Root cause: SourceControlManager scans workspace folders asynchronously (fire-and-forget)
+- Providers created AFTER SourceControlManager constructor but BEFORE repositories discovered
+- `sourceControlManager.repositories` was empty when providers called `getChildren()`
+
+**Fix**:
+
+```typescript
+// In constructor, subscribe to lifecycle events
+this._disposables.push(
+  this.sourceControlManager.onDidOpenRepository(() => {
+    this.refresh();
+  }),
+  this.sourceControlManager.onDidCloseRepository(() => {
+    this.refresh();
+  })
+);
+```
+
+**Why this pattern is needed**:
+
+- VS Code extensions often use async initialization for performance (non-blocking activation)
+- TreeDataProviders may be created before data is available
+- `onDidOpenRepository` fires when async discovery completes
+- Without listening to this event, providers never know data is ready
+
+**When to apply**:
+
+- ✅ TreeDataProvider depends on async-discovered resources (repos, files, configs)
+- ✅ Provider created during `activate()` before async init completes
+- ✅ Data source fires lifecycle events (open, close, change)
+- ❌ Static data available immediately at construction time
+
+**Rule**: TreeDataProviders must subscribe to data source lifecycle events, not just change events.
+
+---
