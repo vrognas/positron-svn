@@ -82,8 +82,9 @@ export class Stage extends Command {
         }
       }
 
+      // Use optimistic update - skips full status refresh
       await this.handleRepositoryOperation(
-        async () => repository.addChangelist(paths, STAGING_CHANGELIST),
+        async () => repository.stageOptimistic(paths),
         "Unable to stage files"
       );
     });
@@ -119,8 +120,9 @@ export class StageAll extends Command {
           }
         }
 
+        // Use optimistic update - skips full status refresh
         await this.handleRepositoryOperation(
-          async () => repository.addChangelist(paths, STAGING_CHANGELIST),
+          async () => repository.stageOptimistic(paths),
           "Unable to stage files"
         );
       });
@@ -131,8 +133,9 @@ export class StageAll extends Command {
         const changes = repository.changes.resourceStates;
         const paths = changes.map(r => r.resourceUri.fsPath);
         if (paths.length > 0) {
+          // Use optimistic update - skips full status refresh
           await this.handleRepositoryOperation(
-            async () => repository.addChangelist(paths, STAGING_CHANGELIST),
+            async () => repository.stageOptimistic(paths),
             "Unable to stage files"
           );
         }

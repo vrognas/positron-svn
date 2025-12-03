@@ -52,6 +52,7 @@ function shouldUseExtensionStorage(): boolean {
 import { StatusService } from "./services/StatusService";
 import { ResourceGroupManager } from "./services/ResourceGroupManager";
 import { RemoteChangeService } from "./services/RemoteChangeService";
+import { STAGING_CHANGELIST } from "./services/stagingService";
 import {
   IAuth,
   ICleanupOptions,
@@ -728,6 +729,39 @@ export class Repository implements IRemoteRepository {
     return this.run(Operation.RemoveChangelist, () =>
       this.repository.removeChangelist(files)
     );
+  }
+
+  /**
+   * Stage files with optimistic UI update.
+   * Runs SVN changelist command but skips full status refresh.
+   * UI is updated immediately by moving resources between groups.
+   */
+  public async stageOptimistic(files: string[]): Promise<void> {
+    // Run SVN command to update working copy state
+    await this.repository.addChangelist(files, STAGING_CHANGELIST);
+    // Optimistically update UI without status refresh
+    this.groupManager.moveToStaged(files);
+  }
+
+  /**
+   * Unstage files with optimistic UI update.
+   * Runs SVN changelist command but skips full status refresh.
+   * @param files Files to unstage
+   * @param targetChangelist Optional changelist to restore to
+   */
+  public async unstageOptimistic(
+    files: string[],
+    targetChangelist?: string
+  ): Promise<void> {
+    if (targetChangelist) {
+      // Restore to original changelist
+      await this.repository.addChangelist(files, targetChangelist);
+    } else {
+      // Remove from changelist entirely
+      await this.repository.removeChangelist(files);
+    }
+    // Optimistically update UI without status refresh
+    this.groupManager.moveFromStaged(files, targetChangelist);
   }
 
   public async getCurrentBranch() {

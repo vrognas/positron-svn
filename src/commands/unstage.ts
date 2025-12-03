@@ -6,10 +6,11 @@ import { Repository } from "../repository";
 import { Command } from "./command";
 
 /**
- * Unstage files, restoring them to their original changelist if they had one.
- * Files without original changelist go to Changes group.
+ * Unstage files with optimistic UI update.
+ * Restores files to their original changelist if they had one.
+ * Uses optimistic updates to skip full status refresh.
  */
-async function unstageWithRestore(
+async function unstageWithRestoreOptimistic(
   repository: Repository,
   paths: string[]
 ): Promise<void> {
@@ -28,14 +29,13 @@ async function unstageWithRestore(
     }
   }
 
-  // Restore files to their original changelists
+  // Use optimistic updates for each group
   for (const [changelist, filePaths] of toRestore) {
-    await repository.addChangelist(filePaths, changelist);
+    await repository.unstageOptimistic(filePaths, changelist);
   }
 
-  // Remove files that had no original changelist
   if (toRemove.length > 0) {
-    await repository.removeChangelist(toRemove);
+    await repository.unstageOptimistic(toRemove);
   }
 
   // Clear tracking for all unstaged files
@@ -56,7 +56,7 @@ export class Unstage extends Command {
     await this.runByRepository(uris, async (repository, resources) => {
       const paths = resources.map(r => r.fsPath);
       await this.handleRepositoryOperation(
-        async () => unstageWithRestore(repository, paths),
+        async () => unstageWithRestoreOptimistic(repository, paths),
         "Unable to unstage files"
       );
     });
@@ -77,7 +77,7 @@ export class UnstageAll extends Command {
       await this.runByRepository(uris, async (repository, resources) => {
         const paths = resources.map(r => r.fsPath);
         await this.handleRepositoryOperation(
-          async () => unstageWithRestore(repository, paths),
+          async () => unstageWithRestoreOptimistic(repository, paths),
           "Unable to unstage files"
         );
       });
@@ -88,7 +88,7 @@ export class UnstageAll extends Command {
         const paths = staged.map(r => r.resourceUri.fsPath);
         if (paths.length > 0) {
           await this.handleRepositoryOperation(
-            async () => unstageWithRestore(repository, paths),
+            async () => unstageWithRestoreOptimistic(repository, paths),
             "Unable to unstage files"
           );
         }

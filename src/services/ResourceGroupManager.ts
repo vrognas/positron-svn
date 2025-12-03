@@ -354,6 +354,114 @@ export class ResourceGroupManager implements IResourceGroupManager {
   }
 
   /**
+   * Optimistically move resources to staged group without SVN status refresh.
+   * Used for instant UI feedback after staging operations.
+   * @param paths File paths to move to staged
+   * @returns Resources that were moved (for potential rollback)
+   */
+  moveToStaged(paths: string[]): Resource[] {
+    const movedResources: Resource[] = [];
+    const pathSet = new Set(paths.map(p => normalizePath(p)));
+
+    // Find and remove from changes group
+    const remainingChanges = this._changes.resourceStates.filter(r => {
+      if (
+        r instanceof Resource &&
+        pathSet.has(normalizePath(r.resourceUri.fsPath))
+      ) {
+        movedResources.push(r);
+        return false;
+      }
+      return true;
+    });
+    this._changes.resourceStates = remainingChanges;
+
+    // Find and remove from changelist groups
+    this._changelists.forEach(group => {
+      const remaining = group.resourceStates.filter(r => {
+        if (
+          r instanceof Resource &&
+          pathSet.has(normalizePath(r.resourceUri.fsPath))
+        ) {
+          if (!movedResources.includes(r)) {
+            movedResources.push(r);
+          }
+          return false;
+        }
+        return true;
+      });
+      group.resourceStates = remaining;
+    });
+
+    // Add to staged group
+    this._staged.resourceStates = [
+      ...this._staged.resourceStates,
+      ...movedResources
+    ];
+
+    // Update staging cache
+    this._staging.syncFromChangelist(
+      this._staged.resourceStates.map(r => r.resourceUri.fsPath)
+    );
+
+    return movedResources;
+  }
+
+  /**
+   * Optimistically move resources from staged group without SVN status refresh.
+   * Used for instant UI feedback after unstaging operations.
+   * @param paths File paths to move from staged
+   * @param targetChangelist Optional changelist to move to (otherwise goes to changes)
+   * @returns Resources that were moved
+   */
+  moveFromStaged(paths: string[], targetChangelist?: string): Resource[] {
+    const movedResources: Resource[] = [];
+    const pathSet = new Set(paths.map(p => normalizePath(p)));
+
+    // Find and remove from staged group
+    const remainingStaged = this._staged.resourceStates.filter(r => {
+      if (
+        r instanceof Resource &&
+        pathSet.has(normalizePath(r.resourceUri.fsPath))
+      ) {
+        movedResources.push(r);
+        return false;
+      }
+      return true;
+    });
+    this._staged.resourceStates = remainingStaged;
+
+    // Add to target group
+    if (targetChangelist) {
+      let group = this._changelists.get(targetChangelist);
+      if (!group) {
+        // Create changelist group if it doesn't exist
+        group = this.createGroup(
+          `changelist-${targetChangelist}`,
+          `Changelist "${targetChangelist}"`
+        );
+        group.hideWhenEmpty = true;
+        this._disposables.push(group);
+        this._changelists.set(targetChangelist, group);
+      }
+      group.resourceStates = [...group.resourceStates, ...movedResources];
+    } else {
+      // Add to changes group
+      this._changes.resourceStates = [
+        ...this._changes.resourceStates,
+        ...movedResources
+      ];
+    }
+
+    // Update staging cache
+    this._staging.syncFromChangelist(
+      this._staged.resourceStates.map(r => r.resourceUri.fsPath)
+    );
+
+    return movedResources;
+  }
+
+  /**
    * Calculate source control count based on configuration
    */
   private calculateCount(config: ResourceGroupConfig): number {
