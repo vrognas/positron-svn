@@ -1,3 +1,13 @@
+## [2.32.21] (2025-12-03)
+
+### Fix: Comprehensive Error Handling in File Read
+
+- **Fixed**: "Unknown Error" still appearing in Changes view diff
+- **Root cause**: Errors could escape before inner try-catch; FileNotFound thrown without message
+- **Solution**: Wrap entire readFile in try-catch; always pass URI to FileSystemError; never empty message
+- **Result**: All errors properly converted to FileSystemError with clear message
+- **Affected**: svnFileSystemProvider.ts
+
 ## [2.32.20] (2025-12-03)
 
 ### Fix: Improved SVN Error Extraction

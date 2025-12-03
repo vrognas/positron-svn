@@ -153,23 +153,23 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
   }
 
   async readFile(uri: Uri): Promise<Uint8Array> {
-    await this.sourceControlManager.isInitialized;
-
-    const { fsPath, extra, action } = fromSvnUri(uri);
-
-    const repository = this.sourceControlManager.getRepository(fsPath);
-
-    if (!repository) {
-      throw FileSystemError.FileNotFound();
-    }
-
-    const cacheKey = uri.toString();
-    const timestamp = new Date().getTime();
-    const cacheValue: CacheRow = { uri: uri, timestamp };
-
-    this.cache.set(cacheKey, cacheValue);
-
     try {
+      await this.sourceControlManager.isInitialized;
+
+      const { fsPath, extra, action } = fromSvnUri(uri);
+
+      const repository = this.sourceControlManager.getRepository(fsPath);
+
+      if (!repository) {
+        throw FileSystemError.FileNotFound(uri);
+      }
+
+      const cacheKey = uri.toString();
+      const timestamp = new Date().getTime();
+      const cacheValue: CacheRow = { uri: uri, timestamp };
+
+      this.cache.set(cacheKey, cacheValue);
+
       if (action === SvnUriAction.SHOW) {
         return await repository.showBuffer(fsPath, extra.ref);
       }
@@ -185,11 +185,15 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
       if (action === SvnUriAction.PATCH) {
         return await repository.patchBuffer([fsPath]);
       }
-    } catch (error) {
-      // Fix: Convert SVN errors to FileSystemError for proper VS Code handling
-      // SvnError has svnErrorCode and stderr with detailed info; message is generic
 
-      // Extract SVN error code from SvnError or error message/stderr
+      return new Uint8Array(0);
+    } catch (error) {
+      // Re-throw FileSystemErrors as-is (already properly formatted)
+      if (error instanceof FileSystemError) {
+        throw error;
+      }
+
+      // Extract SVN error details for proper VS Code error display
       let svnErrorCode: string | undefined;
       let errorDetails = "";
 
@@ -204,13 +208,14 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
         svnErrorCode = svnError.svnErrorCode;
         errorDetails =
           svnError.stderrFormated || svnError.stderr || svnError.message || "";
-      } else {
-        // Regular Error - check message for error codes
-        errorDetails = error instanceof Error ? error.message : String(error);
+      } else if (error instanceof Error) {
+        errorDetails = error.message;
         const errorCodeMatch = errorDetails.match(/E\d+|W\d+/);
         if (errorCodeMatch) {
           svnErrorCode = errorCodeMatch[0];
         }
+      } else {
+        errorDetails = String(error);
       }
 
       // Check for "not found" error patterns
@@ -225,12 +230,11 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
         throw FileSystemError.FileNotFound(uri);
       }
 
-      // Log and re-throw as unavailable with detailed message
+      // Log and re-throw with detailed message (never empty)
       logError("Failed to read SVN file", error);
-      throw FileSystemError.Unavailable(errorDetails || "SVN operation failed");
+      const message = errorDetails || "SVN operation failed";
+      throw FileSystemError.Unavailable(message);
     }
-
-    return new Uint8Array(0);
   }
 
   writeFile(): void {
