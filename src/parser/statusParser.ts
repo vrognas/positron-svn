@@ -2,7 +2,7 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
-import { XmlParserAdapter } from "./xmlParserAdapter";
+import { XmlParserAdapter, DEFAULT_PARSE_OPTIONS } from "./xmlParserAdapter";
 import { IEntry, IFileStatus, IWcStatus, LockStatus } from "../common/types";
 import { logError } from "../util/errorLogger";
 
@@ -19,6 +19,18 @@ function processEntry(
       }
     });
     return list;
+  }
+
+  // Validate entry structure before accessing properties
+  if (
+    !entry ||
+    typeof entry !== "object" ||
+    !entry.path ||
+    !entry.wcStatus ||
+    typeof entry.wcStatus !== "object" ||
+    !entry.wcStatus.item
+  ) {
+    return [];
   }
 
   // Extract lock owner from repos-status if available
@@ -108,11 +120,22 @@ function xmlToStatus(xml: Record<string, unknown>) {
       changelists = [changelists];
     }
 
-    (changelists as Array<{ entry: IEntry | IEntry[]; name: string }>).forEach(
-      change => {
-        statusList.push(...processEntry(change.entry, change.name));
+    // Validate each changelist item has expected structure before processing
+    for (const change of changelists as unknown[]) {
+      if (
+        change &&
+        typeof change === "object" &&
+        "entry" in change &&
+        "name" in change &&
+        typeof (change as { name: unknown }).name === "string"
+      ) {
+        const validChange = change as {
+          entry: IEntry | IEntry[];
+          name: string;
+        };
+        statusList.push(...processEntry(validChange.entry, validChange.name));
       }
-    );
+    }
   }
 
   return statusList;
@@ -121,12 +144,7 @@ function xmlToStatus(xml: Record<string, unknown>) {
 export async function parseStatusXml(content: string): Promise<IFileStatus[]> {
   return new Promise<IFileStatus[]>((resolve, reject) => {
     try {
-      const parsed = XmlParserAdapter.parse(content, {
-        mergeAttrs: true,
-        explicitRoot: false,
-        explicitArray: false,
-        camelcase: true
-      });
+      const parsed = XmlParserAdapter.parse(content, DEFAULT_PARSE_OPTIONS);
 
       const result = parsed as Record<string, unknown>;
       const statusList: IFileStatus[] = xmlToStatus(result);

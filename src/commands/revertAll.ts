@@ -3,7 +3,7 @@
 // Licensed under MIT License
 
 import { SourceControlResourceGroup } from "vscode";
-import { checkAndPromptDepth, confirmRevert } from "../input/revert";
+import { confirmRevert } from "../input/revert";
 import { Command } from "./command";
 
 export class RevertAll extends Command {
@@ -19,16 +19,13 @@ export class RevertAll extends Command {
     }
 
     const uris = resourceStates.map(resource => resource.resourceUri);
-    const depth = await checkAndPromptDepth();
 
-    if (!depth) {
-      return;
-    }
-
+    // Always use infinity depth - for files it's ignored by SVN,
+    // for directories it ensures full recursive revert including deleted paths
     await this.runByRepository(uris, async (repository, resources) => {
       const paths = resources.map(resource => resource.fsPath).reverse();
       await this.handleRepositoryOperation(
-        async () => await repository.revert(paths, depth),
+        async () => await repository.revert(paths, "infinity"),
         "Unable to revert"
       );
     });

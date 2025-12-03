@@ -17,6 +17,7 @@ export class ResolveAll extends Command {
 
     if (!conflicts.length) {
       window.showInformationMessage("No Conflicts");
+      return;
     }
 
     for (const conflict of conflicts) {

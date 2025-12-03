@@ -3,6 +3,7 @@
 
 import { SourceControlResourceState, window } from "vscode";
 import { Command } from "./command";
+import { validateLockComment } from "../validation";
 
 export class Lock extends Command {
   constructor() {
@@ -21,6 +22,14 @@ export class Lock extends Command {
 
     // User cancelled the input box
     if (comment === undefined) {
+      return;
+    }
+
+    // Validate lock comment to prevent command injection
+    if (comment && !validateLockComment(comment)) {
+      window.showErrorMessage(
+        "Invalid lock comment: shell metacharacters not allowed"
+      );
       return;
     }
 

@@ -359,9 +359,10 @@ export class Svn {
       // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
       // Use configured timeout from settings, or explicit option, or default
       const timeoutMs = options.timeout || configuredTimeoutMs;
+      let timeoutHandle: NodeJS.Timeout | undefined;
       const timeoutPromise = new Promise<[number, Buffer, string]>(
         (_, reject) => {
-          setTimeout(() => {
+          timeoutHandle = setTimeout(() => {
             process.kill();
             reject(
               new SvnError({
@@ -392,34 +393,43 @@ export class Svn {
         }
       );
 
-      const [exitCode, stdout, stderr] = await Promise.race([
-        Promise.all([
-          new Promise<number>((resolve, reject) => {
-            once(process, "error", reject);
-            once(process, "exit", resolve);
-          }),
-          new Promise<Buffer>(resolve => {
-            const buffers: Buffer[] = [];
-            on(process.stdout as Readable, "data", (b: Buffer) =>
-              buffers.push(b)
-            );
-            once(process.stdout as Readable, "close", () =>
-              resolve(Buffer.concat(buffers))
-            );
-          }),
-          new Promise<string>(resolve => {
-            const buffers: Buffer[] = [];
-            on(process.stderr as Readable, "data", (b: Buffer) =>
-              buffers.push(b)
-            );
-            once(process.stderr as Readable, "close", () =>
-              resolve(Buffer.concat(buffers).toString())
-            );
-          })
-        ]),
-        timeoutPromise,
-        ...(options.token ? [cancellationPromise] : [])
-      ]);
+      let result: [number, Buffer, string];
+      try {
+        result = await Promise.race([
+          Promise.all([
+            new Promise<number>((resolve, reject) => {
+              once(process, "error", reject);
+              once(process, "exit", resolve);
+            }),
+            new Promise<Buffer>(resolve => {
+              const buffers: Buffer[] = [];
+              on(process.stdout as Readable, "data", (b: Buffer) =>
+                buffers.push(b)
+              );
+              once(process.stdout as Readable, "close", () =>
+                resolve(Buffer.concat(buffers))
+              );
+            }),
+            new Promise<string>(resolve => {
+              const buffers: Buffer[] = [];
+              on(process.stderr as Readable, "data", (b: Buffer) =>
+                buffers.push(b)
+              );
+              once(process.stderr as Readable, "close", () =>
+                resolve(Buffer.concat(buffers).toString())
+              );
+            })
+          ]),
+          timeoutPromise,
+          ...(options.token ? [cancellationPromise] : [])
+        ]);
+      } finally {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+      }
+
+      const [exitCode, stdout, stderr] = result;
 
       dispose(disposables);
 
@@ -600,9 +610,10 @@ export class Svn {
       // Phase 12 perf fix - Add timeout to prevent hanging SVN commands
       // Use configured timeout from settings, or explicit option, or default
       const timeoutMs = options.timeout || configuredTimeoutMs;
+      let timeoutHandle: NodeJS.Timeout | undefined;
       const timeoutPromise = new Promise<[number, Buffer, string]>(
         (_, reject) => {
-          setTimeout(() => {
+          timeoutHandle = setTimeout(() => {
             process.kill();
             reject(
               new SvnError({
@@ -615,33 +626,42 @@ export class Svn {
         }
       );
 
-      const [exitCode, stdout, stderr] = await Promise.race([
-        Promise.all([
-          new Promise<number>((resolve, reject) => {
-            once(process, "error", reject);
-            once(process, "exit", resolve);
-          }),
-          new Promise<Buffer>(resolve => {
-            const buffers: Buffer[] = [];
-            on(process.stdout as Readable, "data", (b: Buffer) =>
-              buffers.push(b)
-            );
-            once(process.stdout as Readable, "close", () =>
-              resolve(Buffer.concat(buffers))
-            );
-          }),
-          new Promise<string>(resolve => {
-            const buffers: Buffer[] = [];
-            on(process.stderr as Readable, "data", (b: Buffer) =>
-              buffers.push(b)
-            );
-            once(process.stderr as Readable, "close", () =>
-              resolve(Buffer.concat(buffers).toString())
-            );
-          })
-        ]),
-        timeoutPromise
-      ]);
+      let result: [number, Buffer, string];
+      try {
+        result = await Promise.race([
+          Promise.all([
+            new Promise<number>((resolve, reject) => {
+              once(process, "error", reject);
+              once(process, "exit", resolve);
+            }),
+            new Promise<Buffer>(resolve => {
+              const buffers: Buffer[] = [];
+              on(process.stdout as Readable, "data", (b: Buffer) =>
+                buffers.push(b)
+              );
+              once(process.stdout as Readable, "close", () =>
+                resolve(Buffer.concat(buffers))
+              );
+            }),
+            new Promise<string>(resolve => {
+              const buffers: Buffer[] = [];
+              on(process.stderr as Readable, "data", (b: Buffer) =>
+                buffers.push(b)
+              );
+              once(process.stderr as Readable, "close", () =>
+                resolve(Buffer.concat(buffers).toString())
+              );
+            })
+          ]),
+          timeoutPromise
+        ]);
+      } finally {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+      }
+
+      const [exitCode, stdout, stderr] = result;
 
       dispose(disposables);
 

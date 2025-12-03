@@ -2,7 +2,7 @@
 // Licensed under MIT License
 
 import { ISvnLockInfo } from "../common/types";
-import { XmlParserAdapter } from "./xmlParserAdapter";
+import { XmlParserAdapter, DEFAULT_PARSE_OPTIONS } from "./xmlParserAdapter";
 import { logError } from "../util/errorLogger";
 
 interface ParsedLock {
@@ -32,12 +32,10 @@ export function parseLockInfo(content: string): ISvnLockInfo | null {
   }
 
   try {
-    const result = XmlParserAdapter.parse(content, {
-      mergeAttrs: true,
-      explicitRoot: false,
-      explicitArray: false,
-      camelcase: true
-    }) as ParsedInfo;
+    const result = XmlParserAdapter.parse(
+      content,
+      DEFAULT_PARSE_OPTIONS
+    ) as ParsedInfo;
 
     if (!result.entry) {
       throw new Error("Invalid info XML: missing entry element");
@@ -84,12 +82,10 @@ export function parseBatchLockInfo(
   }
 
   try {
-    const parsed = XmlParserAdapter.parse(content, {
-      mergeAttrs: true,
-      explicitRoot: false,
-      explicitArray: false,
-      camelcase: true
-    }) as ParsedInfo;
+    const parsed = XmlParserAdapter.parse(
+      content,
+      DEFAULT_PARSE_OPTIONS
+    ) as ParsedInfo;
 
     if (!parsed.entry) {
       return result;
@@ -116,6 +112,9 @@ export function parseBatchLockInfo(
     }
   } catch (err) {
     logError("parseBatchLockInfo error", err);
+    throw err instanceof Error
+      ? err
+      : new Error("Failed to parse batch lock XML: Unknown error");
   }
 
   return result;

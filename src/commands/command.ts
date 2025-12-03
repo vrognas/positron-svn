@@ -249,7 +249,8 @@ export abstract class Command implements Disposable {
       return repository.getResourceFromFile(uri);
     }
 
-    return;
+    // Unsupported URI scheme (e.g., untitled, output)
+    return undefined;
   }
 
   protected async _openResource(
@@ -268,8 +269,7 @@ export abstract class Command implements Disposable {
     }
 
     if (!right) {
-      // TODO
-      console.error("oh no");
+      window.showErrorMessage("Unable to open resource: file not found");
       return;
     }
 
@@ -472,7 +472,7 @@ export abstract class Command implements Disposable {
         try {
           await unlink(tempFile);
         } catch (err) {
-          // TODO(cjohnston)//log error
+          logError(`Failed to unlink temp file ${tempFile}`, err);
         }
       }
 
@@ -543,7 +543,7 @@ export abstract class Command implements Disposable {
         const ignored = await inputIgnoreList(repository, resources);
 
         if (ignored) {
-          window.showInformationMessage(`File(s) is now being ignored`);
+          window.showInformationMessage("File(s) added to ignore list");
         }
       } catch (error) {
         logError("Property ignore operation failed", error);

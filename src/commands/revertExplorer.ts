@@ -3,7 +3,7 @@
 // Licensed under MIT License
 
 import { Uri } from "vscode";
-import { checkAndPromptDepth, confirmRevert } from "../input/revert";
+import { confirmRevert } from "../input/revert";
 import { Command } from "./command";
 
 export class RevertExplorer extends Command {
@@ -16,12 +16,8 @@ export class RevertExplorer extends Command {
       return;
     }
 
-    const depth = await checkAndPromptDepth();
-
-    if (!depth) {
-      return;
-    }
-
-    await this.executeRevert(allUris, depth);
+    // Always use infinity depth - for files it's ignored by SVN,
+    // for directories it ensures full recursive revert including deleted paths
+    await this.executeRevert(allUris, "infinity");
   }
 }

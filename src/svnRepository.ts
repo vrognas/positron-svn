@@ -36,6 +36,7 @@ import { parseBatchLockInfo, parseLockInfo } from "./parser/lockParser";
 import { parseSvnLog } from "./parser/logParser";
 import { parseStatusXml } from "./parser/statusParser";
 import { parseSvnBlame } from "./parser/blameParser";
+import { parseUpdateOutput } from "./parser/updateParser";
 import { Svn, BufferResult } from "./svn";
 import {
   fixPathSeparator,
@@ -254,18 +255,17 @@ export class Repository {
     await Promise.all(
       status
         .filter(s => s.status === Status.EXTERNAL)
-        .map(s =>
-          this.getInfo(s.path)
-            .then(info => {
-              s.repositoryUuid = info.repository?.uuid;
-            })
-            .catch(error => {
-              logError(
-                `Failed to fetch external repository info for ${s.path}`,
-                error
-              );
-            })
-        )
+        .map(async s => {
+          try {
+            const info = await this.getInfo(s.path);
+            s.repositoryUuid = info.repository?.uuid;
+          } catch (error) {
+            logError(
+              `Failed to fetch external repository info for ${s.path}`,
+              error
+            );
+          }
+        })
     );
 
     return status;
@@ -622,6 +622,7 @@ export class Repository {
     try {
       paths = await parseDiffXml(result.stdout);
     } catch (err) {
+      logError("Failed to parse diff XML for branch changes", err);
       return [];
     }
 
@@ -816,7 +817,14 @@ export class Repository {
     } finally {
       // Remove temporary file if exists - cleanup on success or error
       if (tmpFile) {
-        tmpFile.removeCallback();
+        try {
+          tmpFile.removeCallback();
+        } catch (cleanupError) {
+          logError(
+            "Failed to remove temporary commit message file",
+            cleanupError
+          );
+        }
       }
     }
 
@@ -1066,50 +1074,6 @@ export class Repository {
     return results.reverse().find(r => r.stdout)?.stdout || "";
   }
 
-  /**
-   * Parse SVN update output to extract revision, conflicts, and message
-   */
-  private parseUpdateOutput(stdout: string): IUpdateResult {
-    if (!stdout || typeof stdout !== "string") {
-      return { revision: null, conflicts: [], message: "" };
-    }
-
-    // Precompiled regex patterns
-    const revRegex = /(?:Updated to|At) revision (\d+)/i;
-    const conflictRegex = /^\s*C\s+(.+)$/;
-
-    const lines = stdout.trim().split(/\r?\n/);
-    const conflicts: string[] = [];
-    let revision: number | null = null;
-    let message = "";
-
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const line = lines[i]!;
-      const trimmed = line.trim();
-
-      // Capture last non-empty line as message
-      if (!message && trimmed) {
-        message = trimmed;
-      }
-
-      // Detect all conflict types (text, tree, property)
-      const conflictMatch = conflictRegex.exec(line);
-      if (conflictMatch && conflictMatch[1]) {
-        conflicts.unshift(conflictMatch[1]!.trim());
-      }
-
-      // Extract revision (only once)
-      if (revision === null) {
-        const revMatch = revRegex.exec(line);
-        if (revMatch && revMatch[1]) {
-          revision = parseInt(revMatch[1]!, 10);
-        }
-      }
-    }
-
-    return { revision, conflicts, message };
-  }
-
   public async update(
     ignoreExternals: boolean = false
   ): Promise<IUpdateResult> {
@@ -1123,7 +1087,7 @@ export class Repository {
 
     this.resetInfoCache();
 
-    return this.parseUpdateOutput(result.stdout);
+    return parseUpdateOutput(result.stdout);
   }
 
   public async pullIncomingChange(path: string): Promise<string> {
@@ -1585,7 +1549,10 @@ export class Repository {
 
       currentIgnore = currentIgnoreResult.stdout.trim();
     } catch (error) {
-      logError("Merge operation failed", error);
+      logError(
+        `Failed to get svn:ignore property for ${directory || "."}`,
+        error
+      );
     }
 
     const ignores = currentIgnore.split(/[\r\n]+/);
@@ -1852,5 +1819,7 @@ export class Repository {
     this._infoCache.clear();
     this._blameCache.forEach(entry => clearTimeout(entry.timeout));
     this._blameCache.clear();
+    this._logCache.forEach(entry => clearTimeout(entry.timeout));
+    this._logCache.clear();
   }
 }

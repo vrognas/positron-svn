@@ -3,7 +3,7 @@
 // Licensed under MIT License
 
 import { SourceControlResourceState } from "vscode";
-import { checkAndPromptDepth, confirmRevert } from "../input/revert";
+import { confirmRevert } from "../input/revert";
 import { Command } from "./command";
 
 export class Revert extends Command {
@@ -16,12 +16,8 @@ export class Revert extends Command {
     if (!selection || !(await confirmRevert())) return;
 
     const uris = selection.map(resource => resource.resourceUri);
-    const depth = await checkAndPromptDepth();
-
-    if (!depth) {
-      return;
-    }
-
-    await this.executeRevert(uris, depth);
+    // Always use infinity depth - for files it's ignored by SVN,
+    // for directories it ensures full recursive revert including deleted paths
+    await this.executeRevert(uris, "infinity");
   }
 }

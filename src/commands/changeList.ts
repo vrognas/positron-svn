@@ -7,6 +7,7 @@ import { inputSwitchChangelist } from "../changelistItems";
 import { SourceControlManager } from "../source_control_manager";
 import { Resource } from "../resource";
 import { normalizePath } from "../util";
+import { logError } from "../util/errorLogger";
 import { Command } from "./command";
 
 export class ChangeList extends Command {
@@ -24,7 +25,10 @@ export class ChangeList extends Command {
     } else if (window.activeTextEditor) {
       uris = [window.activeTextEditor.document.uri];
     } else {
-      console.error("Unhandled type for changelist command");
+      logError(
+        "Unhandled type for changelist command",
+        new Error("No valid URI source")
+      );
       return;
     }
 
@@ -82,10 +86,7 @@ export class ChangeList extends Command {
         })
       ) {
         canRemove = true;
-        return false;
       }
-
-      return;
     });
 
     const changelistName = await inputSwitchChangelist(repository, canRemove);

@@ -37,6 +37,17 @@ interface ParseOptions {
 }
 
 /**
+ * Default XML parse options used by most SVN XML parsers.
+ * Merges attributes, strips root, unwraps single-element arrays, camelCases keys.
+ */
+export const DEFAULT_PARSE_OPTIONS: ParseOptions = {
+  mergeAttrs: true,
+  explicitRoot: false,
+  explicitArray: false,
+  camelcase: true
+};
+
+/**
  * XML Parser Adapter providing xml2js-compatible parsing using fast-xml-parser
  *
  * Implements key xml2js behaviors:
@@ -247,14 +258,20 @@ export class XmlParserAdapter {
     }
 
     // Security: Validate tag count (configurable, 0 = unlimited)
+    // Uses simple loop instead of regex to avoid ReDoS vulnerability
     const maxTags = configuration.get<number>(
       "performance.maxXmlTags",
       this.MAX_TAG_COUNT
     );
     if (maxTags > 0) {
-      const tagCount = (xml.match(/<[^>]+>/g) || []).length;
-      if (tagCount > maxTags) {
-        throw new Error(`XML exceeds maximum tag count of ${maxTags}`);
+      let tagCount = 0;
+      for (let i = 0; i < xml.length; i++) {
+        if (xml[i] === "<" && xml[i + 1] !== "!" && xml[i + 1] !== "?") {
+          tagCount++;
+          if (tagCount > maxTags) {
+            throw new Error(`XML exceeds maximum tag count of ${maxTags}`);
+          }
+        }
       }
     }
 

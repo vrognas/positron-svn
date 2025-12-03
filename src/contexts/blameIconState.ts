@@ -5,6 +5,7 @@
 import { Disposable, window } from "vscode";
 import { blameStateManager } from "../blame/blameStateManager";
 import { IDisposable, setVscodeContext } from "../util";
+import { logError } from "../util/errorLogger";
 import { SourceControlManager } from "../source_control_manager";
 
 export class BlameIconState implements IDisposable {
@@ -41,7 +42,7 @@ export class BlameIconState implements IDisposable {
 
     // Set initial state
     void this.updateIconContext().catch(err => {
-      console.error("[BlameIconState] Initial context update failed:", err);
+      logError("BlameIconState initial context update failed", err);
       // Set safe defaults
       void setVscodeContext("svnBlameActiveForFile", false);
       void setVscodeContext("svnBlameUntrackedFile", false);
@@ -50,15 +51,8 @@ export class BlameIconState implements IDisposable {
 
   private async updateIconContext(): Promise<void> {
     const editor = window.activeTextEditor;
-    console.log(
-      "[BlameIconState] updateIconContext called, editor:",
-      editor?.document.uri.fsPath
-    );
 
     if (!editor || editor.document.uri.scheme !== "file") {
-      console.log(
-        "[BlameIconState] No editor or non-file scheme, setting both to false"
-      );
       await setVscodeContext("svnBlameActiveForFile", false);
       await setVscodeContext("svnBlameUntrackedFile", false);
       return;
@@ -71,7 +65,6 @@ export class BlameIconState implements IDisposable {
 
     // No repository found - file not in SVN workspace
     if (!repository) {
-      console.log("[BlameIconState] No repository found, hiding icons");
       await setVscodeContext("svnBlameActiveForFile", false);
       await setVscodeContext("svnBlameUntrackedFile", false);
       return;
@@ -81,16 +74,9 @@ export class BlameIconState implements IDisposable {
 
     // Resource not loaded yet - repository still indexing OR file not tracked
     if (!resource) {
-      console.log("[BlameIconState] Resource not found (clean file):", {
-        file: editor.document.uri.fsPath,
-        repoPath: repository.root,
-        resourceCount: repository.getResourceMap()?.size || 0
-      });
-
       // No resource = clean file (not in change index)
       // Check state manager for actual blame state
       const isEnabled = blameStateManager.isBlameEnabled(editor.document.uri);
-      console.log("[BlameIconState] Clean file, blame enabled:", isEnabled);
       await setVscodeContext("svnBlameActiveForFile", isEnabled);
       await setVscodeContext("svnBlameUntrackedFile", false);
       return;
@@ -108,17 +94,10 @@ export class BlameIconState implements IDisposable {
 
     // Set context variables
     if (cannotBlame) {
-      console.log("[BlameIconState] File cannot be blamed", {
-        status: resource.type
-      });
       await setVscodeContext("svnBlameActiveForFile", false);
       await setVscodeContext("svnBlameUntrackedFile", true);
     } else {
       const isEnabled = blameStateManager.isBlameEnabled(editor.document.uri);
-      console.log(
-        "[BlameIconState] File is TRACKED, blame enabled:",
-        isEnabled
-      );
       await setVscodeContext("svnBlameActiveForFile", isEnabled);
       await setVscodeContext("svnBlameUntrackedFile", false);
     }

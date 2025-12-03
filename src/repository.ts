@@ -369,7 +369,7 @@ export class Repository implements IRemoteRepository {
       // Forces re-authentication with new storage mode
       if (e.affectsConfiguration("svn.auth.credentialMode")) {
         // Wait for any in-flight save to complete before clearing
-        this.saveAuthLock.then(() => {
+        void this.saveAuthLock.then(() => {
           this.username = undefined;
           this.password = undefined;
           this.canSaveAuth = false;
@@ -487,6 +487,7 @@ export class Repository implements IRemoteRepository {
       return commands.executeCommand("svn.promptRemove", ...uris);
     }
 
+    // Unknown action - do nothing (config enum exhausted above)
     return;
   }
 
@@ -712,14 +713,14 @@ export class Repository implements IRemoteRepository {
   ) {
     return this.run(Operation.NewBranch, async () => {
       await this.repository.newBranch(name, commitMessage);
-      this.updateRemoteChangedFiles();
+      void this.updateRemoteChangedFiles();
     });
   }
 
   public async switchBranch(name: string, force: boolean = false) {
     await this.run(Operation.SwitchBranch, async () => {
       await this.repository.switchBranch(name, force);
-      this.updateRemoteChangedFiles();
+      void this.updateRemoteChangedFiles();
     });
   }
 
@@ -730,7 +731,7 @@ export class Repository implements IRemoteRepository {
   ) {
     await this.run(Operation.Merge, async () => {
       await this.repository.merge(name, reintegrate, accept_action);
-      this.updateRemoteChangedFiles();
+      void this.updateRemoteChangedFiles();
     });
   }
 
@@ -751,7 +752,7 @@ export class Repository implements IRemoteRepository {
   public async pullIncomingChange(path: string) {
     return this.run<string>(Operation.Update, async () => {
       const response = await this.repository.pullIncomingChange(path);
-      this.updateRemoteChangedFiles();
+      void this.updateRemoteChangedFiles();
       return response;
     });
   }
@@ -1236,9 +1237,10 @@ export class Repository implements IRemoteRepository {
           // Fix Bug 1: Cycle through stored accounts properly
           // attempt 1 failed with accounts[0], try accounts[1], etc.
           const index = attempt;
-          if (typeof accounts[index] !== "undefined") {
-            this.username = accounts[index]!.account;
-            this.password = accounts[index]!.password;
+          const account = accounts[index];
+          if (account) {
+            this.username = account.account;
+            this.password = account.password;
           }
         } else if (
           svnError.svnErrorCode === svnErrorCodes.AuthorizationFailed &&

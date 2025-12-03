@@ -3,7 +3,6 @@
 // Licensed under MIT License
 
 import { window } from "vscode";
-import { SvnDepth } from "../common/types";
 
 export async function confirmRevert() {
   const yes = "Yes I'm sure";
@@ -18,13 +17,4 @@ export async function confirmRevert() {
   }
 
   return true;
-}
-
-/**
- * Always returns "infinity" depth for revert operations.
- * For files, depth is ignored by SVN. For directories, infinity ensures
- * full recursive revert including deleted paths.
- */
-export async function checkAndPromptDepth(): Promise<keyof typeof SvnDepth> {
-  return "infinity";
 }

@@ -3,7 +3,7 @@
 // Licensed under MIT License
 
 import { ISvnBlameLine } from "../common/types";
-import { XmlParserAdapter } from "./xmlParserAdapter";
+import { XmlParserAdapter, DEFAULT_PARSE_OPTIONS } from "./xmlParserAdapter";
 import { logError } from "../util/errorLogger";
 
 /**
@@ -27,12 +27,7 @@ import { logError } from "../util/errorLogger";
 export async function parseSvnBlame(content: string): Promise<ISvnBlameLine[]> {
   return new Promise<ISvnBlameLine[]>((resolve, reject) => {
     try {
-      const parsed = XmlParserAdapter.parse(content, {
-        mergeAttrs: true,
-        explicitRoot: false,
-        explicitArray: false,
-        camelcase: true
-      });
+      const parsed = XmlParserAdapter.parse(content, DEFAULT_PARSE_OPTIONS);
 
       const result = parsed as Record<string, unknown>;
 
@@ -61,6 +56,9 @@ export async function parseSvnBlame(content: string): Promise<ISvnBlameLine[]> {
       // Transform XML entries to ISvnBlameLine[]
       const blameLines: ISvnBlameLine[] = entries.map((entry: unknown) => {
         const e = entry as Record<string, unknown>;
+        if (!e.lineNumber) {
+          throw new Error("Invalid blame entry: missing lineNumber");
+        }
         const line: ISvnBlameLine = {
           lineNumber: parseInt(e.lineNumber as string, 10)
         };
