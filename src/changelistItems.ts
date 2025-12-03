@@ -45,14 +45,16 @@ export function getCommitChangelistPickOptions(
 ): ChangeListItem[] {
   const picks: ChangeListItem[] = [];
 
-  if (repository.changes.resourceStates.length) {
-    picks.push(new ChangeListItem(repository.changes));
+  // Include staged files group
+  if (repository.staged.resourceStates.length) {
+    picks.push(new ChangeListItem(repository.staged));
   }
 
   const ignoreOnCommitList = configuration.get<string[]>(
     "sourceControl.ignoreOnCommit"
   );
 
+  // Include custom changelists (excludes staging changelist - already shown as "staged")
   repository.changelists.forEach((group, changelist) => {
     if (
       group.resourceStates.length &&
@@ -127,10 +129,8 @@ export async function inputCommitFiles(repository: Repository) {
     return;
   }
 
-  if (
-    choice.id === "changes" &&
-    choice.resourceGroup.resourceStates.length > 1
-  ) {
+  // Allow file selection for staged or changelist groups with multiple files
+  if (choice.resourceGroup.resourceStates.length > 1) {
     const selectedAll = configuration.get("commit.changes.selectedAll", true);
 
     const picks = choice.resourceGroup.resourceStates.map(

@@ -52,6 +52,7 @@ function shouldUseExtensionStorage(): boolean {
 import { StatusService } from "./services/StatusService";
 import { ResourceGroupManager } from "./services/ResourceGroupManager";
 import { RemoteChangeService } from "./services/RemoteChangeService";
+import { STAGING_CHANGELIST } from "./services/stagingService";
 import {
   IAuth,
   ICleanupOptions,
@@ -143,6 +144,10 @@ export class Repository implements IRemoteRepository {
   private _configCache: RepositoryConfig | undefined;
 
   // Property accessors for backward compatibility
+  get staged(): ISvnResourceGroup {
+    return this.groupManager.staged;
+  }
+
   get changes(): ISvnResourceGroup {
     return this.groupManager.changes;
   }
@@ -161,6 +166,10 @@ export class Repository implements IRemoteRepository {
 
   get remoteChanges(): ISvnResourceGroup | undefined {
     return this.groupManager.remoteChanges;
+  }
+
+  get staging() {
+    return this.groupManager.staging;
   }
 
   private lastPromptAuth?: Thenable<IAuth | undefined>;
@@ -301,9 +310,15 @@ export class Repository implements IRemoteRepository {
 
     // @ts-expect-error - contextValue exists at runtime but not in types
     this.sourceControl.contextValue = "repository";
-    this.sourceControl.inputBox.placeholder = "Commit message";
+    this.sourceControl.inputBox.placeholder =
+      "Message here or Ctrl+Enter for guided commit";
     this.sourceControl.inputBox.visible = true;
     this.sourceControl.inputBox.enabled = true;
+    this.sourceControl.acceptInputCommand = {
+      command: "svn.commitFromInputBox",
+      title: "Commit",
+      arguments: [this]
+    };
     this.sourceControl.quickDiffProvider = this;
     this.sourceControl.count = 0;
     this.disposables.push(this.sourceControl);
@@ -565,17 +580,20 @@ export class Repository implements IRemoteRepository {
   private readonly MODEL_CACHE_MS = 2000; // 2s cache
 
   @globalSequentialize("updateModelState")
-  public async updateModelState(checkRemoteChanges: boolean = false) {
+  public async updateModelState(
+    checkRemoteChanges: boolean = false,
+    forceRefresh: boolean = false
+  ) {
     // Skip status updates during sparse checkout downloads
     // Prevents working copy lock conflicts on Windows
     if (this._sparseDownloadInProgress) {
       return;
     }
 
-    // Short-term cache: skip if called within 2s
+    // Short-term cache: skip if called within 2s (unless forced)
     // Note: @throttle removed (Phase 15) - cache already handles throttling
     const now = Date.now();
-    if (now - this.lastModelUpdate < this.MODEL_CACHE_MS) {
+    if (!forceRefresh && now - this.lastModelUpdate < this.MODEL_CACHE_MS) {
       return;
     }
     this.lastModelUpdate = now;
@@ -712,6 +730,39 @@ export class Repository implements IRemoteRepository {
     );
   }
 
+  /**
+   * Stage files with optimistic UI update.
+   * Runs SVN changelist command but skips full status refresh.
+   * UI is updated immediately by moving resources between groups.
+   */
+  public async stageOptimistic(files: string[]): Promise<void> {
+    // Run SVN command to update working copy state
+    await this.repository.addChangelist(files, STAGING_CHANGELIST);
+    // Optimistically update UI without status refresh
+    this.groupManager.moveToStaged(files);
+  }
+
+  /**
+   * Unstage files with optimistic UI update.
+   * Runs SVN changelist command but skips full status refresh.
+   * @param files Files to unstage
+   * @param targetChangelist Optional changelist to restore to
+   */
+  public async unstageOptimistic(
+    files: string[],
+    targetChangelist?: string
+  ): Promise<void> {
+    if (targetChangelist) {
+      // Restore to original changelist
+      await this.repository.addChangelist(files, targetChangelist);
+    } else {
+      // Remove from changelist entirely
+      await this.repository.removeChangelist(files);
+    }
+    // Optimistically update UI without status refresh
+    this.groupManager.moveFromStaged(files, targetChangelist);
+  }
+
   public async getCurrentBranch() {
     return this.run(Operation.CurrentBranch, async () => {
       return this.repository.getCurrentBranch();
@@ -756,6 +807,14 @@ export class Repository implements IRemoteRepository {
       // Skip updateRemoteChangedFiles - after update we're at HEAD, no remote changes
       return result;
     });
+  }
+
+  /**
+   * Check if server has new commits since last update.
+   * Uses svn log BASE:HEAD to compare local vs remote revision.
+   */
+  public async hasRemoteChanges(): Promise<boolean> {
+    return this.repository.hasRemoteChanges();
   }
 
   public async pullIncomingChange(path: string) {
@@ -1176,9 +1235,14 @@ export class Repository implements IRemoteRepository {
         const result = await this.retryRun(runOperation);
 
         const checkRemote = operation === Operation.StatusRemote;
+        // Force refresh for changelist operations to bypass 2s cache
+        // These operations modify which group files appear in
+        const forceRefresh =
+          operation === Operation.AddChangelist ||
+          operation === Operation.RemoveChangelist;
 
         if (!isReadOnly(operation)) {
-          await this.updateModelState(checkRemote);
+          await this.updateModelState(checkRemote, forceRefresh);
         }
 
         return result;

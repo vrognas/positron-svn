@@ -51,6 +51,9 @@ export class ItemLogProvider
     this._dispose.push(
       window.onDidChangeActiveTextEditor(this.editorChanged, this),
       window.registerTreeDataProvider("itemlog", this),
+      // Refresh when repositories open/close (handles startup timing)
+      sourceControlManager.onDidOpenRepository(() => this.refresh()),
+      sourceControlManager.onDidCloseRepository(() => this.refresh()),
       commands.registerCommand(
         "svn.itemlog.copymsg",
         async (item: ILogTreeItem) => copyCommitToClipboard("msg", item)

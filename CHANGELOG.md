@@ -1,3 +1,41 @@
+## [2.33.1] (2025-12-03)
+
+### Perf: Optimistic UI for Stage/Unstage
+
+- **New**: Instant UI feedback for stage/unstage operations (skips full svn status refresh)
+- **Feat**: Warn when staging files already in changelists (prevents data loss)
+- **Feat**: Restore original changelist on unstage (non-destructive staging)
+- **Feat**: "Stage before commit" - All commit commands require files in changelist
+- **Feat**: Renamed "Staged Changes" to "Staged for Commit"
+- **Removed**: "Commit Selected" from file context menu (use Ctrl+Enter instead)
+- **Fix**: Lock commands moved to separate context menu section
+- **Feat**: History log shows file stats (e.g., "r366 · user · 2h ago · 1A 3M 2D")
+- **Fix**: Unstage All / Stage All buttons now work correctly (iterate all repos)
+- **Fix**: Auto-unstage reverted files (no changes to commit)
+- **Fix**: Hide changelist command on staged files (prevents breaking staging state)
+- **Feat**: Stage button now available on changelist groups (with warning dialog)
+- **Feat**: External diff tool now available on staged files
+- **Removed**: Redundant `removeChangelist` after commit (SVN auto-clears)
+- **Services**: `moveToStaged()`, `moveFromStaged()` in ResourceGroupManager
+- **Services**: `stageOptimistic()`, `unstageOptimistic()` in Repository
+- **Affected**: stage.ts, unstage.ts, repository.ts, ResourceGroupManager.ts, stagingService.ts, commitFromInputBox.ts, revert.ts, revertAll.ts, package.json
+
+## [2.33.0] (2025-12-03)
+
+### Feat: Modernized Commit UX
+
+- **New**: Native VS Code QuickPick multi-step commit flow (replaces webview)
+- **New**: Conventional Commits integration (feat/fix/docs/style/refactor/perf/test/build/ci/chore)
+- **New**: Smart pre-commit update - checks server for new commits, skips if at HEAD
+- **New**: Conflict detection with user prompts (abort or continue)
+- **New**: Ctrl+Enter (acceptInputCommand) triggers commit from SCM panel
+- **New**: Previous message reuse in type picker
+- **Settings**: `svn.commit.conventionalCommits` (default: true)
+- **Settings**: `svn.commit.updateBeforeCommit` (default: true)
+- **Settings**: `svn.commit.useQuickPick` (default: true)
+- **Services**: ConventionalCommitService, CommitFlowService, PreCommitUpdateService
+- **Affected**: repository.ts, commands.ts, package.json, new service files
+
 ## [2.32.29] (2025-12-03)
 
 ### Perf: Faster Update Revision

@@ -1,4 +1,3 @@
-// Copyright (c) 2017-2020 Christopher Johnston
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
@@ -13,14 +12,15 @@ import { CommitFlowService } from "../services/commitFlowService";
 import { Command } from "./command";
 
 /**
- * Commit all staged files (or offer to stage all if none staged).
- * Enforces "stage before commit" workflow.
+ * Commit from SCM input box (Ctrl+Enter).
+ * Requires files to be staged/selected before commit.
+ * If no files staged, offers to stage all and proceed.
  */
-export class CommitAll extends Command {
+export class CommitFromInputBox extends Command {
   private commitFlowService: CommitFlowService;
 
   constructor() {
-    super("svn.commitAll", { repository: true });
+    super("svn.commitFromInputBox", { repository: true });
     this.commitFlowService = new CommitFlowService();
   }
 
@@ -99,6 +99,7 @@ export class CommitAll extends Command {
     let message: string | undefined;
 
     if (useQuickPick) {
+      // New flow: QuickPick multi-step
       const result = await this.commitFlowService.runCommitFlow(
         repository,
         filePaths,
@@ -113,6 +114,7 @@ export class CommitAll extends Command {
       }
       message = result.message;
     } else {
+      // Legacy flow: Webview
       message = await inputCommitMessage(
         repository.inputBox.value,
         true,
@@ -128,6 +130,7 @@ export class CommitAll extends Command {
       const result = await repository.commitFiles(message!, filePaths);
       window.showInformationMessage(result);
       repository.inputBox.value = "";
+      // Clear original changelist tracking for committed files
       repository.staging.clearOriginalChangelists(filePaths);
     }, "Unable to commit");
   }

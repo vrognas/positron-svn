@@ -6,6 +6,7 @@ import { Disposable, SourceControl, Uri } from "vscode";
 import { ISvnResourceGroup } from "../common/types";
 import { Resource } from "../resource";
 import { StatusResult } from "./StatusService";
+import { StagingService, STAGING_CHANGELIST } from "./stagingService";
 import { normalizePath, toDisposable } from "../util";
 
 /**
@@ -60,6 +61,7 @@ export interface IResourceGroupManager {
   /**
    * Access to static groups
    */
+  readonly staged: ISvnResourceGroup;
   readonly changes: ISvnResourceGroup;
   readonly conflicts: ISvnResourceGroup;
   readonly unversioned: ISvnResourceGroup;
@@ -71,6 +73,11 @@ export interface IResourceGroupManager {
   readonly remoteChanges: ISvnResourceGroup | undefined;
 
   /**
+   * Staging service for managing staged files
+   */
+  readonly staging: StagingService;
+
+  /**
    * Dispose all managed groups
    */
   dispose(): void;
@@ -80,6 +87,7 @@ export interface IResourceGroupManager {
  * Implementation of resource group manager
  */
 export class ResourceGroupManager implements IResourceGroupManager {
+  private _staged: ISvnResourceGroup;
   private _changes: ISvnResourceGroup;
   private _conflicts: ISvnResourceGroup;
   private _unversioned: ISvnResourceGroup;
@@ -89,6 +97,11 @@ export class ResourceGroupManager implements IResourceGroupManager {
   private _prevChangelistsSize = 0;
   private _resourceIndex = new Map<string, Resource>(); // Phase 8.1 perf fix - O(1) lookup
   private _resourceHash = ""; // Phase 16 perf fix - conditional rebuild
+  private _staging: StagingService;
+
+  get staged(): ISvnResourceGroup {
+    return this._staged;
+  }
 
   get changes(): ISvnResourceGroup {
     return this._changes;
@@ -110,6 +123,10 @@ export class ResourceGroupManager implements IResourceGroupManager {
     return this._remoteChanges;
   }
 
+  get staging(): StagingService {
+    return this._staging;
+  }
+
   /**
    * @param sourceControl VS Code SourceControl instance
    * @param parentDisposables Parent's disposable array to register cleanup
@@ -118,7 +135,14 @@ export class ResourceGroupManager implements IResourceGroupManager {
     private readonly sourceControl: SourceControl,
     parentDisposables: Disposable[]
   ) {
-    // Create static groups
+    // Create staging service (uses SVN changelist for persistence)
+    this._staging = new StagingService();
+
+    // Create static groups (order matters for UI display)
+    // Staged appears first
+    this._staged = this.createGroup("staged", "Staged for Commit");
+    this._staged.hideWhenEmpty = true;
+
     this._changes = this.createGroup("changes", "Changes");
     this._changes.hideWhenEmpty = true;
 
@@ -129,7 +153,8 @@ export class ResourceGroupManager implements IResourceGroupManager {
     this._unversioned.hideWhenEmpty = true;
 
     // Register with parent for disposal
-    this._disposables.push(this._changes, this._conflicts);
+    this._disposables.push(this._staged, this._changes, this._conflicts);
+    this._disposables.push(this._staging);
 
     // Unversioned can be recreated, use toDisposable wrapper
     this._disposables.push(toDisposable(() => this._unversioned.dispose()));
@@ -144,9 +169,7 @@ export class ResourceGroupManager implements IResourceGroupManager {
     );
 
     // Add to parent disposables for cleanup
-    parentDisposables.push(
-      toDisposable(() => this.dispose())
-    );
+    parentDisposables.push(toDisposable(() => this.dispose()));
   }
 
   /**
@@ -156,17 +179,31 @@ export class ResourceGroupManager implements IResourceGroupManager {
   updateGroups(data: ResourceGroupUpdateData): number {
     const { result, config } = data;
 
-    // Update static groups (no spread needed - StatusService returns new arrays)
+    // Extract staged files from __staged__ changelist
+    const stagedResources = result.changelists.get(STAGING_CHANGELIST) ?? [];
+
+    // Sync staging service cache with SVN changelist data
+    this._staging.syncFromChangelist(
+      stagedResources.map(r => r.resourceUri.fsPath)
+    );
+
+    // Update staged and changes groups
+    this._staged.resourceStates = stagedResources;
     this._changes.resourceStates = result.changes;
     this._conflicts.resourceStates = result.conflicts;
 
     // Clear existing changelist groups
-    this._changelists.forEach((group) => {
+    this._changelists.forEach(group => {
       group.resourceStates = [];
     });
 
-    // Update or create changelist groups
+    // Update or create changelist groups (excluding __staged__)
     result.changelists.forEach((resources, changelist) => {
+      // Skip staging changelist - handled separately as "Staged for Commit"
+      if (changelist === STAGING_CHANGELIST) {
+        return;
+      }
+
       let group = this._changelists.get(changelist);
       if (!group) {
         // Prefix 'changelist-' to prevent ID collision with 'changes'
@@ -182,8 +219,10 @@ export class ResourceGroupManager implements IResourceGroupManager {
       group.resourceStates = resources;
     });
 
-    // Dispose removed changelists
-    const currentChangelists = new Set(result.changelists.keys());
+    // Dispose removed changelists (excluding __staged__ which is never in _changelists)
+    const currentChangelists = new Set(
+      [...result.changelists.keys()].filter(k => k !== STAGING_CHANGELIST)
+    );
     this._changelists.forEach((group, changelist) => {
       if (!currentChangelists.has(changelist)) {
         group.dispose();
@@ -201,8 +240,12 @@ export class ResourceGroupManager implements IResourceGroupManager {
     this._unversioned.resourceStates = result.unversioned;
 
     // Recreate or create remote changes group (must be last)
-    if (!this._remoteChanges || this._prevChangelistsSize !== this._changelists.size) {
-      const tempResourceStates: Resource[] = this._remoteChanges?.resourceStates ?? [];
+    if (
+      !this._remoteChanges ||
+      this._prevChangelistsSize !== this._changelists.size
+    ) {
+      const tempResourceStates: Resource[] =
+        this._remoteChanges?.resourceStates ?? [];
       this._remoteChanges?.dispose();
 
       this._remoteChanges = this.createGroup("remotechanges", "Remote Changes");
@@ -261,6 +304,7 @@ export class ResourceGroupManager implements IResourceGroupManager {
     this._resourceIndex.clear();
 
     const allResources = [
+      ...this._staged.resourceStates,
       ...this._changes.resourceStates,
       ...this._conflicts.resourceStates,
       ...this._unversioned.resourceStates
@@ -308,10 +352,122 @@ export class ResourceGroupManager implements IResourceGroupManager {
   }
 
   /**
+   * Optimistically move resources to staged group without SVN status refresh.
+   * Used for instant UI feedback after staging operations.
+   * @param paths File paths to move to staged
+   * @returns Resources that were moved (for potential rollback)
+   */
+  moveToStaged(paths: string[]): Resource[] {
+    const movedResources: Resource[] = [];
+    const pathSet = new Set(paths.map(p => normalizePath(p)));
+
+    // Find and remove from changes group
+    const remainingChanges = this._changes.resourceStates.filter(r => {
+      if (
+        r instanceof Resource &&
+        pathSet.has(normalizePath(r.resourceUri.fsPath))
+      ) {
+        movedResources.push(r);
+        return false;
+      }
+      return true;
+    });
+    this._changes.resourceStates = remainingChanges;
+
+    // Find and remove from changelist groups
+    this._changelists.forEach(group => {
+      const remaining = group.resourceStates.filter(r => {
+        if (
+          r instanceof Resource &&
+          pathSet.has(normalizePath(r.resourceUri.fsPath))
+        ) {
+          if (!movedResources.includes(r)) {
+            movedResources.push(r);
+          }
+          return false;
+        }
+        return true;
+      });
+      group.resourceStates = remaining;
+    });
+
+    // Add to staged group
+    this._staged.resourceStates = [
+      ...this._staged.resourceStates,
+      ...movedResources
+    ];
+
+    // Update staging cache
+    this._staging.syncFromChangelist(
+      this._staged.resourceStates.map(r => r.resourceUri.fsPath)
+    );
+
+    return movedResources;
+  }
+
+  /**
+   * Optimistically move resources from staged group without SVN status refresh.
+   * Used for instant UI feedback after unstaging operations.
+   * @param paths File paths to move from staged
+   * @param targetChangelist Optional changelist to move to (otherwise goes to changes)
+   * @returns Resources that were moved
+   */
+  moveFromStaged(paths: string[], targetChangelist?: string): Resource[] {
+    const movedResources: Resource[] = [];
+    const pathSet = new Set(paths.map(p => normalizePath(p)));
+
+    // Find and remove from staged group
+    const remainingStaged = this._staged.resourceStates.filter(r => {
+      if (
+        r instanceof Resource &&
+        pathSet.has(normalizePath(r.resourceUri.fsPath))
+      ) {
+        movedResources.push(r);
+        return false;
+      }
+      return true;
+    });
+    this._staged.resourceStates = remainingStaged;
+
+    // Add to target group
+    if (targetChangelist) {
+      let group = this._changelists.get(targetChangelist);
+      if (!group) {
+        // Create changelist group if it doesn't exist
+        group = this.createGroup(
+          `changelist-${targetChangelist}`,
+          `Changelist "${targetChangelist}"`
+        );
+        group.hideWhenEmpty = true;
+        this._disposables.push(group);
+        this._changelists.set(targetChangelist, group);
+      }
+      group.resourceStates = [...group.resourceStates, ...movedResources];
+    } else {
+      // Add to changes group
+      this._changes.resourceStates = [
+        ...this._changes.resourceStates,
+        ...movedResources
+      ];
+    }
+
+    // Update staging cache
+    this._staging.syncFromChangelist(
+      this._staged.resourceStates.map(r => r.resourceUri.fsPath)
+    );
+
+    return movedResources;
+  }
+
+  /**
    * Calculate source control count based on configuration
    */
   private calculateCount(config: ResourceGroupConfig): number {
-    const counts: ISvnResourceGroup[] = [this._changes, this._conflicts];
+    const counts: ISvnResourceGroup[] = [
+      this._staged,
+      this._changes,
+      this._conflicts
+    ];
 
     // Add changelists not in ignore list
     this._changelists.forEach((group, changelist) => {
@@ -342,6 +498,7 @@ export class ResourceGroupManager implements IResourceGroupManager {
    * Clear all resource states and dispose remote changes
    */
   clearAll(): void {
+    this._staged.resourceStates = [];
     this._changes.resourceStates = [];
     this._unversioned.resourceStates = [];
     this._conflicts.resourceStates = [];

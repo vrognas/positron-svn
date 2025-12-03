@@ -58,6 +58,44 @@ You can checkout a SVN repository with the `SVN: Checkout` command in the **Comm
 * Commit changes/changelists
 * See commit messages
 
+## Staging Area (Git-like Workflow)
+
+This extension simulates Git's staging area using SVN changelists, enforcing a **"stage before commit"** workflow.
+
+### How It Works
+
+Files must be staged (or in a changelist) before committing:
+
+1. **Stage files** - Click the `+` button or use "Stage" from context menu
+2. **Review staged** - Files appear in "Staged for Commit" group
+3. **Commit** - Press `Ctrl+Enter` or click the checkmark button
+
+If no files are staged, you'll be prompted to "Stage All" before committing.
+
+### Under the Hood
+
+- Staging uses a hidden SVN changelist (`__staged__`)
+- Files in custom changelists can also be committed directly
+- Original changelist membership is restored when unstaging
+- SVN automatically clears changelist membership after commit
+
+### Why This Workflow?
+
+- **Intentional commits** - Forces you to review what you're committing
+- **Partial commits** - Commit only specific files, not everything
+- **Familiar UX** - Works like Git for developers switching from Git
+- **Non-destructive** - Original changelists preserved on unstage
+
+### Quick Reference
+
+| Action | Shortcut/Button |
+|--------|-----------------|
+| Stage file | `+` button or context menu |
+| Stage all | `+` on Changes group header |
+| Unstage file | `-` button or context menu |
+| Unstage all | `-` on Staged group header |
+| Commit staged | `Ctrl+Enter` or checkmark button |
+
 ## External Diff Tools
 
 Configure external diff tools like Beyond Compare for large files (e.g., CSVs) where built-in diff is insufficient.

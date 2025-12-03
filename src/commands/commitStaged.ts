@@ -1,4 +1,3 @@
-// Copyright (c) 2017-2020 Christopher Johnston
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
@@ -13,59 +12,32 @@ import { CommitFlowService } from "../services/commitFlowService";
 import { Command } from "./command";
 
 /**
- * Commit all staged files (or offer to stage all if none staged).
- * Enforces "stage before commit" workflow.
+ * Commit only staged files.
+ * Uses QuickPick flow or legacy webview based on config.
  */
-export class CommitAll extends Command {
+export class CommitStaged extends Command {
   private commitFlowService: CommitFlowService;
 
   constructor() {
-    super("svn.commitAll", { repository: true });
+    super("svn.commitStaged", { repository: true });
     this.commitFlowService = new CommitFlowService();
   }
 
   public async execute(repository: Repository) {
-    // Get staged and changed files
-    const staged = repository.staged.resourceStates.filter(
+    // Get staged resources
+    const stagedResources = repository.staged.resourceStates.filter(
       s => s instanceof Resource
     ) as Resource[];
 
-    const changes = repository.changes.resourceStates.filter(
-      s => s instanceof Resource
-    ) as Resource[];
-
-    // Require files to be staged before commit
-    if (staged.length === 0) {
-      if (changes.length === 0) {
-        window.showInformationMessage("No changes to commit");
-        return;
-      }
-
-      // Offer to stage all and commit
-      const choice = await window.showInformationMessage(
-        `${changes.length} file(s) not staged. Stage all and commit?`,
-        "Stage All",
-        "Cancel"
-      );
-
-      if (choice !== "Stage All") {
-        return;
-      }
-
-      // Stage all changes
-      const changePaths = changes.map(r => r.resourceUri.fsPath);
-      await repository.stageOptimistic(changePaths);
+    if (stagedResources.length === 0) {
+      window.showInformationMessage("No staged files to commit");
+      return;
     }
 
-    // Get staged files (possibly just auto-staged)
-    const resourcesToCommit = repository.staged.resourceStates.filter(
-      s => s instanceof Resource
-    ) as Resource[];
-
-    const filePaths = resourcesToCommit.map(state => state.resourceUri.fsPath);
+    const filePaths = stagedResources.map(state => state.resourceUri.fsPath);
 
     // Handle renamed files and parent directories
-    resourcesToCommit.forEach(state => {
+    stagedResources.forEach(state => {
       if (state.type === Status.ADDED && state.renameResourceUri) {
         filePaths.push(state.renameResourceUri.fsPath);
       }
@@ -97,8 +69,10 @@ export class CommitAll extends Command {
     );
 
     let message: string | undefined;
+    let selectedFiles: string[] = filePaths;
 
     if (useQuickPick) {
+      // QuickPick flow (skips file selection since user already staged)
       const result = await this.commitFlowService.runCommitFlow(
         repository,
         filePaths,
@@ -112,7 +86,9 @@ export class CommitAll extends Command {
         return;
       }
       message = result.message;
+      selectedFiles = result.selectedFiles || filePaths;
     } else {
+      // Legacy flow
       message = await inputCommitMessage(
         repository.inputBox.value,
         true,
@@ -125,10 +101,13 @@ export class CommitAll extends Command {
     }
 
     await this.handleRepositoryOperation(async () => {
-      const result = await repository.commitFiles(message!, filePaths);
+      const result = await repository.commitFiles(message!, selectedFiles);
       window.showInformationMessage(result);
       repository.inputBox.value = "";
-      repository.staging.clearOriginalChangelists(filePaths);
+      // Note: SVN automatically removes files from changelists after commit
+      // No need to call removeChangelist - it's handled by SVN
+      // Clear original changelist tracking for committed files
+      repository.staging.clearOriginalChangelists(selectedFiles);
     }, "Unable to commit");
   }
 }

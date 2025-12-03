@@ -352,7 +352,8 @@ export class StatusService implements IStatusService {
         status.wcStatus.locked,
         status.wcStatus.lockOwner,
         status.wcStatus.hasLockToken,
-        lockStatus
+        lockStatus,
+        status.changelist
       );
 
       // Skip normal/unchanged items

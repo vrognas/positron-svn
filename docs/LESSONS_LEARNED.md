@@ -795,3 +795,102 @@ void this.updateRemoteChangedFiles(); // Debounced, fires in background
 **Rule**: Never call `run()` / `retryRun()` from within a `run()` callback. Let the parent handle post-callback work.
 
 ---
+
+### 21. VS Code UX: Multi-Step QuickPick Patterns
+
+**Lesson**: Use native VS Code QuickPick/InputBox for wizard-like flows, not webviews.
+
+**Issue** (v2.33.0):
+
+- Original commit UX required webview for commit message input
+- Webview is heavy, context-switching, non-native feel
+- Users expected Ctrl+Enter to commit like VS Code Git extension
+
+**Fix**:
+
+```typescript
+// Multi-step QuickPick with step indicators
+await window.showQuickPick(items, {
+  title: "Commit (1/3): Select type", // Step indicator in title
+  placeHolder: "Choose commit type"
+});
+
+// acceptInputCommand for Ctrl+Enter
+sourceControl.acceptInputCommand = {
+  command: "svn.commitFromInputBox",
+  title: "Commit",
+  arguments: [this]
+};
+```
+
+**Pattern**:
+
+1. Use QuickPick for selection steps (commit type, files)
+2. Use InputBox for text entry (scope, description)
+3. Title shows step progress ("1/3", "2/3", "3/3")
+4. Final step shows confirmation with file preview
+5. Wire `acceptInputCommand` for Ctrl+Enter from SCM input box
+
+**Benefits**:
+
+- Native VS Code look and feel
+- Keyboard-driven (no mouse required)
+- Faster than webview (no DOM rendering)
+- Familiar to Git extension users
+
+**Services**:
+
+- `ConventionalCommitService`: Parse/format conventional commit messages
+- `CommitFlowService`: Orchestrate multi-step QuickPick flow
+- `PreCommitUpdateService`: Run SVN update before commit with progress
+
+**Rule**: Prefer native VS Code UI (QuickPick, InputBox, Progress) over webviews for simple workflows.
+
+---
+
+### 26. Optimistic UI Updates: Skip Status Refresh for SCM Operations
+
+**Lesson**: For stage/unstage operations, update UI immediately without waiting for full `svn status` refresh.
+
+**Issue** (v2.33.x):
+
+- Stage/unstage called full `svn status --xml` after each SVN changelist operation
+- Each status call: ~100-500ms depending on working copy size
+- Multiple rapid stage operations = cumulative delay (user sees lag)
+
+**Fix**:
+
+```typescript
+// BEFORE: Full refresh after every operation
+await repository.addChangelist(files, STAGING_CHANGELIST);
+await repository.updateModelState(); // Full svn status --xml
+
+// AFTER: Optimistic UI update
+await repository.addChangelist(files, STAGING_CHANGELIST);
+groupManager.moveToStaged(files); // Move Resource objects directly
+```
+
+**Pattern**:
+
+1. Execute SVN operation (addChangelist/removeChangelist)
+2. Directly manipulate Resource groups in memory
+3. Skip updateModelState() refresh
+4. Eventual consistency: next status poll corrects any drift
+
+**Implementation**:
+
+- `moveToStaged(paths)`: Remove from changes/changelists, add to staged
+- `moveFromStaged(paths, targetChangelist?)`: Remove from staged, add to target
+- Both methods update staging cache via `syncFromChangelist()`
+
+**When to use**:
+
+- ✅ Operations with predictable outcome (stage = move to staged group)
+- ✅ User expects instant feedback (<100ms)
+- ✅ Background refresh will eventually correct state
+- ❌ Operations with uncertain outcome (merge, update with conflicts)
+- ❌ Critical operations where accuracy > speed
+
+**Rule**: For predictable SCM operations, update UI optimistically. Let background refresh handle edge cases.
+
+---

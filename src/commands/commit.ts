@@ -38,6 +38,15 @@ export class Commit extends Command {
       s => s instanceof Resource
     ) as Resource[];
 
+    // Enforce changelist requirement - only allow files in changelists
+    const notInChangelist = selection.filter(r => !r.changelist);
+    if (notInChangelist.length > 0) {
+      window.showWarningMessage(
+        "Stage files before committing. Use the Stage button or Ctrl+Enter."
+      );
+      return;
+    }
+
     const uris = selection.map(resource => resource.resourceUri);
     selection.forEach(resource => {
       if (resource.type === Status.ADDED && resource.renameResourceUri) {

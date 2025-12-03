@@ -33,7 +33,10 @@ export default class SvnProvider
       window.registerTreeDataProvider("svn", this),
       commands.registerCommand("svn.treeview.refreshProvider", () =>
         this.refresh()
-      )
+      ),
+      // Refresh when repositories open/close
+      sourceControlManager.onDidOpenRepository(() => this.refresh()),
+      sourceControlManager.onDidCloseRepository(() => this.refresh())
     );
   }
 

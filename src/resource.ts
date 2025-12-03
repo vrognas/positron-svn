@@ -56,8 +56,13 @@ export class Resource implements SourceControlResourceState {
     private _locked: boolean = false,
     private _lockOwner?: string,
     private _hasLockToken: boolean = false,
-    private _lockStatus?: LockStatus
+    private _lockStatus?: LockStatus,
+    private _changelist?: string
   ) {}
+
+  get changelist(): string | undefined {
+    return this._changelist;
+  }
 
   @memoize
   get resourceUri(): Uri {
