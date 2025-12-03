@@ -139,39 +139,21 @@ export class BlameProvider implements Disposable {
   @throttle
   public async updateDecorations(editor?: TextEditor): Promise<void> {
     const target = editor || window.activeTextEditor;
-    console.log("[BlameProvider] updateDecorations called:", {
-      hasTarget: !!target,
-      file: target?.document.fileName
-    });
 
     if (!target) {
-      console.log("[BlameProvider] Early return: No target editor");
       return;
     }
 
     // Check if should decorate
     const shouldDec = this.shouldDecorate(target);
-    console.log("[BlameProvider] shouldDecorate check:", {
-      result: shouldDec,
-      scheme: target.document.uri.scheme,
-      enabled: blameConfiguration.isEnabled(),
-      gutterEnabled: blameConfiguration.isGutterEnabled(),
-      inlineEnabled: blameConfiguration.isInlineEnabled()
-    });
 
     if (!shouldDec) {
-      console.log("[BlameProvider] Early return: shouldDecorate=false");
       this.clearDecorations(target);
       return;
     }
 
     // Skip untracked files (prevents SVN errors for UNVERSIONED/IGNORED files)
     const resource = this.repository.getResourceFromFile(target.document.uri);
-    console.log("[BlameProvider] Resource check:", {
-      hasResource: !!resource,
-      resourceType: resource?.type,
-      file: target.document.fileName
-    });
 
     // Only check status if resource exists (null means clean file, not untracked)
     if (resource) {
@@ -185,28 +167,16 @@ export class BlameProvider implements Disposable {
         resource.type === Status.NONE ||
         resource.type === Status.ADDED
       ) {
-        console.log("[BlameProvider] Early return: Cannot blame file", {
-          status: resource.type,
-          reason:
-            resource.type === Status.ADDED ? "never committed" : "untracked",
-          file: target.document.fileName
-        });
         this.clearDecorations(target);
         return;
       }
     }
-
-    // Continue to blame fetch (works for both clean and changed files)
 
     // Large file check
     if (
       blameConfiguration.isFileTooLarge(target.document.lineCount) &&
       blameConfiguration.shouldWarnLargeFile()
     ) {
-      console.log("[BlameProvider] Early return: File too large", {
-        lineCount: target.document.lineCount,
-        file: target.document.fileName
-      });
       window.showWarningMessage(
         `File too large for blame (${target.document.lineCount} lines). Consider disabling blame.`
       );
@@ -216,14 +186,8 @@ export class BlameProvider implements Disposable {
     try {
       // Fetch blame data (with cache)
       const blameData = await this.getBlameData(target.document.uri);
-      console.log("[BlameProvider] Blame data fetched:", {
-        hasData: !!blameData,
-        lines: blameData?.length,
-        file: target.document.fileName
-      });
 
       if (!blameData) {
-        console.log("[BlameProvider] Early return: No blame data");
         this.clearDecorations(target);
         return;
       }
@@ -235,14 +199,6 @@ export class BlameProvider implements Disposable {
 
       // Calculate revision range for icon colors
       const revisionRange = this.getRevisionRange(blameData);
-
-      console.log("[BlameProvider] Reached decoration phase:", {
-        blameLines: blameData.length,
-        revisionRange,
-        gutterDecorations: decorations.gutter.length,
-        inlineDecorations: decorations.inline.length,
-        file: target.document.fileName
-      });
 
       // PHASE 1: Apply decorations immediately (gutter + icons + inline without messages)
       target.setDecorations(
@@ -1150,15 +1106,7 @@ export class BlameProvider implements Disposable {
     const gutterEnabled = blameConfiguration.isGutterEnabled();
     const iconsEnabled = blameConfiguration.isGutterIconEnabled();
 
-    console.log("[BlameProvider] applyIconDecorations:", {
-      gutterEnabled,
-      iconsEnabled,
-      blameDataLines: blameData.length,
-      file: editor.document.fileName
-    });
-
     if (!gutterEnabled || !iconsEnabled) {
-      console.log("[BlameProvider] Skipping icons - gutter or icons disabled");
       this.clearIconDecorations(editor);
       return;
     }
@@ -1182,14 +1130,6 @@ export class BlameProvider implements Disposable {
     }
 
     // Apply each color's decoration type
-    console.log("[BlameProvider] Applying icon decorations:", {
-      colorCount: decorationsByColor.size,
-      totalLines: Array.from(decorationsByColor.values()).reduce(
-        (sum, ranges) => sum + ranges.length,
-        0
-      )
-    });
-
     for (const [color, ranges] of decorationsByColor) {
       const type = this.getIconDecorationType(color);
       editor.setDecorations(

@@ -1,3 +1,10 @@
+## [2.32.15] (2025-12-03)
+
+### Cleanup: Remove Debug Logs from BlameProvider
+
+- **Removed**: 12 console.log statements from blameProvider.ts
+- **Purpose**: Production code cleanup (debug logs left during development)
+
 ## [2.32.14] (2025-12-03)
 
 ### Perf: Config Cache Invalidation Fix
