@@ -1,3 +1,13 @@
+## [2.32.29] (2025-12-03)
+
+### Perf: Faster Update Revision
+
+- **Removed**: Unnecessary 100ms delay after `svn update` (saves 100ms per update)
+- **Removed**: `updateRemoteChangedFiles()` call after update (at HEAD, no remote changes)
+- **Optimized**: Skip external UUID fetching when `combineExternal=false` (default)
+- **Impact**: Eliminates N sequential `svn info` calls for externals in most cases
+- **Affected**: repository.ts, StatusService.ts, svnRepository.ts
+
 ## [2.32.28] (2025-12-03)
 
 ### Fix: Update Notification Hanging (credentialLock Deadlock)

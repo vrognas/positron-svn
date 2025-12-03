@@ -208,13 +208,15 @@ export class Repository {
     includeIgnored?: boolean;
     includeExternals?: boolean;
     checkRemoteChanges?: boolean;
+    fetchExternalUuids?: boolean;
   }): Promise<IFileStatus[]> {
     params = Object.assign(
       {},
       {
         includeIgnored: false,
         includeExternals: true,
-        checkRemoteChanges: false
+        checkRemoteChanges: false,
+        fetchExternalUuids: false
       },
       params
     );
@@ -252,22 +254,27 @@ export class Repository {
       );
     }
 
-    // Phase 10 perf fix - parallel external info fetching (was N+1 sequential)
-    await Promise.all(
-      status
-        .filter(s => s.status === Status.EXTERNAL)
-        .map(async s => {
-          try {
-            const info = await this.getInfo(s.path);
-            s.repositoryUuid = info.repository?.uuid;
-          } catch (error) {
-            logError(
-              `Failed to fetch external repository info for ${s.path}`,
-              error
-            );
-          }
-        })
-    );
+    // Only fetch external UUIDs when needed (combineExternal=true)
+    // Skips N sequential svn info calls when combineExternal=false (default)
+    if (params.fetchExternalUuids) {
+      // Note: getInfo is @sequentialize so these run sequentially despite Promise.all
+      // TODO: Add batch getInfo variant for true parallelism
+      await Promise.all(
+        status
+          .filter(s => s.status === Status.EXTERNAL)
+          .map(async s => {
+            try {
+              const info = await this.getInfo(s.path);
+              s.repositoryUuid = info.repository?.uuid;
+            } catch (error) {
+              logError(
+                `Failed to fetch external repository info for ${s.path}`,
+                error
+              );
+            }
+          })
+      );
+    }
 
     return status;
   }
