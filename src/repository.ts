@@ -764,6 +764,14 @@ export class Repository implements IRemoteRepository {
     });
   }
 
+  /**
+   * Check if server has new commits since last update.
+   * Uses svn log BASE:HEAD to compare local vs remote revision.
+   */
+  public async hasRemoteChanges(): Promise<boolean> {
+    return this.repository.hasRemoteChanges();
+  }
+
   public async pullIncomingChange(path: string) {
     return this.run<string>(Operation.Update, async () => {
       const response = await this.repository.pullIncomingChange(path);

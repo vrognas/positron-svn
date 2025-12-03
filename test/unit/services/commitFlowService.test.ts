@@ -31,6 +31,7 @@ describe("CommitFlowService", () => {
     mockRepository = {
       inputBox: { value: "" },
       getRecentScopes: vi.fn().mockReturnValue(["ui", "api"]),
+      hasRemoteChanges: vi.fn().mockResolvedValue(true),
       updateRevision: vi.fn().mockResolvedValue({
         revision: 100,
         conflicts: [],

@@ -12,6 +12,7 @@ export interface UpdateResult {
   revision?: number;
   hasConflicts?: boolean;
   cancelled?: boolean;
+  skipped?: boolean;
   error?: string;
 }
 
@@ -22,17 +23,18 @@ export type ConflictChoice = "abort" | "continue";
 
 /**
  * Service for running SVN update before commit.
- * Handles progress display and conflict resolution prompts.
+ * Checks for remote changes first, only updates if needed.
  */
 export class PreCommitUpdateService {
   /**
-   * Run SVN update with progress notification
+   * Run SVN update with progress notification.
+   * First checks if server has new commits - skips update if already at HEAD.
    */
   async runUpdate(repository: Repository): Promise<UpdateResult> {
     return window.withProgress(
       {
         location: ProgressLocation.Notification,
-        title: "Updating working copy...",
+        title: "Checking for updates...",
         cancellable: true
       },
       async (progress, token: CancellationToken) => {
@@ -41,6 +43,15 @@ export class PreCommitUpdateService {
         }
 
         try {
+          // Check if update is needed
+          progress.report({ message: "Checking server for new commits..." });
+          const hasChanges = await repository.hasRemoteChanges();
+
+          if (!hasChanges) {
+            // Already at HEAD, skip update
+            return { success: true, skipped: true };
+          }
+
           progress.report({ message: "Running svn update..." });
           const updateResult = await repository.updateRevision();
 

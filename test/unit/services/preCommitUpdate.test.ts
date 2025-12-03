@@ -26,6 +26,7 @@ describe("PreCommitUpdateService", () => {
 
     mockRepository = {
       root: "/test/repo",
+      hasRemoteChanges: vi.fn().mockResolvedValue(true),
       updateRevision: vi.fn()
     };
 
@@ -46,6 +47,7 @@ describe("PreCommitUpdateService", () => {
 
   describe("runUpdate", () => {
     it("returns success when update succeeds", async () => {
+      mockRepository.hasRemoteChanges.mockResolvedValueOnce(true);
       mockRepository.updateRevision.mockResolvedValueOnce({
         revision: 100,
         conflicts: [],
@@ -59,6 +61,7 @@ describe("PreCommitUpdateService", () => {
     });
 
     it("returns conflict info when conflicts detected", async () => {
+      mockRepository.hasRemoteChanges.mockResolvedValueOnce(true);
       mockRepository.updateRevision.mockResolvedValueOnce({
         revision: 50,
         conflicts: ["/test/repo/file.txt"],
@@ -72,6 +75,7 @@ describe("PreCommitUpdateService", () => {
     });
 
     it("shows progress notification during update", async () => {
+      mockRepository.hasRemoteChanges.mockResolvedValueOnce(true);
       mockRepository.updateRevision.mockResolvedValueOnce({
         revision: 100,
         conflicts: [],
@@ -82,11 +86,21 @@ describe("PreCommitUpdateService", () => {
 
       expect(mockWindow.withProgress).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: expect.stringContaining("Updating"),
+          title: expect.stringContaining("Checking"),
           location: expect.anything()
         }),
         expect.any(Function)
       );
+    });
+
+    it("skips update when no remote changes", async () => {
+      mockRepository.hasRemoteChanges.mockResolvedValueOnce(false);
+
+      const result = await service.runUpdate(mockRepository);
+
+      expect(result.success).toBe(true);
+      expect(result.skipped).toBe(true);
+      expect(mockRepository.updateRevision).not.toHaveBeenCalled();
     });
 
     it("returns cancelled when user cancels", async () => {

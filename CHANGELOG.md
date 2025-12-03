@@ -4,7 +4,7 @@
 
 - **New**: Native VS Code QuickPick multi-step commit flow (replaces webview)
 - **New**: Conventional Commits integration (feat/fix/docs/style/refactor/perf/test/build/ci/chore)
-- **New**: Pre-commit update - runs `svn update` before every commit
+- **New**: Smart pre-commit update - checks server for new commits, skips if at HEAD
 - **New**: Conflict detection with user prompts (abort or continue)
 - **New**: Ctrl+Enter (acceptInputCommand) triggers commit from SCM panel
 - **New**: Previous message reuse in type picker
