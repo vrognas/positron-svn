@@ -753,3 +753,45 @@ async log(rfrom, rto, limit, target?, pegRevision?: string) {
 **Rule**: Pass peg revision as a separate parameter; let the SVN-calling method construct the final path.
 
 ---
+
+### 25. Credential Lock Deadlock: No Nested retryRun Calls
+
+**Lesson**: `credentialLock` in `retryRun()` causes deadlock when operations are nested within callbacks.
+
+**Issue** (v2.32.20):
+
+- "Update Revision" notification hung indefinitely after `svn update` and `svn info` completed
+- Root cause: `updateRevision` callback called `await this.status()` which triggered nested `retryRun()`
+- Parent `retryRun` held `credentialLock`, child `retryRun` waited for same lock = DEADLOCK
+
+**Code path**:
+
+```
+run(Update, callback)
+  → retryRun(callback)      // Acquires credentialLock
+    → callback()
+      → this.status()
+        → run(Status)
+          → retryRun()      // BLOCKED waiting for credentialLock!
+```
+
+**Fix**:
+
+```typescript
+// BEFORE: Nested run() call causes deadlock
+await this.status(); // Calls run(Status) → retryRun()
+
+// AFTER: Let parent run() handle model update
+// run(Operation.Update) automatically calls updateModelState() after callback
+void this.updateRemoteChangedFiles(); // Debounced, fires in background
+```
+
+**Why this works**:
+
+- Every `run()` call with a non-read-only operation already calls `updateModelState()` after the callback
+- Calling `this.status()` inside the callback was redundant AND caused the deadlock
+- The fix removes the redundant call, letting the parent handle status refresh
+
+**Rule**: Never call `run()` / `retryRun()` from within a `run()` callback. Let the parent handle post-callback work.
+
+---

@@ -174,7 +174,10 @@ export class StatusService implements IStatusService {
     return await this.repository.getStatus({
       includeIgnored: true,
       includeExternals,
-      checkRemoteChanges
+      checkRemoteChanges,
+      // Only fetch external UUIDs when combineExternal=true (needed to filter by repo)
+      // Skips N sequential svn info calls when combineExternal=false (default)
+      fetchExternalUuids: includeExternals
     });
   }
 
