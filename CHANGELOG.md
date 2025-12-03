@@ -1,3 +1,13 @@
+## [2.32.23] (2025-12-03)
+
+### Fix: Lenient stat() and Fallback Repository Lookup
+
+- **Fixed**: "File not found" error when opening diffs from Changes view
+- **Root cause**: Repository lookup failed; stat() threw FileNotFound, blocking readFile()
+- **Solution**: stat() returns default stats if repo not found; readFile() tries fallback lookup
+- **Result**: Better error messages showing repo count; more resilient to async discovery timing
+- **Affected**: svnFileSystemProvider.ts stat() and readFile() methods
+
 ## [2.32.22] (2025-12-03)
 
 ### Fix: stat() Missing Parentheses Bug

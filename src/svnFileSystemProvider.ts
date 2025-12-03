@@ -113,32 +113,33 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
 
       const { fsPath } = fromSvnUri(uri);
 
+      // For virtual SVN files, be lenient - return default stats if repository
+      // not found yet. Let readFile() handle the actual error. This prevents
+      // false FileNotFound during async repository discovery.
       const repository = this.sourceControlManager.getRepository(fsPath);
-
-      if (!repository) {
-        throw FileSystemError.FileNotFound(uri);
-      }
 
       let size = 0;
       let mtime = new Date().getTime();
 
-      try {
-        const listResults = await repository.list(fsPath);
+      if (repository) {
+        try {
+          const listResults = await repository.list(fsPath);
 
-        if (listResults.length) {
-          size = Number(listResults[0]!.size) as number;
-          mtime = Date.parse(listResults[0]!.commit.date);
-        }
-      } catch (error) {
-        // Suppress "node not found" errors for untracked files (expected)
-        const isUntrackedFile =
-          typeof error === "object" &&
-          error !== null &&
-          "stderr" in error &&
-          typeof error.stderr === "string" &&
-          error.stderr.includes("W155010");
-        if (!isUntrackedFile) {
-          logError("Failed to list SVN file", error);
+          if (listResults.length) {
+            size = Number(listResults[0]!.size) as number;
+            mtime = Date.parse(listResults[0]!.commit.date);
+          }
+        } catch (error) {
+          // Suppress "node not found" errors for untracked files (expected)
+          const isUntrackedFile =
+            typeof error === "object" &&
+            error !== null &&
+            "stderr" in error &&
+            typeof error.stderr === "string" &&
+            error.stderr.includes("W155010");
+          if (!isUntrackedFile) {
+            logError("Failed to list SVN file", error);
+          }
         }
       }
 
@@ -170,10 +171,22 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
 
       const { fsPath, extra, action } = fromSvnUri(uri);
 
-      const repository = this.sourceControlManager.getRepository(fsPath);
+      // Try multiple methods to find the repository
+      let repository = this.sourceControlManager.getRepository(fsPath);
+
+      // Fallback: try getRepositoryFromUri which may use different lookup
+      if (!repository && fsPath) {
+        repository = await this.sourceControlManager.getRepositoryFromUri(
+          Uri.file(fsPath)
+        );
+      }
 
       if (!repository) {
-        throw FileSystemError.FileNotFound(uri);
+        // More helpful error message
+        const repoCount = this.sourceControlManager.repositories.length;
+        throw FileSystemError.Unavailable(
+          `No SVN repository found for path. Active repos: ${repoCount}`
+        );
       }
 
       const cacheKey = uri.toString();
