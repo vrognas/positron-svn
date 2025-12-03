@@ -108,40 +108,52 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
   }
 
   async stat(uri: Uri): Promise<FileStat> {
-    await this.sourceControlManager.isInitialized;
-
-    const { fsPath } = fromSvnUri(uri);
-
-    const repository = this.sourceControlManager.getRepository(fsPath);
-
-    if (!repository) {
-      throw FileSystemError.FileNotFound;
-    }
-
-    let size = 0;
-    let mtime = new Date().getTime();
-
     try {
-      const listResults = await repository.list(fsPath);
+      await this.sourceControlManager.isInitialized;
 
-      if (listResults.length) {
-        size = Number(listResults[0]!.size) as number;
-        mtime = Date.parse(listResults[0]!.commit.date);
+      const { fsPath } = fromSvnUri(uri);
+
+      const repository = this.sourceControlManager.getRepository(fsPath);
+
+      if (!repository) {
+        throw FileSystemError.FileNotFound(uri);
       }
+
+      let size = 0;
+      let mtime = new Date().getTime();
+
+      try {
+        const listResults = await repository.list(fsPath);
+
+        if (listResults.length) {
+          size = Number(listResults[0]!.size) as number;
+          mtime = Date.parse(listResults[0]!.commit.date);
+        }
+      } catch (error) {
+        // Suppress "node not found" errors for untracked files (expected)
+        const isUntrackedFile =
+          typeof error === "object" &&
+          error !== null &&
+          "stderr" in error &&
+          typeof error.stderr === "string" &&
+          error.stderr.includes("W155010");
+        if (!isUntrackedFile) {
+          logError("Failed to list SVN file", error);
+        }
+      }
+
+      return { type: FileType.File, size, mtime, ctime: 0 };
     } catch (error) {
-      // Suppress "node not found" errors for untracked files (expected)
-      const isUntrackedFile =
-        typeof error === "object" &&
-        error !== null &&
-        "stderr" in error &&
-        typeof error.stderr === "string" &&
-        error.stderr.includes("W155010");
-      if (!isUntrackedFile) {
-        logError("Failed to list SVN file", error);
+      // Re-throw FileSystemErrors as-is
+      if (error instanceof FileSystemError) {
+        throw error;
       }
+      // Wrap other errors
+      logError("stat failed", error);
+      throw FileSystemError.Unavailable(
+        error instanceof Error ? error.message : "Failed to stat file"
+      );
     }
-
-    return { type: FileType.File, size, mtime, ctime: 0 };
   }
 
   readDirectory(): Thenable<[string, FileType][]> {

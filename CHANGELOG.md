@@ -1,3 +1,13 @@
+## [2.32.22] (2025-12-03)
+
+### Fix: stat() Missing Parentheses Bug
+
+- **Fixed**: "Unknown Error" when opening diffs from Changes view
+- **Root cause**: `throw FileSystemError.FileNotFound;` missing `()` - threw function, not error
+- **Solution**: Add `()` to call method; wrap `stat()` in try-catch like `readFile()`
+- **Result**: VS Code receives proper FileSystemError with message
+- **Affected**: svnFileSystemProvider.ts stat() method
+
 ## [2.32.21] (2025-12-03)
 
 ### Fix: Comprehensive Error Handling in File Read
