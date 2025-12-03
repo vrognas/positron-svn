@@ -19,13 +19,14 @@ export function fromSvnUri(uri: Uri): ISvnUriParams {
 
     // Security: Validate structure and reject prototype pollution vectors
     // Note: Empty/missing params is normal when VS Code probes svn:// URIs
+    // Use hasOwnProperty to check own properties only (not inherited from prototype chain)
     if (
       !parsed ||
       typeof parsed !== "object" ||
       Array.isArray(parsed) ||
-      "__proto__" in parsed ||
-      "constructor" in parsed ||
-      "prototype" in parsed
+      Object.hasOwn(parsed, "__proto__") ||
+      Object.hasOwn(parsed, "constructor") ||
+      Object.hasOwn(parsed, "prototype")
     ) {
       // Return safe defaults silently - this is expected during URI probing
       return { action: SvnUriAction.SHOW, fsPath: "", extra: {} };

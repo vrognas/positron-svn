@@ -1,3 +1,13 @@
+## [2.32.26] (2025-12-03)
+
+### Fix: fromSvnUri Prototype Chain Bug
+
+- **Fixed**: Changes view diffs fail - fsPath always empty despite valid query JSON
+- **Root cause**: `"constructor" in parsed` returns true for ALL objects (checks prototype chain)
+- **Solution**: Use `Object.hasOwn()` to check own properties only, not inherited ones
+- **Result**: URI parsing correctly extracts fsPath from query JSON
+- **Affected**: src/uri.ts fromSvnUri() security validation
+
 ## [2.32.23] (2025-12-03)
 
 ### Fix: Lenient stat() and Fallback Repository Lookup
