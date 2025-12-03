@@ -172,7 +172,7 @@ function getSvnErrorCode(stderr: string): string | undefined {
   }
 
   for (const name in svnErrorCodes) {
-    if (svnErrorCodes.hasOwnProperty(name)) {
+    if (Object.hasOwn(svnErrorCodes, name)) {
       const code = svnErrorCodes[name];
       const regex = new RegExp(`svn: ${code}`);
       if (regex.test(stderr)) {

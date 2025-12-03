@@ -1,3 +1,11 @@
+## [2.32.27] (2025-12-03)
+
+### Refactor: Use Object.hasOwn() Consistently
+
+- **Changed**: Replace `obj.hasOwnProperty(key)` with `Object.hasOwn(obj, key)`
+- **Reason**: `obj.hasOwnProperty()` fails if object has "hasOwnProperty" as own property
+- **Affected**: decorators.ts, ignoreitems.ts, StatusService.ts, svn.ts
+
 ## [2.32.26] (2025-12-03)
 
 ### Fix: fromSvnUri Prototype Chain Bug
