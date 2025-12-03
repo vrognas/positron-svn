@@ -2,9 +2,8 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
-import { Uri, window } from "vscode";
+import { window } from "vscode";
 import { SvnDepth } from "../common/types";
-import { lstat } from "../fs";
 
 export async function confirmRevert() {
   const yes = "Yes I'm sure";
@@ -21,53 +20,11 @@ export async function confirmRevert() {
   return true;
 }
 
-export async function promptDepth(): Promise<
-  keyof typeof SvnDepth | undefined
-> {
-  const picks: Array<{ label: string; description: string }> = [];
-
-  for (const depth in SvnDepth) {
-    if (SvnDepth.hasOwnProperty(depth)) {
-      picks.push({
-        label: depth,
-        description: SvnDepth[depth as keyof typeof SvnDepth]
-      });
-    }
-  }
-
-  const placeHolder = "Select revert depth";
-  const pick = await window.showQuickPick(picks, { placeHolder });
-  if (!pick) {
-    return undefined;
-  }
-  return pick.label as keyof typeof SvnDepth;
-}
-
-export async function checkAndPromptDepth(
-  uris: Uri[],
-  defaultDepth: keyof typeof SvnDepth = "empty"
-) {
-  // Without uris, force prompt
-  let hasDirectory = uris.length === 0;
-
-  for (const uri of uris) {
-    if (uri.scheme !== "file") {
-      continue;
-    }
-    try {
-      const stat = await lstat(uri.fsPath);
-      if (stat.isDirectory()) {
-        hasDirectory = true;
-        break;
-      }
-    } catch (error) {
-      // ignore
-    }
-  }
-
-  if (hasDirectory) {
-    return promptDepth();
-  }
-
-  return defaultDepth;
+/**
+ * Always returns "infinity" depth for revert operations.
+ * For files, depth is ignored by SVN. For directories, infinity ensures
+ * full recursive revert including deleted paths.
+ */
+export async function checkAndPromptDepth(): Promise<keyof typeof SvnDepth> {
+  return "infinity";
 }

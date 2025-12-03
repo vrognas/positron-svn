@@ -19,7 +19,7 @@ export class RevertAll extends Command {
     }
 
     const uris = resourceStates.map(resource => resource.resourceUri);
-    const depth = await checkAndPromptDepth(uris);
+    const depth = await checkAndPromptDepth();
 
     if (!depth) {
       return;

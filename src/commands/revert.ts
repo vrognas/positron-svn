@@ -16,7 +16,7 @@ export class Revert extends Command {
     if (!selection || !(await confirmRevert())) return;
 
     const uris = selection.map(resource => resource.resourceUri);
-    const depth = await checkAndPromptDepth(uris);
+    const depth = await checkAndPromptDepth();
 
     if (!depth) {
       return;

@@ -16,7 +16,7 @@ export class RevertExplorer extends Command {
       return;
     }
 
-    const depth = await checkAndPromptDepth(allUris);
+    const depth = await checkAndPromptDepth();
 
     if (!depth) {
       return;

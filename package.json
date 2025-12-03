@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.32.2",
+  "version": "2.32.3",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.105.0",

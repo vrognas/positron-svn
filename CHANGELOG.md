@@ -1,3 +1,12 @@
+## [2.32.3] (2025-12-03)
+
+### Fix: Revert Always Uses Infinity Depth
+
+- **Fixed**: Revert on deleted directories no longer fails silently
+- **Simplified**: Always use `--depth infinity` for all reverts (files ignore depth anyway)
+- **Removed**: Depth prompt for directory reverts (no longer needed)
+- **Removed**: `lstat` check that failed on missing paths
+
 ## [2.32.2] (2025-12-02)
 
 ### Fix: Update Command Robustness
