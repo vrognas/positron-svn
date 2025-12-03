@@ -186,7 +186,23 @@ export class SvnFileSystemProvider implements FileSystemProvider, Disposable {
         return await repository.patchBuffer([fsPath]);
       }
     } catch (error) {
+      // Fix: Convert SVN errors to FileSystemError for proper VS Code handling
+      // Previously, errors were logged but returned empty content, causing "Unknown Error"
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      // Check for common "not found" error patterns
+      if (
+        errorMessage.includes("E160013") || // Path not found
+        errorMessage.includes("E200009") || // Could not cat
+        errorMessage.includes("W160013") // URL not found
+      ) {
+        throw FileSystemError.FileNotFound(uri);
+      }
+
+      // Log and re-throw as unavailable for other errors
       logError("Failed to read SVN file", error);
+      throw FileSystemError.Unavailable(errorMessage);
     }
 
     return new Uint8Array(0);

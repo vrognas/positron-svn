@@ -1,3 +1,13 @@
+## [2.32.18] (2025-12-03)
+
+### Fix: Diff View "Unknown Error"
+
+- **Fixed**: Diff views showing "Unknown Error" when SVN file not found
+- **Root cause**: `showBuffer` silently returned empty data on SVN errors
+- **Solution**: Throw `SvnError` on non-zero exit; convert to `FileSystemError`
+- **Errors shown**: FileNotFound (E160013, E200009) or Unavailable (others)
+- **Affected**: svnRepository.ts, svnFileSystemProvider.ts
+
 ## [2.32.17] (2025-12-03)
 
 ### Fix: TreeView Startup Display

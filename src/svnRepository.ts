@@ -48,6 +48,7 @@ import {
 import { logError } from "./util/errorLogger";
 import { matchAll } from "./util/globMatch";
 import { parseDiffXml } from "./parser/diffParser";
+import SvnError from "./svnError";
 import {
   validateChangelist,
   validateAcceptAction,
@@ -772,6 +773,23 @@ export class Repository {
   ): Promise<Buffer> {
     const { args } = await this.prepareCatArgs(file, revision);
     const result = await this.execBuffer(args);
+
+    // Fix: Throw error if SVN command failed (exitCode !== 0)
+    // Previously, errors were silently swallowed, causing "Unknown Error" in diff views
+    if (result.exitCode !== 0) {
+      // Extract SVN error code (E followed by digits) from stderr
+      const errorCodeMatch = result.stderr.match(/E(\d+)/);
+      const svnErrorCode = errorCodeMatch ? `E${errorCodeMatch[1]}` : undefined;
+
+      throw new SvnError({
+        message: `SVN cat command failed: ${result.stderr}`,
+        stderr: result.stderr,
+        exitCode: result.exitCode,
+        svnErrorCode,
+        svnCommand: "cat"
+      });
+    }
+
     return result.stdout;
   }
 
