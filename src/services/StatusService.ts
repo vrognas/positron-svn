@@ -185,7 +185,7 @@ export class StatusService implements IStatusService {
     const excludeList: string[] = [];
 
     for (const pattern in filesExclude) {
-      if (filesExclude.hasOwnProperty(pattern)) {
+      if (Object.hasOwn(filesExclude, pattern)) {
         const negate = !filesExclude[pattern];
         excludeList.push((negate ? "!" : "") + pattern);
       }

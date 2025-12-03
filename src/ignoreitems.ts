@@ -100,7 +100,7 @@ export async function inputIgnoreList(repository: Repository, uris: Uri[]) {
   }
 
   for (const dir in byDir) {
-    if (byDir.hasOwnProperty(dir)) {
+    if (Object.hasOwn(byDir, dir)) {
       const files = [...new Set(byDir[dir])]; // Unique list
       await repository.addToIgnore(files, dir, isRecursive);
     }

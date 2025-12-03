@@ -656,5 +656,100 @@ dispose(): void {
 
 ---
 
-**Document Version**: 2.10
+**Document Version**: 2.11
 **Last Updated**: 2025-12-03
+
+### 23. VS Code TreeView Providers: Listen for Repository Open/Close Events
+
+**Lesson**: TreeDataProviders created during extension activation may miss initial data if async initialization isn't complete.
+
+**Issue** (v2.32.17):
+
+- Repository Log and Selective Download treeviews displayed empty at startup
+- Required manual refresh to show data
+- Root cause: SourceControlManager scans workspace folders asynchronously (fire-and-forget)
+- Providers created AFTER SourceControlManager constructor but BEFORE repositories discovered
+- `sourceControlManager.repositories` was empty when providers called `getChildren()`
+
+**Fix**:
+
+```typescript
+// In constructor, subscribe to lifecycle events
+this._disposables.push(
+  this.sourceControlManager.onDidOpenRepository(() => {
+    this.refresh();
+  }),
+  this.sourceControlManager.onDidCloseRepository(() => {
+    this.refresh();
+  })
+);
+```
+
+**Why this pattern is needed**:
+
+- VS Code extensions often use async initialization for performance (non-blocking activation)
+- TreeDataProviders may be created before data is available
+- `onDidOpenRepository` fires when async discovery completes
+- Without listening to this event, providers never know data is ready
+
+**When to apply**:
+
+- ✅ TreeDataProvider depends on async-discovered resources (repos, files, configs)
+- ✅ Provider created during `activate()` before async init completes
+- ✅ Data source fires lifecycle events (open, close, change)
+- ❌ Static data available immediately at construction time
+
+**Rule**: TreeDataProviders must subscribe to data source lifecycle events, not just change events.
+
+---
+
+### 24. SVN Peg Revision: Pass Separately, Don't Embed in Path
+
+**Lesson**: Never manually embed SVN peg revisions into paths that will be processed by escaping functions.
+
+**Issue** (v2.32.19):
+
+- Repository Log diff commands failed with "path not found" error
+- SVN error: `svn: E160013: '.../file.txt@367' path not found`
+- Actual command sent: `svn log ... 'path@367@'` (double @)
+- Root cause: Caller constructed `path@revision` then passed to `log()` method
+- `log()` method called `fixPegRevision()` which added another `@` when it detected existing `@`
+
+**Why this happens**:
+
+```typescript
+// BAD: Manual peg revision embedding
+const pathWithPeg = `${remotePath}@${revision}`; // "file.txt@367"
+await repo.log(..., pathWithPeg);
+// log() calls fixPegRevision("file.txt@367") → "file.txt@367@"
+// SVN interprets trailing @ as empty peg revision (HEAD)
+
+// GOOD: Pass peg revision separately
+await repo.log(..., remotePath, revision);
+// log() calls fixPegRevision("file.txt") → "file.txt"
+// Then appends "@367" → "file.txt@367"
+```
+
+**SVN Peg Revision Syntax**:
+
+- `file.txt@100` = view file.txt at revision 100
+- `file@2024.txt@100` = view file named "file@2024.txt" at revision 100
+- `file.txt@100@` = view file named "file.txt@100" at HEAD (empty peg)
+- `fixPegRevision()` adds trailing `@` to escape any `@` in filename
+
+**Fix Pattern**:
+
+```typescript
+// Add optional pegRevision parameter to methods that call SVN
+async log(rfrom, rto, limit, target?, pegRevision?: string) {
+  let targetPath = fixPegRevision(targetStr);  // Escape @ in filename
+  if (pegRevision) {
+    targetPath += "@" + pegRevision;  // Add peg revision last
+  }
+  args.push(targetPath);
+}
+```
+
+**Rule**: Pass peg revision as a separate parameter; let the SVN-calling method construct the final path.
+
+---

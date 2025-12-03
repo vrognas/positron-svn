@@ -1,3 +1,90 @@
+## [2.32.27] (2025-12-03)
+
+### Refactor: Use Object.hasOwn() Consistently
+
+- **Changed**: Replace `obj.hasOwnProperty(key)` with `Object.hasOwn(obj, key)`
+- **Reason**: `obj.hasOwnProperty()` fails if object has "hasOwnProperty" as own property
+- **Affected**: decorators.ts, ignoreitems.ts, StatusService.ts, svn.ts
+
+## [2.32.26] (2025-12-03)
+
+### Fix: fromSvnUri Prototype Chain Bug
+
+- **Fixed**: Changes view diffs fail - fsPath always empty despite valid query JSON
+- **Root cause**: `"constructor" in parsed` returns true for ALL objects (checks prototype chain)
+- **Solution**: Use `Object.hasOwn()` to check own properties only, not inherited ones
+- **Result**: URI parsing correctly extracts fsPath from query JSON
+- **Affected**: src/uri.ts fromSvnUri() security validation
+
+## [2.32.23] (2025-12-03)
+
+### Fix: Lenient stat() and Fallback Repository Lookup
+
+- **Fixed**: "File not found" error when opening diffs from Changes view
+- **Root cause**: Repository lookup failed; stat() threw FileNotFound, blocking readFile()
+- **Solution**: stat() returns default stats if repo not found; readFile() tries fallback lookup
+- **Result**: Better error messages showing repo count; more resilient to async discovery timing
+- **Affected**: svnFileSystemProvider.ts stat() and readFile() methods
+
+## [2.32.22] (2025-12-03)
+
+### Fix: stat() Missing Parentheses Bug
+
+- **Fixed**: "Unknown Error" when opening diffs from Changes view
+- **Root cause**: `throw FileSystemError.FileNotFound;` missing `()` - threw function, not error
+- **Solution**: Add `()` to call method; wrap `stat()` in try-catch like `readFile()`
+- **Result**: VS Code receives proper FileSystemError with message
+- **Affected**: svnFileSystemProvider.ts stat() method
+
+## [2.32.21] (2025-12-03)
+
+### Fix: Comprehensive Error Handling in File Read
+
+- **Fixed**: "Unknown Error" still appearing in Changes view diff
+- **Root cause**: Errors could escape before inner try-catch; FileNotFound thrown without message
+- **Solution**: Wrap entire readFile in try-catch; always pass URI to FileSystemError; never empty message
+- **Result**: All errors properly converted to FileSystemError with clear message
+- **Affected**: svnFileSystemProvider.ts
+
+## [2.32.20] (2025-12-03)
+
+### Fix: Improved SVN Error Extraction
+
+- **Fixed**: "Unknown Error" when diff fails due to SvnError not being parsed correctly
+- **Root cause**: `SvnError.message` is generic "Failed to execute svn"; actual error code is in `svnErrorCode` and `stderr`
+- **Solution**: Extract `svnErrorCode` from SvnError object; use `stderrFormated` for detailed message
+- **Result**: Proper FileNotFound for E160013/E200009/W160013; clear error message for others
+- **Affected**: svnFileSystemProvider.ts
+
+## [2.32.19] (2025-12-03)
+
+### Fix: Peg Revision Double-@ Bug
+
+- **Fixed**: Repository Log diff fails with "path not found" error
+- **Root cause**: `repoLogProvider` manually embedded peg revision (`path@rev`), then `log` method called `fixPegRevision` which added another `@`
+- **Result**: SVN received `path@rev@` (empty peg) instead of `path@rev`
+- **Solution**: Add `pegRevision` parameter to `log`/`logBatch` methods; pass revision separately
+- **Affected**: svnRepository.ts, remoteRepository.ts, repoLogProvider.ts
+
+## [2.32.18] (2025-12-03)
+
+### Fix: Diff View "Unknown Error"
+
+- **Fixed**: Diff views showing "Unknown Error" when SVN file not found
+- **Root cause**: `showBuffer` silently returned empty data on SVN errors
+- **Solution**: Throw `SvnError` on non-zero exit; convert to `FileSystemError`
+- **Errors shown**: FileNotFound (E160013, E200009) or Unavailable (others)
+- **Affected**: svnRepository.ts, svnFileSystemProvider.ts
+
+## [2.32.17] (2025-12-03)
+
+### Fix: TreeView Startup Display
+
+- **Fixed**: "Repository Log" and "Selective Download" treeviews not displaying at startup
+- **Root cause**: SourceControlManager discovers repos asynchronously AFTER providers are created
+- **Solution**: Both providers now listen to onDidOpenRepository/onDidCloseRepository events
+- **Affected**: repoLogProvider.ts, sparseCheckoutProvider.ts
+
 ## [2.32.16] (2025-12-03)
 
 ### Fix: Tree View Error Handling

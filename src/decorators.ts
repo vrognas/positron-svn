@@ -60,7 +60,7 @@ function _memoize<T extends AnyMethod>(
   const memoizeKey = `$memoize$${key}`;
 
   return function (this: any, ...args: Parameters<T>): ReturnType<T> {
-    if (!this.hasOwnProperty(memoizeKey)) {
+    if (!Object.hasOwn(this, memoizeKey)) {
       Object.defineProperty(this, memoizeKey, {
         configurable: false,
         enumerable: false,

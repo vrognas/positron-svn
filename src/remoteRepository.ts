@@ -17,7 +17,8 @@ export interface IRemoteRepository {
     rfrom: string,
     rto: string,
     limit: number,
-    target?: string | Uri
+    target?: string | Uri,
+    pegRevision?: string
   ): Promise<ISvnLogEntry[]>;
 
   show(filePath: string | Uri, revision?: string): Promise<string>;
@@ -46,9 +47,10 @@ export class RemoteRepository implements IRemoteRepository {
     rfrom: string,
     rto: string,
     limit: number,
-    target?: string | Uri
+    target?: string | Uri,
+    pegRevision?: string
   ): Promise<ISvnLogEntry[]> {
-    return this.repo.log(rfrom, rto, limit, target);
+    return this.repo.log(rfrom, rto, limit, target, pegRevision);
   }
 
   public async show(

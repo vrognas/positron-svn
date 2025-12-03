@@ -207,7 +207,16 @@ export class RepoLogProvider
             this.refresh();
           }, this.DEBOUNCE_MS);
         }
-      )
+      ),
+      // Fix: Refresh when repositories are opened/closed (startup timing issue)
+      // SourceControlManager discovers repos asynchronously after providers are created,
+      // so we must listen for repo open/close events to update tree data
+      this.sourceControlManager.onDidOpenRepository(() => {
+        this.refresh();
+      }),
+      this.sourceControlManager.onDidCloseRepository(() => {
+        this.refresh();
+      })
     );
   }
 
@@ -379,9 +388,14 @@ export class RepoLogProvider
     let prevRev: ISvnLogEntry;
     try {
       // Use peg revision to handle files renamed/moved/deleted after this revision
-      // SVN syntax: path@revision tells SVN to look at path as it existed at that revision
-      const pathWithPeg = `${remotePath.toString(true)}@${parent.revision}`;
-      const revs = await item.repo.log(parent.revision, "1", 2, pathWithPeg);
+      // Fix: Pass peg revision separately to avoid double-@ escaping bug
+      const revs = await item.repo.log(
+        parent.revision,
+        "1",
+        2,
+        remotePath,
+        parent.revision
+      );
 
       if (revs.length === 2) {
         prevRev = revs[1]!;
@@ -448,8 +462,14 @@ export class RepoLogProvider
       }
 
       // Use peg revision to handle files renamed/moved/deleted after this revision
-      const pathWithPeg = `${remotePath.toString(true)}@${parent.revision}`;
-      const revs = await item.repo.log(parent.revision, "1", 2, pathWithPeg);
+      // Fix: Pass peg revision separately to avoid double-@ escaping bug
+      const revs = await item.repo.log(
+        parent.revision,
+        "1",
+        2,
+        remotePath,
+        parent.revision
+      );
 
       if (revs.length < 2) {
         window.showWarningMessage("Cannot find previous commit for diff");

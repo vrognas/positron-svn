@@ -48,6 +48,7 @@ import {
 import { logError } from "./util/errorLogger";
 import { matchAll } from "./util/globMatch";
 import { parseDiffXml } from "./parser/diffParser";
+import SvnError from "./svnError";
 import {
   validateChangelist,
   validateAcceptAction,
@@ -772,6 +773,23 @@ export class Repository {
   ): Promise<Buffer> {
     const { args } = await this.prepareCatArgs(file, revision);
     const result = await this.execBuffer(args);
+
+    // Fix: Throw error if SVN command failed (exitCode !== 0)
+    // Previously, errors were silently swallowed, causing "Unknown Error" in diff views
+    if (result.exitCode !== 0) {
+      // Extract SVN error code (E followed by digits) from stderr
+      const errorCodeMatch = result.stderr.match(/E(\d+)/);
+      const svnErrorCode = errorCodeMatch ? `E${errorCodeMatch[1]}` : undefined;
+
+      throw new SvnError({
+        message: `SVN cat command failed: ${result.stderr}`,
+        stderr: result.stderr,
+        exitCode: result.exitCode,
+        svnErrorCode,
+        svnCommand: "cat"
+      });
+    }
+
     return result.stdout;
   }
 
@@ -1220,11 +1238,12 @@ export class Repository {
     rfrom: string,
     rto: string,
     limit: number,
-    target?: string | Uri
+    target?: string | Uri,
+    pegRevision?: string
   ): Promise<ISvnLogEntry[]> {
     const targetStr =
       target instanceof Uri ? target.toString(true) : target || "";
-    const cacheKey = `log:${targetStr}:${rfrom}:${rto}:${limit}`;
+    const cacheKey = `log:${targetStr}:${rfrom}:${rto}:${limit}:${pegRevision || ""}`;
 
     // Check cache
     const cached = this._logCache.get(cacheKey);
@@ -1242,7 +1261,12 @@ export class Repository {
       "-v"
     ];
     if (target !== undefined) {
-      args.push(fixPegRevision(targetStr));
+      // Fix: Build peg revision path correctly - escape @ in path, then add peg revision
+      let targetPath = fixPegRevision(targetStr);
+      if (pegRevision) {
+        targetPath += "@" + pegRevision;
+      }
+      args.push(targetPath);
     }
     const result = await this.exec(args);
     const entries = await parseSvnLog(result.stdout);
@@ -1281,7 +1305,8 @@ export class Repository {
    */
   public async logBatch(
     revisions: string[],
-    target?: string | Uri
+    target?: string | Uri,
+    pegRevision?: string
   ): Promise<ISvnLogEntry[]> {
     // Edge case: empty array
     if (revisions.length === 0) {
@@ -1290,7 +1315,7 @@ export class Repository {
 
     // Edge case: single revision (use existing log method - also cached)
     if (revisions.length === 1) {
-      return this.log(revisions[0]!, revisions[0]!, 1, target);
+      return this.log(revisions[0]!, revisions[0]!, 1, target, pegRevision);
     }
 
     // Parse revisions as numbers
@@ -1305,7 +1330,7 @@ export class Repository {
 
     const targetStr =
       target instanceof Uri ? target.toString(true) : target || "";
-    const cacheKey = `logBatch:${targetStr}:${minRev}:${maxRev}`;
+    const cacheKey = `logBatch:${targetStr}:${minRev}:${maxRev}:${pegRevision || ""}`;
 
     // Check cache - stores full range, filter to requested
     const cached = this._logCache.get(cacheKey);
@@ -1319,7 +1344,12 @@ export class Repository {
     const args = ["log", "-r", `${minRev}:${maxRev}`, "--xml", "-v"];
 
     if (target !== undefined) {
-      args.push(fixPegRevision(targetStr));
+      // Fix: Build peg revision path correctly - escape @ in path, then add peg revision
+      let targetPath = fixPegRevision(targetStr);
+      if (pegRevision) {
+        targetPath += "@" + pegRevision;
+      }
+      args.push(targetPath);
     }
 
     const result = await this.exec(args);

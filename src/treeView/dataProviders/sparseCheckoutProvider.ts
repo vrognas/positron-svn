@@ -377,7 +377,16 @@ export default class SparseCheckoutProvider
         "svn.sparse.exclude",
         (node: SparseItemNode, selected?: SparseItemNode[]) =>
           this.excludeItems(selected && selected.length > 0 ? selected : [node])
-      )
+      ),
+      // Fix: Refresh when repositories are opened/closed (startup timing issue)
+      // SourceControlManager discovers repos asynchronously after providers are created,
+      // so we must listen for repo open/close events to update tree data
+      this.sourceControlManager.onDidOpenRepository(() => {
+        this.triggerRefresh();
+      }),
+      this.sourceControlManager.onDidCloseRepository(() => {
+        this.triggerRefresh();
+      })
     );
   }
 
