@@ -590,8 +590,12 @@ export class RepoLogProvider
         getCommitLabel(commit),
         TreeItemCollapsibleState.Collapsed
       );
-      ti.description = getCommitDescription(commit);
-      ti.tooltip = getCommitToolTip(commit);
+      // Add BASE indicator to description if this is the base revision
+      const desc = getCommitDescription(commit);
+      ti.description = element.isBase ? `${desc} (BASE)` : desc;
+      ti.tooltip = element.isBase
+        ? `${getCommitToolTip(commit)}\n\n📍 This is your working copy's BASE revision`
+        : getCommitToolTip(commit);
       ti.iconPath = getCommitIcon(commit.author);
       ti.contextValue = "commit";
     } else if (element.kind === LogTreeItemKind.CommitDetail) {

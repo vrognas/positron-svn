@@ -83,6 +83,7 @@ export interface ILogTreeItem {
   readonly kind: LogTreeItemKind;
   data: TreeItemData;
   readonly parent?: ILogTreeItem;
+  isBase?: boolean; // True if this commit is the BASE revision
 }
 
 export function transform(
@@ -144,26 +145,34 @@ function needFetch(
   return true;
 }
 
+/**
+ * Mark the BASE revision commit in the output list.
+ * The BASE commit is the one matching the working copy's current revision.
+ */
 export function insertBaseMarker(
   item: ICachedLog,
   entries: ISvnLogEntry[],
   out: ILogTreeItem[]
-): TreeItem | undefined {
+): void {
   const baseRev = item.persisted.baseRevision;
-  if (
-    entries.length &&
-    baseRev &&
-    parseInt(entries[0]!.revision, 10) > baseRev
-  ) {
-    let i = 1;
-    while (entries.length > i && parseInt(entries[i]!.revision, 10) > baseRev) {
-      i++;
-    }
-    const titem = new TreeItem("BASE");
-    titem.tooltip = "Log entries above do not exist in working copy";
-    out.splice(i, 0, { kind: LogTreeItemKind.TItem, data: titem });
+  if (!entries.length || !baseRev) {
+    return;
   }
-  return undefined;
+
+  // Find the commit that matches or is closest to BASE revision
+  for (let i = 0; i < out.length; i++) {
+    const logItem = out[i];
+    if (logItem?.kind !== LogTreeItemKind.Commit) {
+      continue;
+    }
+    const commit = logItem.data as ISvnLogEntry;
+    const rev = parseInt(commit.revision, 10);
+    if (rev === baseRev) {
+      // Mark this commit as BASE
+      logItem.isBase = true;
+      return;
+    }
+  }
 }
 
 export async function checkIfFile(

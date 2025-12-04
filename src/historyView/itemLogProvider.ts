@@ -177,9 +177,13 @@ export class ItemLogProvider
     if (element.kind === LogTreeItemKind.Commit) {
       const commit = element.data as ISvnLogEntry;
       ti = new TreeItem(getCommitLabel(commit), TreeItemCollapsibleState.None);
-      ti.description = getCommitDescription(commit);
+      // Add BASE indicator to description if this is the base revision
+      const desc = getCommitDescription(commit);
+      ti.description = element.isBase ? `${desc} (BASE)` : desc;
       ti.iconPath = getCommitIcon(commit.author);
-      ti.tooltip = getCommitToolTip(commit);
+      ti.tooltip = element.isBase
+        ? `${getCommitToolTip(commit)}\n\n📍 This is your working copy's BASE revision`
+        : getCommitToolTip(commit);
       ti.contextValue = "diffable";
       ti.command = {
         command: "svn.itemlog.openDiff",
