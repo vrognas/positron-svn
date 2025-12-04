@@ -42,7 +42,7 @@ export class SvnFileDecorationProvider
       const queryParams = new URLSearchParams(uri.query);
       if (queryParams.get("isBase") === "true") {
         return {
-          badge: "⬤",
+          badge: "B",
           tooltip: "Your working copy's BASE revision",
           color: new ThemeColor("charts.green")
         };
