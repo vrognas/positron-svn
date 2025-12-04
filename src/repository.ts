@@ -824,9 +824,18 @@ export class Repository implements IRemoteRepository {
   public async pullIncomingChange(path: string) {
     return this.run<string>(Operation.Update, async () => {
       const response = await this.repository.pullIncomingChange(path);
-      void this.updateRemoteChangedFiles();
+      // Note: updateRemoteChangedFiles() called by caller after batch completes
+      // to avoid N redundant calls when pulling N files
       return response;
     });
+  }
+
+  /**
+   * Trigger remote changes refresh after batch operations complete.
+   * Call this once after pulling multiple incoming changes.
+   */
+  public refreshRemoteChanges(): void {
+    void this.updateRemoteChangedFiles();
   }
 
   public async resolve(files: string[], action: string) {

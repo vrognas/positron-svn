@@ -28,6 +28,9 @@ export class PullIncommingChange extends Command {
           incomingChange.uri.fsPath
         );
 
+        // Refresh remote changes after pull
+        incomingChange.repository.refreshRemoteChanges();
+
         if (showUpdateMessage) {
           window.showInformationMessage(result);
         }
@@ -47,6 +50,9 @@ export class PullIncommingChange extends Command {
       const results = await Promise.all(
         files.map(path => repository.pullIncomingChange(path))
       );
+
+      // Refresh remote changes once after batch completes (not per-file)
+      repository.refreshRemoteChanges();
 
       // Show single batched notification
       if (showUpdateMessage && results.length > 0) {
