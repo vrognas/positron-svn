@@ -1848,6 +1848,35 @@ export class Repository {
   }
 
   /**
+   * Get all files with svn:needs-lock property in the working copy.
+   * Returns relative paths from working copy root.
+   */
+  public async getAllNeedsLockFiles(): Promise<Set<string>> {
+    try {
+      // svn propget -R lists all files with the property
+      const result = await this.exec(["propget", "svn:needs-lock", "-R", "."]);
+      const files = new Set<string>();
+
+      // Output format: "path - *" for each file with the property
+      for (const line of result.stdout.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed && trimmed.includes(" - ")) {
+          // Extract path before " - "
+          const path = trimmed.substring(0, trimmed.lastIndexOf(" - ")).trim();
+          if (path) {
+            files.add(path);
+          }
+        }
+      }
+
+      return files;
+    } catch {
+      // Property doesn't exist or other error - return empty set
+      return new Set<string>();
+    }
+  }
+
+  /**
    * Clear all info cache timers (Phase 8.2 perf fix - prevent memory leak)
    * Should be called on repository disposal
    */

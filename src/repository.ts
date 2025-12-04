@@ -179,11 +179,10 @@ export class Repository implements IRemoteRepository {
   private promptAuthCooldownTimer?: ReturnType<typeof setTimeout>;
   private storedAuthsCache?: { accounts: IStoredAuth[]; expiry: number };
 
-  // Needs-lock cache: tracks files with svn:needs-lock property
-  private needsLockCache = new Map<
-    string,
-    { value: boolean; expiry: number }
-  >();
+  // Needs-lock cache: set of relative paths with svn:needs-lock property
+  // Populated in batch by refreshNeedsLockCache() for efficient decoration
+  private needsLockFilesSet = new Set<string>();
+  private needsLockCacheExpiry = 0;
   private static readonly NEEDS_LOCK_CACHE_TTL = 60000; // 60 seconds
 
   private _fsWatcher: RepositoryFilesWatcher;
@@ -665,6 +664,9 @@ export class Repository implements IRemoteRepository {
     }
 
     this._onDidChangeStatus.fire();
+
+    // Refresh needs-lock cache before decorations (single batch SVN call)
+    await this.refreshNeedsLockCache();
 
     // Refresh file decorations in Explorer view
     if (this.fileDecorationProvider) {
@@ -1446,24 +1448,48 @@ export class Repository implements IRemoteRepository {
   }
 
   /**
-   * Check if file has svn:needs-lock property (with caching).
-   * Returns true if file has the property set.
+   * Refresh the batch cache of files with svn:needs-lock property.
+   * Called during status updates to populate cache efficiently.
+   */
+  public async refreshNeedsLockCache(): Promise<void> {
+    try {
+      this.needsLockFilesSet = await this.repository.getAllNeedsLockFiles();
+      this.needsLockCacheExpiry = Date.now() + Repository.NEEDS_LOCK_CACHE_TTL;
+    } catch {
+      // Keep existing cache on error
+    }
+  }
+
+  /**
+   * Check if file has svn:needs-lock property (sync, uses batch cache).
+   * Returns true if file is in the cached set. Fast for decorations.
+   */
+  public hasNeedsLockCached(filePath: string): boolean {
+    // Convert absolute path to relative
+    let relativePath = filePath;
+    if (filePath.startsWith(this.workspaceRoot)) {
+      relativePath = filePath.substring(this.workspaceRoot.length);
+      // Remove leading separator
+      if (relativePath.startsWith("/") || relativePath.startsWith("\\")) {
+        relativePath = relativePath.substring(1);
+      }
+    }
+    return this.needsLockFilesSet.has(relativePath);
+  }
+
+  /**
+   * Check if file has svn:needs-lock property (async, accurate).
+   * Uses cache if valid, otherwise queries SVN directly.
    */
   public async hasNeedsLock(filePath: string): Promise<boolean> {
-    const now = Date.now();
-    const cached = this.needsLockCache.get(filePath);
-
-    if (cached && cached.expiry > now) {
-      return cached.value;
+    // If cache is valid, use it
+    if (Date.now() < this.needsLockCacheExpiry) {
+      return this.hasNeedsLockCached(filePath);
     }
 
+    // Cache expired - do single file check (for prompt on open)
     try {
-      const result = await this.repository.hasNeedsLock(filePath);
-      this.needsLockCache.set(filePath, {
-        value: result,
-        expiry: now + Repository.NEEDS_LOCK_CACHE_TTL
-      });
-      return result;
+      return await this.repository.hasNeedsLock(filePath);
     } catch {
       return false;
     }
