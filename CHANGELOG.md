@@ -1,3 +1,18 @@
+## [2.33.3] (2025-12-04)
+
+### UX: Clearer Commands & Terminology
+
+- **Renamed**: "Commit" → "Commit All Changes" (clarifies scope)
+- **Renamed**: "Commit Selected" → "Commit Selected Files" (clarifies selection)
+- **Renamed**: "Open Changes with BASE" → "Open Changes with BASE (Your Last Update)"
+- **Renamed**: "Open Changes with HEAD" → "Open Changes with HEAD (Server Latest)"
+- **Renamed**: "Open Changes with PREV" → "Open Changes with PREV (Previous Revision)"
+- **Renamed**: "Open File (HEAD)" → "Open File (HEAD - Server Latest)"
+- **Renamed**: "Open diff with BASE" → "Open diff with BASE (Your Last Update)"
+- **Docs**: Added SVN Terminology Quick Reference section in README
+- **New**: actionableError utility for consistent error recovery buttons
+- **Affected**: package.json, README.md, src/util/actionableError.ts
+
 ## [2.33.2] (2025-12-04)
 
 ### Fix: Resource Leak Cleanup

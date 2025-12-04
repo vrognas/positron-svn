@@ -35,6 +35,21 @@ For comprehensive guides, see:
 - [Documentation Priority Matrix](./docs/DOCUMENTATION_PRIORITY_MATRIX.md) - For maintainers
 - [Lessons Learned](./docs/LESSONS_LEARNED.md) - Architecture insights
 
+# SVN Terminology Quick Reference
+
+When comparing file versions, SVN uses these keywords:
+
+| Term | Meaning | Example |
+|------|---------|---------|
+| **BASE** | Your last updated version | What you had after your last `svn update` |
+| **HEAD** | Server's latest version | The newest revision on the repository |
+| **PREV** | Previous committed version | The revision before HEAD |
+
+**Common scenarios:**
+- **"Open Changes with BASE"** - Compare your edits to what you downloaded
+- **"Open Changes with HEAD"** - See if server has newer changes
+- **"Open File (HEAD)"** - View the server's latest without changing your local copy
+
 # Features
 
 ### Checkout
