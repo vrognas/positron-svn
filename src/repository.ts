@@ -690,6 +690,25 @@ export class Repository implements IRemoteRepository {
     const hasChanges = stagedCount > 0 || changesCount > 0;
 
     const label = stagedCount > 0 ? `✓ Commit (${stagedCount})` : "✓ Commit";
+
+    // Secondary commands for dropdown menu (Command[][])
+    const secondaryCommands = [
+      [
+        {
+          command: "svn.commitStaged",
+          title: "Commit Staged",
+          tooltip: "Commit only staged files",
+          arguments: [this]
+        },
+        {
+          command: "svn.commitAll",
+          title: "Commit All",
+          tooltip: "Commit all changed files",
+          arguments: [this]
+        }
+      ]
+    ];
+
     // @ts-expect-error - actionButton exists at runtime but not in types
     this.sourceControl.actionButton = {
       command: {
@@ -698,6 +717,7 @@ export class Repository implements IRemoteRepository {
         tooltip: "Commit Changes",
         arguments: [this]
       },
+      secondaryCommands,
       enabled: hasChanges
     };
   }
