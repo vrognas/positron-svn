@@ -177,9 +177,7 @@ export class ItemLogProvider
     if (element.kind === LogTreeItemKind.Commit) {
       const commit = element.data as ISvnLogEntry;
       ti = new TreeItem(getCommitLabel(commit), TreeItemCollapsibleState.None);
-      // Add BASE indicator to description if this is the base revision
-      const desc = getCommitDescription(commit);
-      ti.description = element.isBase ? `${desc} (BASE)` : desc;
+      ti.description = getCommitDescription(commit);
       ti.iconPath = getCommitIcon(commit.author);
       ti.tooltip = element.isBase
         ? `${getCommitToolTip(commit)}\n\n📍 This is your working copy's BASE revision`
@@ -190,6 +188,12 @@ export class ItemLogProvider
         title: "Open diff",
         arguments: [element]
       };
+      // Use resourceUri to trigger FileDecorationProvider for BASE badge
+      if (element.isBase) {
+        ti.resourceUri = Uri.parse(
+          `svn-commit:r${commit.revision}?isBase=true`
+        );
+      }
     } else if (element.kind === LogTreeItemKind.TItem) {
       ti = element.data as TreeItem;
     } else {

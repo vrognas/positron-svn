@@ -590,14 +590,18 @@ export class RepoLogProvider
         getCommitLabel(commit),
         TreeItemCollapsibleState.Collapsed
       );
-      // Add BASE indicator to description if this is the base revision
-      const desc = getCommitDescription(commit);
-      ti.description = element.isBase ? `${desc} (BASE)` : desc;
+      ti.description = getCommitDescription(commit);
       ti.tooltip = element.isBase
         ? `${getCommitToolTip(commit)}\n\n📍 This is your working copy's BASE revision`
         : getCommitToolTip(commit);
       ti.iconPath = getCommitIcon(commit.author);
       ti.contextValue = "commit";
+      // Use resourceUri to trigger FileDecorationProvider for BASE badge
+      if (element.isBase) {
+        ti.resourceUri = Uri.parse(
+          `svn-commit:r${commit.revision}?isBase=true`
+        );
+      }
     } else if (element.kind === LogTreeItemKind.CommitDetail) {
       // TODO optional tree-view instead of flat
       const pathElem = element.data as ISvnLogEntryPath;

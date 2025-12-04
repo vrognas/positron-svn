@@ -37,6 +37,19 @@ export class SvnFileDecorationProvider
    * Provide decoration for a file URI
    */
   async provideFileDecoration(uri: Uri): Promise<FileDecoration | undefined> {
+    // Check for BASE commit decoration (from repo/item log)
+    if (uri.scheme === "svn-commit") {
+      const queryParams = new URLSearchParams(uri.query);
+      if (queryParams.get("isBase") === "true") {
+        return {
+          badge: "⬤",
+          tooltip: "Your working copy's BASE revision",
+          color: new ThemeColor("charts.green")
+        };
+      }
+      return undefined;
+    }
+
     // Check if this is a historical file from repository log (has action query param)
     const queryParams = new URLSearchParams(uri.query);
     const action = queryParams.get("action");
