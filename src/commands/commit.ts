@@ -55,7 +55,8 @@ export class Commit extends Command {
     });
 
     await this.runByRepository(uris, async (repository, resources) => {
-      const paths = resources.map(resource => resource.fsPath);
+      // Use Set to avoid duplicates when multiple files share parent dirs
+      const pathSet = new Set(resources.map(resource => resource.fsPath));
 
       // Phase 21.A fix: Use flat resource map for O(1) parent lookups
       // Eliminates URI conversion overhead in hot loop (20-100ms → 5-20ms)
@@ -68,13 +69,15 @@ export class Commit extends Command {
 
         while (parent) {
           if (parent.type === Status.ADDED) {
-            paths.push(dir);
+            pathSet.add(dir);
           }
           dir = path.dirname(dir);
           parentKey = pathToUriKey(dir);
           parent = resourceMap.get(parentKey);
         }
       }
+
+      const paths = Array.from(pathSet);
 
       const message = await inputCommitMessage(
         repository.inputBox.value,

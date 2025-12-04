@@ -34,12 +34,15 @@ export class CommitStaged extends Command {
       return;
     }
 
-    const filePaths = stagedResources.map(state => state.resourceUri.fsPath);
+    // Use Set to avoid duplicates when multiple files share parent dirs
+    const filePathSet = new Set(
+      stagedResources.map(state => state.resourceUri.fsPath)
+    );
 
     // Handle renamed files and parent directories
     stagedResources.forEach(state => {
       if (state.type === Status.ADDED && state.renameResourceUri) {
-        filePaths.push(state.renameResourceUri.fsPath);
+        filePathSet.add(state.renameResourceUri.fsPath);
       }
 
       let dir = path.dirname(state.resourceUri.fsPath);
@@ -47,12 +50,14 @@ export class CommitStaged extends Command {
 
       while (parent) {
         if (parent.type === Status.ADDED) {
-          filePaths.push(dir);
+          filePathSet.add(dir);
         }
         dir = path.dirname(dir);
         parent = repository.getResourceFromFile(dir);
       }
     });
+
+    const filePaths = Array.from(filePathSet);
 
     // Get config options
     const useQuickPick = configuration.get<boolean>(
