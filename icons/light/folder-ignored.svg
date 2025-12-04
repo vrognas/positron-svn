@@ -1,5 +1,5 @@
-<svg width="14px" height="14px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <path fill="#424242" d="M90 25H45L35 15H10C4.5 15 0 19.5 0 25v60c0 5.5 4.5 10 10 10h80c5.5 0 10-4.5 10-10V35c0-5.5-4.5-10-10-10z"/>
-  <circle fill="#969696" cx="75" cy="70" r="25"/>
-  <text x="75" y="80" font-size="30" text-anchor="middle" style="font-family: sans-serif; font-weight: bold;" fill="white">I</text>
+<svg width="16px" height="16px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <path fill="#424242" d="M85 20H42L32 10H10C5 10 0 15 0 20v55c0 5 5 10 10 10h75c5 0 10-5 10-10V30c0-5-5-10-10-10z"/>
+  <circle fill="#969696" cx="70" cy="60" r="35"/>
+  <text x="70" y="72" font-size="42" text-anchor="middle" style="font-family: sans-serif; font-weight: bold;" fill="white">I</text>
 </svg>
