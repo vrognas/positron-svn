@@ -3,7 +3,7 @@
 // Licensed under MIT License
 
 import { Event, Uri, workspace, EventEmitter, RelativePattern } from "vscode";
-import { watch } from "fs";
+import { watch, FSWatcher } from "fs";
 import { exists } from "../fs";
 import { join } from "path";
 import { debounce } from "../decorators";
@@ -20,6 +20,7 @@ import { logError } from "../util/errorLogger";
 
 export class RepositoryFilesWatcher implements IDisposable {
   private disposables: IDisposable[] = [];
+  private nativeWatcher?: FSWatcher; // Track native fs.watch for cleanup
 
   private _onRepoChange: EventEmitter<Uri>;
   private _onRepoCreate: EventEmitter<Uri>;
@@ -56,12 +57,12 @@ export class RepositoryFilesWatcher implements IDisposable {
       !workspace.workspaceFolders.filter(w => isDescendant(w.uri.fsPath, root))
         .length
     ) {
-      const repoWatcher = watch(
+      this.nativeWatcher = watch(
         join(root, getSvnDir()),
         this.repoWatch.bind(this)
       );
 
-      repoWatcher.on("error", error => {
+      this.nativeWatcher.on("error", error => {
         // Phase 20.A fix: Log error gracefully instead of crashing extension
         // Common errors: ENOENT (.svn deleted), EACCES (permission denied)
         logError(`SVN repository watcher error for ${root}`, error);
@@ -177,6 +178,11 @@ export class RepositoryFilesWatcher implements IDisposable {
   }
 
   public dispose(): void {
+    // Close native fs.watch watcher to prevent file handle leak
+    if (this.nativeWatcher) {
+      this.nativeWatcher.close();
+      this.nativeWatcher = undefined;
+    }
     this.disposables.forEach(d => d.dispose());
   }
 }

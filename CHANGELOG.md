@@ -1,3 +1,26 @@
+## [2.33.3] (2025-12-04)
+
+### UX: Clearer Commands & Terminology
+
+- **Renamed**: "Commit" → "Commit All Changes" (clarifies scope)
+- **Renamed**: "Commit Selected" → "Commit Selected Files" (clarifies selection)
+- **Renamed**: "Open Changes with BASE" → "Open Changes with BASE (Your Last Update)"
+- **Renamed**: "Open Changes with HEAD" → "Open Changes with HEAD (Server Latest)"
+- **Renamed**: "Open Changes with PREV" → "Open Changes with PREV (Previous Revision)"
+- **Renamed**: "Open File (HEAD)" → "Open File (HEAD - Server Latest)"
+- **Renamed**: "Open diff with BASE" → "Open diff with BASE (Your Last Update)"
+- **Docs**: Added SVN Terminology Quick Reference section in README
+- **New**: actionableError utility for consistent error recovery buttons
+- **Affected**: package.json, README.md, src/util/actionableError.ts
+
+## [2.33.2] (2025-12-04)
+
+### Fix: Resource Leak Cleanup
+
+- **Fix**: Native fs.watch file watcher now properly disposed on repository close (prevents file handle leak)
+- **Fix**: Process exit handlers (SIGINT/SIGTERM) now cleaned up on extension deactivation (prevents handler accumulation during dev reloads)
+- **Affected**: repositoryFilesWatcher.ts, extension.ts
+
 ## [2.33.1] (2025-12-03)
 
 ### Perf: Optimistic UI for Stage/Unstage

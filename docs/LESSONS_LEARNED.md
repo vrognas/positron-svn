@@ -656,8 +656,8 @@ dispose(): void {
 
 ---
 
-**Document Version**: 2.11
-**Last Updated**: 2025-12-03
+**Document Version**: 2.12
+**Last Updated**: 2025-12-04
 
 ### 23. VS Code TreeView Providers: Listen for Repository Open/Close Events
 
@@ -892,5 +892,63 @@ groupManager.moveToStaged(files); // Move Resource objects directly
 - ❌ Critical operations where accuracy > speed
 
 **Rule**: For predictable SCM operations, update UI optimistically. Let background refresh handle edge cases.
+
+---
+
+### 27. Native Resources: Track and Dispose Separately
+
+**Lesson**: Native Node.js resources (FSWatcher, process handlers) must be explicitly tracked and disposed.
+
+**Issue** (v2.33.2):
+
+- `fs.watch()` watcher created but never added to disposables array
+- Process event handlers (`exit`, `SIGINT`, `SIGTERM`) never removed
+- File handles leaked when repository closed
+- Handlers accumulated during development reloads
+
+**Fix**:
+
+```typescript
+// BAD: Native watcher not tracked
+const watcher = watch(path, callback);
+watcher.on("error", handleError);
+// Never closed!
+
+// GOOD: Track and close in dispose
+private nativeWatcher?: FSWatcher;
+
+constructor() {
+  this.nativeWatcher = watch(path, callback);
+}
+
+dispose(): void {
+  if (this.nativeWatcher) {
+    this.nativeWatcher.close();
+    this.nativeWatcher = undefined;
+  }
+}
+```
+
+**Process handlers**:
+
+```typescript
+// BAD: Handlers never removed
+process.on("exit", cleanup);
+process.on("SIGINT", handler);
+
+// GOOD: Store references, remove on dispose
+const sigintHandler = () => {
+  cleanup();
+  process.exit();
+};
+process.on("SIGINT", sigintHandler);
+disposables.push(
+  toDisposable(() => {
+    process.removeListener("SIGINT", sigintHandler);
+  })
+);
+```
+
+**Rule**: Native resources don't implement IDisposable. Track them separately and clean up in dispose().
 
 ---

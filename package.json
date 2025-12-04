@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.33.1",
+  "version": "2.33.3",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.105.0",
@@ -277,13 +277,13 @@
       },
       {
         "command": "svn.commit",
-        "title": "Commit Selected",
+        "title": "Commit Selected Files",
         "category": "SVN",
         "icon": "$(check)"
       },
       {
         "command": "svn.commitAll",
-        "title": "Commit",
+        "title": "Commit All Changes",
         "category": "SVN",
         "icon": "$(check)"
       },
@@ -326,7 +326,7 @@
       },
       {
         "command": "svn.itemlog.openDiffBase",
-        "title": "Open diff with BASE",
+        "title": "Open diff with BASE (Your Last Update)",
         "category": "SVN"
       },
       {
@@ -357,7 +357,7 @@
       },
       {
         "command": "svn.openChangeBase",
-        "title": "Open Changes with BASE",
+        "title": "Open Changes with BASE (Your Last Update)",
         "category": "SVN",
         "icon": {
           "light": "icons/light/open-change-base.svg",
@@ -366,7 +366,7 @@
       },
       {
         "command": "svn.openChangeHead",
-        "title": "Open Changes with HEAD",
+        "title": "Open Changes with HEAD (Server Latest)",
         "category": "SVN",
         "icon": {
           "light": "icons/light/open-change-head.svg",
@@ -375,7 +375,7 @@
       },
       {
         "command": "svn.openChangePrev",
-        "title": "Open Changes with PREV",
+        "title": "Open Changes with PREV (Previous Revision)",
         "category": "SVN"
       },
       {
@@ -392,7 +392,7 @@
       },
       {
         "command": "svn.openHEADFile",
-        "title": "Open File (HEAD)",
+        "title": "Open File (HEAD - Server Latest)",
         "category": "SVN"
       },
       {

@@ -58,15 +58,28 @@ async function init(
     svn.getAuthCache().dispose();
   };
 
+  // Store handler references for cleanup on extension deactivation
+  const sigintHandler = () => {
+    cleanup();
+    process.exit();
+  };
+  const sigtermHandler = () => {
+    cleanup();
+    process.exit();
+  };
+
   process.on("exit", cleanup);
-  process.on("SIGINT", () => {
-    cleanup();
-    process.exit();
-  });
-  process.on("SIGTERM", () => {
-    cleanup();
-    process.exit();
-  });
+  process.on("SIGINT", sigintHandler);
+  process.on("SIGTERM", sigtermHandler);
+
+  // Remove handlers on extension dispose to prevent accumulation during dev reloads
+  disposables.push(
+    toDisposable(() => {
+      process.removeListener("exit", cleanup);
+      process.removeListener("SIGINT", sigintHandler);
+      process.removeListener("SIGTERM", sigtermHandler);
+    })
+  );
 
   const sourceControlManager = await new SourceControlManager(
     svn,
