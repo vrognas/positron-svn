@@ -98,6 +98,7 @@ export class ResourceGroupManager implements IResourceGroupManager {
   private _resourceIndex = new Map<string, Resource>(); // Phase 8.1 perf fix - O(1) lookup
   private _resourceHash = ""; // Phase 16 perf fix - conditional rebuild
   private _staging: StagingService;
+  private _stagedDirectories = new Set<string>(); // Track staged dirs (changelists can't hold them)
 
   get staged(): ISvnResourceGroup {
     return this._staged;
@@ -187,10 +188,38 @@ export class ResourceGroupManager implements IResourceGroupManager {
       stagedResources.map(r => r.resourceUri.fsPath)
     );
 
-    // Update staged and changes groups
-    this._staged.resourceStates = stagedResources;
-    this._changes.resourceStates = result.changes;
-    this._conflicts.resourceStates = result.conflicts;
+    // Find staged directories in changes/conflicts (changelists can't hold dirs)
+    const stagedDirs: Resource[] = [];
+    const filterStagedDirs = (resources: Resource[]): Resource[] => {
+      return resources.filter(r => {
+        const normalizedPath = normalizePath(r.resourceUri.fsPath);
+        if (this._stagedDirectories.has(normalizedPath)) {
+          stagedDirs.push(r);
+          return false; // Remove from original group
+        }
+        return true;
+      });
+    };
+
+    // Filter first to populate stagedDirs, then assign groups
+    const filteredChanges = filterStagedDirs(result.changes);
+    const filteredConflicts = filterStagedDirs(result.conflicts);
+
+    // Clean up staged directories that no longer have status (committed)
+    const allResourcePaths = new Set([
+      ...result.changes.map(r => normalizePath(r.resourceUri.fsPath)),
+      ...result.conflicts.map(r => normalizePath(r.resourceUri.fsPath))
+    ]);
+    for (const dirPath of this._stagedDirectories) {
+      if (!allResourcePaths.has(dirPath)) {
+        this._stagedDirectories.delete(dirPath);
+      }
+    }
+
+    // Update groups, preserving staged directories
+    this._staged.resourceStates = [...stagedResources, ...stagedDirs];
+    this._changes.resourceStates = filteredChanges;
+    this._conflicts.resourceStates = filteredConflicts;
 
     // Clear existing changelist groups
     this._changelists.forEach(group => {
@@ -397,6 +426,13 @@ export class ResourceGroupManager implements IResourceGroupManager {
       ...movedResources
     ];
 
+    // Track staged directories (changelists can't hold them)
+    for (const r of movedResources) {
+      if (r.kind === "dir") {
+        this._stagedDirectories.add(normalizePath(r.resourceUri.fsPath));
+      }
+    }
+
     // Update staging cache
     this._staging.syncFromChangelist(
       this._staged.resourceStates.map(r => r.resourceUri.fsPath)
@@ -423,6 +459,10 @@ export class ResourceGroupManager implements IResourceGroupManager {
         pathSet.has(normalizePath(r.resourceUri.fsPath))
       ) {
         movedResources.push(r);
+        // Untrack staged directories
+        if (r.kind === "dir") {
+          this._stagedDirectories.delete(normalizePath(r.resourceUri.fsPath));
+        }
         return false;
       }
       return true;
@@ -509,6 +549,7 @@ export class ResourceGroupManager implements IResourceGroupManager {
     this._remoteChanges = undefined;
     this._resourceIndex.clear();
     this._resourceHash = "";
+    this._stagedDirectories.clear();
   }
 
   /**
