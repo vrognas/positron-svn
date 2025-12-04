@@ -2,7 +2,6 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
-import * as path from "path";
 import {
   Command,
   SourceControlResourceDecorations,
@@ -14,39 +13,7 @@ import { LockStatus, PropStatus, Status } from "./common/types";
 import { memoize } from "./decorators";
 import { configuration } from "./helpers/configuration";
 
-// Path needs to be relative from out/
-const iconsRootPath = path.join(__dirname, "..", "icons");
-
-function getIconUri(iconName: string, theme: string): Uri {
-  return Uri.file(path.join(iconsRootPath, theme, `${iconName}.svg`));
-}
-
 export class Resource implements SourceControlResourceState {
-  private static icons: Record<string, Record<string, Uri>> = {
-    light: {
-      Added: getIconUri("status-added", "light"),
-      Conflicted: getIconUri("status-conflicted", "light"),
-      Deleted: getIconUri("status-deleted", "light"),
-      Ignored: getIconUri("status-ignored", "light"),
-      Missing: getIconUri("status-missing", "light"),
-      Modified: getIconUri("status-modified", "light"),
-      Renamed: getIconUri("status-renamed", "light"),
-      Replaced: getIconUri("status-replaced", "light"),
-      Unversioned: getIconUri("status-unversioned", "light")
-    },
-    dark: {
-      Added: getIconUri("status-added", "dark"),
-      Conflicted: getIconUri("status-conflicted", "dark"),
-      Deleted: getIconUri("status-deleted", "dark"),
-      Ignored: getIconUri("status-ignored", "dark"),
-      Missing: getIconUri("status-missing", "dark"),
-      Modified: getIconUri("status-modified", "dark"),
-      Renamed: getIconUri("status-renamed", "dark"),
-      Replaced: getIconUri("status-replaced", "dark"),
-      Unversioned: getIconUri("status-unversioned", "dark")
-    }
-  };
-
   constructor(
     private _resourceUri: Uri,
     private _type: string,
@@ -108,31 +75,12 @@ export class Resource implements SourceControlResourceState {
   }
 
   get decorations(): SourceControlResourceDecorations {
-    // TODO@joh, still requires restart/redraw in the SCM viewlet
-    const tooltip = this.tooltip;
-    const strikeThrough = this.strikeThrough;
-    const faded = this.faded;
-
-    // Directories: don't override iconPath - let VS Code show folder icon
+    // Don't override iconPath - let VS Code show default file/folder icons
     // Badge (A/M/D) comes from FileDecorationProvider
-    if (this._kind === "dir") {
-      return {
-        strikeThrough,
-        faded,
-        tooltip
-      };
-    }
-
-    // Files: use custom status SVG icons (contain the A/M/D badge)
-    const light = { iconPath: this.getIconPath("light") };
-    const dark = { iconPath: this.getIconPath("dark") };
-
     return {
-      strikeThrough,
-      faded,
-      tooltip,
-      light,
-      dark
+      strikeThrough: this.strikeThrough,
+      faded: this.faded,
+      tooltip: this.tooltip
     };
   }
 
@@ -165,20 +113,6 @@ export class Resource implements SourceControlResourceState {
       title: "Open Diff With Base",
       arguments: [this]
     };
-  }
-
-  private getIconPath(theme: string): Uri | undefined {
-    if (this.type === Status.ADDED && this.renameResourceUri) {
-      return Resource.icons[theme]!.Renamed;
-    }
-
-    const type = this.type.charAt(0).toUpperCase() + this.type.slice(1);
-
-    if (typeof Resource.icons[theme]![type] !== "undefined") {
-      return Resource.icons[theme]![type];
-    }
-
-    return void 0;
   }
 
   private get tooltip(): string {
