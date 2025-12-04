@@ -687,23 +687,19 @@ export class Repository implements IRemoteRepository {
   private updateActionButton(): void {
     const stagedCount = this.groupManager.staged.resourceStates.length;
     const changesCount = this.groupManager.changes.resourceStates.length;
+    const hasChanges = stagedCount > 0 || changesCount > 0;
 
-    // Show commit button when there are staged files or changes
-    if (stagedCount > 0 || changesCount > 0) {
-      const label = stagedCount > 0 ? `Commit (${stagedCount})` : "Commit";
-      // @ts-expect-error - actionButton exists at runtime but not in types
-      this.sourceControl.actionButton = {
-        command: {
-          command: "svn.commitFromInputBox",
-          title: label,
-          arguments: [this]
-        },
-        enabled: true
-      };
-    } else {
-      // @ts-expect-error - actionButton exists at runtime but not in types
-      this.sourceControl.actionButton = undefined;
-    }
+    const label = stagedCount > 0 ? `✓ Commit (${stagedCount})` : "✓ Commit";
+    // @ts-expect-error - actionButton exists at runtime but not in types
+    this.sourceControl.actionButton = {
+      command: {
+        command: "svn.commitFromInputBox",
+        title: label,
+        tooltip: "Commit Changes",
+        arguments: [this]
+      },
+      enabled: hasChanges
+    };
   }
 
   public getResourceFromFile(uri: string | Uri): Resource | undefined {
