@@ -76,7 +76,7 @@ export class Resource implements SourceControlResourceState {
   }
 
   get decorations(): SourceControlResourceDecorations {
-    // Directories: use ThemeIcon.Folder (SCM view doesn't auto-detect)
+    // Directories: use light/dark iconPath for folder icon (main icon, not badge)
     // Files: don't set iconPath, VS Code uses file extension icon
     // Badge (A/M/D) comes from FileDecorationProvider
     if (this._kind === "dir") {
@@ -84,7 +84,8 @@ export class Resource implements SourceControlResourceState {
         strikeThrough: this.strikeThrough,
         faded: this.faded,
         tooltip: this.tooltip,
-        iconPath: ThemeIcon.Folder
+        light: { iconPath: ThemeIcon.Folder },
+        dark: { iconPath: ThemeIcon.Folder }
       };
     }
 
