@@ -1405,402 +1405,13 @@
     "configuration": {
       "title": "Svn",
       "properties": {
-        "svn.auth.credentialMode": {
-          "type": "string",
-          "enum": [
-            "auto",
-            "systemKeyring",
-            "extensionStorage",
-            "prompt"
-          ],
-          "enumDescriptions": [
-            "System keyring locally, extension storage remotely (recommended for Windows + SSH)",
-            "Use native credential stores everywhere (Windows auth, gnome-keyring, macOS Keychain)",
-            "Use VS Code SecretStorage everywhere (isolated, works in all environments)",
-            "No credential storage, always prompt for credentials"
-          ],
-          "description": "How SVN credentials are stored and retrieved.",
-          "default": "auto"
-        },
-        "svn.auth.commandTimeout": {
-          "type": "number",
-          "description": "Timeout in seconds for SVN commands. Increase for slow remote connections.",
-          "default": 60,
-          "minimum": 10,
-          "maximum": 600
-        },
-        "svn.output.authLogging": {
-          "type": "string",
-          "enum": [
-            "once",
-            "always",
-            "never"
-          ],
-          "enumDescriptions": [
-            "Log auth mode once at startup (recommended)",
-            "Log auth mode with every SVN command (verbose)",
-            "Never log auth mode"
-          ],
-          "description": "How often to log authentication mode in SVN output panel.",
-          "default": "once"
-        },
-        "svn.autorefresh": {
-          "type": "boolean",
-          "description": "Whether auto refreshing is enabled",
-          "default": true
-        },
-        "svn.performance.maxXmlTags": {
-          "type": "number",
-          "description": "Maximum XML tags to parse (increase for very large repos with 100k+ files). Set to 0 for unlimited.",
-          "default": 500000,
-          "minimum": 0,
-          "maximum": 10000000
-        },
-        "svn.blame.enabled": {
-          "type": "boolean",
-          "description": "Enable SVN blame functionality",
-          "default": true
-        },
-        "svn.blame.autoBlame": {
-          "type": "boolean",
-          "description": "Automatically blame files when opened",
-          "default": true
-        },
-        "svn.blame.dateFormat": {
-          "type": "string",
-          "enum": [
-            "relative",
-            "absolute"
-          ],
-          "description": "Date format for blame annotations (relative: '2 days ago', absolute: '2025-11-18')",
-          "default": "relative"
-        },
-        "svn.blame.enableLogs": {
-          "type": "boolean",
-          "description": "Fetch commit messages for blame (disabling speeds up blame significantly)",
-          "default": true
-        },
-        "svn.blame.largeFileLimit": {
-          "type": "number",
-          "description": "Maximum number of lines before warning about large file (0 to disable)",
-          "default": 3000,
-          "minimum": 0
-        },
-        "svn.blame.largeFileWarning": {
-          "type": "boolean",
-          "description": "Show warning before blaming large files",
-          "default": true
-        },
-        "svn.blame.showWorkingCopyChanges": {
-          "type": "boolean",
-          "description": "Show uncommitted changes in blame view",
-          "default": true
-        },
-        "svn.blame.statusBar.enabled": {
-          "type": "boolean",
-          "description": "Show blame information in status bar",
-          "default": true
-        },
-        "svn.blame.statusBar.template": {
-          "type": "string",
-          "description": "Status bar template. Available: ${author}, ${revision}, ${date}, ${message}",
-          "default": "$(person) ${author}, $(clock) ${date} - ${message}"
-        },
-        "svn.blame.gutter.enabled": {
-          "type": "boolean",
-          "description": "Show blame annotations in editor gutter",
-          "default": true
-        },
-        "svn.blame.gutter.dateFormat": {
-          "type": "string",
-          "enum": [
-            "relative",
-            "absolute"
-          ],
-          "description": "Date format for gutter annotations",
-          "default": "relative"
-        },
-        "svn.blame.gutter.template": {
-          "type": "string",
-          "description": "Gutter template. Available: ${author}, ${revision}, ${date}, ${message}",
-          "default": "${author} (${revision}) ${date}"
-        },
-        "svn.blame.gutter.showText": {
-          "type": "boolean",
-          "description": "Show text annotations in gutter (author, revision, date)",
-          "default": false
-        },
-        "svn.blame.gutter.showIcons": {
-          "type": "boolean",
-          "description": "Show colored revision indicators in gutter (left of line numbers)",
-          "default": true
-        },
-        "svn.blame.inline.enabled": {
-          "type": "boolean",
-          "description": "Show inline blame annotations at end of each line (GitLens-style)",
-          "default": true
-        },
-        "svn.blame.inline.template": {
-          "type": "string",
-          "description": "Inline annotation template. Variables: ${author}, ${revision}, ${date}, ${message}",
-          "default": "  ${author}, ${date} (r${revision}) • ${message}"
-        },
-        "svn.blame.inline.showMessage": {
-          "type": "boolean",
-          "description": "Fetch and show commit messages in inline annotations (slower)",
-          "default": false
-        },
-        "svn.blame.inline.opacity": {
-          "type": "number",
-          "description": "Opacity of inline blame annotations (0.0 to 1.0, default: 0.5)",
-          "default": 0.5,
-          "minimum": 0,
-          "maximum": 1
-        },
-        "svn.blame.inline.currentLineOnly": {
-          "type": "boolean",
-          "description": "Show inline blame only for current line (cursor position)",
-          "default": true
-        },
-        "svn.sparse.confirmExclude": {
-          "type": "boolean",
-          "description": "Show confirmation dialog before removing items from disk",
-          "default": true
-        },
-        "svn.sparse.largeFileWarningMb": {
-          "type": "number",
-          "description": "Warn before downloading files larger than this size (in MB). Set to 0 to disable.",
-          "default": 10,
-          "minimum": 0,
-          "maximum": 1000
-        },
-        "svn.sparse.downloadTimeoutMinutes": {
-          "type": "number",
-          "description": "Timeout for download operations in minutes. Large folders may need longer timeouts.",
-          "default": 10,
-          "minimum": 1,
-          "maximum": 60
-        },
-        "svn.sparse.preScanTimeoutSeconds": {
-          "type": "number",
-          "description": "Timeout for folder pre-scan in seconds. Pre-scan counts files for progress display.",
-          "default": 30,
-          "minimum": 5,
-          "maximum": 300
-        },
-        "svn.commit.changes.selectedAll": {
-          "type": "boolean",
-          "description": "Select all files when commit changes",
-          "default": true
-        },
-        "svn.commit.checkEmptyMessage": {
-          "type": "boolean",
-          "description": "Check empty message before commit",
-          "default": true
-        },
-        "svn.commit.conventionalCommits": {
-          "type": "boolean",
-          "description": "Use conventional commit format (feat/fix/docs/etc)",
-          "default": true
-        },
-        "svn.commit.updateBeforeCommit": {
-          "type": "boolean",
-          "description": "Run svn update before commit to sync with remote",
-          "default": true
-        },
-        "svn.commit.useQuickPick": {
-          "type": "boolean",
-          "description": "Use native QuickPick for commit (false = webview)",
-          "default": true
-        },
-        "svn.conflicts.autoResolve": {
-          "type": "boolean",
-          "description": "Set file to status resolved after fix conflicts",
-          "default": false
-        },
-        "svn.default.encoding": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Encoding of svn output if the output is not utf-8. When this parameter is null, the encoding is automatically detected. Example: 'windows-1252'.",
-          "default": null
-        },
-        "svn.defaultCheckoutDirectory": {
-          "type": "string",
-          "default": null,
-          "description": "The default location to checkout a svn repository."
-        },
-        "svn.delete.actionForDeletedFiles": {
-          "type": "string",
-          "enum": [
-            "none",
-            "prompt",
-            "remove"
-          ],
-          "description": "When a file is deleted, what SVN should do? `none` - Do nothing, `prompt` - Ask the action, `remove` - automatically remove from SVN",
-          "default": "prompt"
-        },
-        "svn.delete.ignoredRulesForDeletedFiles": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Ignored files/rules for `svn.delete.actionForDeletedFiles`(Ex.: file.txt or **/*.txt)",
-          "default": []
-        },
-        "svn.detectExternals": {
-          "type": "boolean",
-          "default": true,
-          "description": "Controls whether to automatically detect svn externals."
-        },
-        "svn.debug.disableSanitization": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "**⚠️ WARNING**: Disable error message sanitization for debugging. When enabled, raw file paths and credentials will be visible in logs. **Only enable temporarily for troubleshooting, then disable immediately.**"
-        },
-        "svn.detectIgnored": {
-          "type": "boolean",
-          "default": true,
-          "description": "Controls whether to automatically detect svn on ignored folders."
-        },
-        "svn.diff.withHead": {
-          "type": "boolean",
-          "description": "Show diff changes using latest revision in the repository. Set false to use latest revision in local folder",
-          "default": true
-        },
-        "svn.diff.tool": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Path to external diff tool (e.g., 'C:\\\\Program Files\\\\Beyond Compare 5\\\\BCompare.exe'). Command uses svn diff --diff-cmd.",
-          "default": null,
-          "scope": "machine"
-        },
         "svn.enabled": {
           "type": "boolean",
-          "description": "Whether svn is enabled",
-          "default": true
-        },
-        "svn.experimental.detect_encoding": {
-          "type": "boolean",
-          "description": "Try the experimental encoding detection",
-          "default": false
-        },
-        "svn.experimental.encoding_priority": {
-          "type": "array",
-          "description": "Priority of encoding",
-          "default": [],
-          "examples": [
-            [
-              "UTF-8",
-              "GB18030",
-              "windows-1251"
-            ]
-          ]
-        },
-        "svn.ignoreMissingSvnWarning": {
-          "type": "boolean",
-          "description": "Ignores the warning when SVN is missing",
-          "default": false
-        },
-        "svn.ignoreRepositories": {
-          "type": [
-            "array",
-            null
-          ],
-          "default": null,
-          "scope": "resource",
-          "description": "List of SVN repositories to ignore."
-        },
-        "svn.ignoreWorkingCopyIsTooOld": {
-          "type": "boolean",
-          "description": "Ignores the warning when working copy is too old",
-          "default": false
-        },
-        "svn.layout.branchesRegex": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Regex to detect path for 'branches' in SVN URL, 'null' to disable. Subpath use 'branches/[^/]+/([^/]+)(/.*)?' (Ex.: 'branches/...', 'versions/...')",
-          "default": "branches/([^/]+)(/.*)?"
-        },
-        "svn.layout.branchesRegexName": {
-          "type": [
-            "number"
-          ],
-          "description": "Regex group position for name of branch",
-          "default": 1
-        },
-        "svn.layout.showFullName": {
-          "type": [
-            "boolean"
-          ],
-          "description": "Set true to show 'branches/<name>' and false to show only '<name>'",
-          "default": true
-        },
-        "svn.layout.tagRegexName": {
-          "type": [
-            "number"
-          ],
-          "description": "Regex group position for name of tag",
-          "default": 1
-        },
-        "svn.layout.tagsRegex": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Regex to detect path for 'tags' in SVN URL, 'null' to disable. Subpath use 'tags/[^/]+/([^/]+)(/.*)?'. (Ex.: 'tags/...', 'stamps/...')",
-          "default": "tags/([^/]+)(/.*)?"
-        },
-        "svn.layout.trunkRegex": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Regex to detect path for 'trunk' in SVN URL, 'null' to disable. (Ex.: '(trunk)', '(main)')",
-          "default": "(trunk)(/.*)?"
-        },
-        "svn.layout.trunkRegexName": {
-          "type": [
-            "number"
-          ],
-          "description": "Regex group position for name of trunk",
-          "default": 1
-        },
-        "svn.log.length": {
-          "type": "number",
-          "minimum": 1,
-          "description": "Number of commit messages to log",
-          "default": 50
-        },
-        "svn.log.authorColors": {
-          "type": "boolean",
-          "description": "Show colored dots for commit authors in history view (helps distinguish authors visually)",
-          "default": true
-        },
-        "svn.multipleFolders.depth": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Maximum depth to find subfolders using SVN",
-          "default": 4
-        },
-        "svn.multipleFolders.enabled": {
-          "type": "boolean",
-          "description": "Allow to find subfolders using SVN",
-          "default": false
-        },
-        "svn.multipleFolders.ignore": {
-          "type": "array",
-          "description": "Folders to ignore using SVN",
-          "default": [
-            "**/.git",
-            "**/.hg",
-            "**/vendor",
-            "**/node_modules"
+          "markdownDescription": "Enable SVN extension. Disable to prevent SVN from running in this workspace.",
+          "default": true,
+          "order": 1,
+          "tags": [
+            "essential"
           ]
         },
         "svn.path": {
@@ -1808,34 +1419,70 @@
             "string",
             "null"
           ],
-          "description": "Path to the svn executable",
+          "markdownDescription": "Path to the `svn` executable. Leave empty to use system PATH.\n\nExample: `/usr/local/bin/svn` or `C:\\Program Files\\TortoiseSVN\\bin\\svn.exe`",
           "default": null,
-          "scope": "machine"
+          "scope": "machine",
+          "order": 2,
+          "tags": [
+            "essential"
+          ]
         },
-        "svn.previousCommitsUser": {
-          "type": "string",
-          "description": "Only show previous commits for a given user. Requires svn >= 1.8",
-          "default": null
-        },
-        "svn.refresh.remoteChanges": {
+        "svn.autorefresh": {
           "type": "boolean",
-          "description": "Refresh remote changes on refresh command",
-          "default": false
+          "markdownDescription": "Automatically refresh file status when files change on disk.",
+          "default": true,
+          "order": 3,
+          "tags": [
+            "essential"
+          ]
         },
-        "svn.remoteChanges.checkFrequency": {
-          "type": "number",
-          "description": "Set the interval in seconds to check changed files on remote repository and show in statusbar. 0 to disable",
-          "default": 300
-        },
-        "svn.showOutput": {
+        "svn.commit.conventionalCommits": {
           "type": "boolean",
-          "description": "Show the output window when the extension starts",
-          "default": false
+          "markdownDescription": "Use [Conventional Commits](https://www.conventionalcommits.org/) format (`feat:`, `fix:`, `docs:`, etc). Guided commit flow helps you create consistent commit messages.",
+          "default": true,
+          "order": 10,
+          "tags": [
+            "commit",
+            "workflow"
+          ]
         },
-        "svn.showUpdateMessage": {
+        "svn.commit.updateBeforeCommit": {
           "type": "boolean",
-          "description": "Show the update message when update is run",
-          "default": true
+          "markdownDescription": "Run `svn update` before commit to sync with server. **Recommended** for team projects to avoid out-of-date conflicts.\n\n⚠️ May add 2-10s delay on slow connections.",
+          "default": true,
+          "order": 11,
+          "tags": [
+            "commit",
+            "workflow"
+          ]
+        },
+        "svn.commit.useQuickPick": {
+          "type": "boolean",
+          "markdownDescription": "Use native VS Code QuickPick for commit dialog. Set `false` for webview-based commit form.",
+          "default": true,
+          "order": 12,
+          "tags": [
+            "commit",
+            "workflow"
+          ]
+        },
+        "svn.commit.checkEmptyMessage": {
+          "type": "boolean",
+          "description": "Warn before committing with empty message",
+          "default": true,
+          "order": 13,
+          "tags": [
+            "commit"
+          ]
+        },
+        "svn.commit.changes.selectedAll": {
+          "type": "boolean",
+          "description": "Select all staged files by default when committing",
+          "default": true,
+          "order": 14,
+          "tags": [
+            "commit"
+          ]
         },
         "svn.sourceControl.changesLeftClick": {
           "type": "string",
@@ -1843,27 +1490,37 @@
             "open",
             "open diff"
           ],
-          "description": "Set left click functionality on changes resource state",
-          "default": "open diff"
-        },
-        "svn.sourceControl.combineExternalIfSameServer": {
-          "type": "boolean",
-          "default": false,
-          "description": "Combine the svn external in the main if is from the same server."
+          "markdownDescription": "Action when clicking a file in Source Control view:\n- `open`: Open the file\n- `open diff`: Show diff with BASE revision",
+          "default": "open diff",
+          "order": 20,
+          "tags": [
+            "sourceControl",
+            "ui"
+          ]
         },
         "svn.sourceControl.countUnversioned": {
           "type": "boolean",
-          "description": "Allow to count unversioned files in status count",
-          "default": true
+          "description": "Include unversioned files in the badge count",
+          "default": true,
+          "order": 21,
+          "tags": [
+            "sourceControl",
+            "ui"
+          ]
         },
         "svn.sourceControl.hideUnversioned": {
           "type": "boolean",
-          "description": "Hide unversioned files in Source Control UI",
-          "default": false
+          "description": "Hide unversioned files from Source Control view",
+          "default": false,
+          "order": 22,
+          "tags": [
+            "sourceControl",
+            "ui"
+          ]
         },
         "svn.sourceControl.ignore": {
           "type": "array",
-          "description": "Ignore unversioned files like .gitignore, Configuring this will overlook the default ignore rule",
+          "markdownDescription": "Glob patterns for files to hide from Source Control view (like `.gitignore`).\n\nExample: `[\"**/*.js\", \"*.jar\", \"/log\"]`",
           "default": [],
           "examples": [
             [
@@ -1873,26 +1530,714 @@
               "/.vscode/*",
               "!/.vscode/settings.json"
             ]
+          ],
+          "order": 23,
+          "tags": [
+            "sourceControl"
           ]
         },
         "svn.sourceControl.ignoreOnCommit": {
           "type": "array",
-          "description": "Changelists to ignore on commit",
+          "description": "Changelists to exclude from commit operations",
           "default": [
             "ignore-on-commit"
+          ],
+          "order": 24,
+          "tags": [
+            "sourceControl",
+            "commit"
           ]
         },
         "svn.sourceControl.ignoreOnStatusCount": {
           "type": "array",
-          "description": "Changelists to ignore on status count",
+          "description": "Changelists to exclude from badge count",
           "default": [
             "ignore-on-commit"
+          ],
+          "order": 25,
+          "tags": [
+            "sourceControl"
+          ]
+        },
+        "svn.sourceControl.combineExternalIfSameServer": {
+          "type": "boolean",
+          "description": "Show externals in main repository if from the same server",
+          "default": false,
+          "order": 26,
+          "tags": [
+            "sourceControl",
+            "advanced"
+          ]
+        },
+        "svn.blame.enabled": {
+          "type": "boolean",
+          "markdownDescription": "**Master toggle** for SVN blame functionality. When disabled, all blame features are hidden.",
+          "default": true,
+          "order": 30,
+          "tags": [
+            "blame"
+          ]
+        },
+        "svn.blame.autoBlame": {
+          "type": "boolean",
+          "markdownDescription": "Automatically show blame annotations when opening files. Toggle with `SVN: Toggle Blame` command.",
+          "default": true,
+          "order": 31,
+          "tags": [
+            "blame"
+          ]
+        },
+        "svn.blame.enableLogs": {
+          "type": "boolean",
+          "markdownDescription": "Fetch commit messages for blame tooltips. **Disable for faster blame** on large repositories.",
+          "default": true,
+          "order": 32,
+          "tags": [
+            "blame",
+            "performance"
+          ]
+        },
+        "svn.blame.dateFormat": {
+          "type": "string",
+          "enum": [
+            "relative",
+            "absolute"
+          ],
+          "markdownDescription": "Date format:\n- `relative`: \"2 days ago\"\n- `absolute`: \"2025-11-18\"",
+          "default": "relative",
+          "order": 33,
+          "tags": [
+            "blame"
+          ]
+        },
+        "svn.blame.showWorkingCopyChanges": {
+          "type": "boolean",
+          "description": "Highlight uncommitted changes in blame view",
+          "default": true,
+          "order": 34,
+          "tags": [
+            "blame"
+          ]
+        },
+        "svn.blame.largeFileWarning": {
+          "type": "boolean",
+          "description": "Show warning before blaming files exceeding line limit",
+          "default": true,
+          "order": 35,
+          "tags": [
+            "blame",
+            "performance"
+          ]
+        },
+        "svn.blame.largeFileLimit": {
+          "type": "number",
+          "description": "Line count threshold for large file warning (0 to disable)",
+          "default": 3000,
+          "minimum": 0,
+          "order": 36,
+          "tags": [
+            "blame",
+            "performance"
+          ]
+        },
+        "svn.blame.gutter.enabled": {
+          "type": "boolean",
+          "markdownDescription": "Show colored revision indicators in the gutter (left of line numbers). Each color represents a different commit age.",
+          "default": true,
+          "order": 40,
+          "tags": [
+            "blame",
+            "gutter"
+          ]
+        },
+        "svn.blame.gutter.showIcons": {
+          "type": "boolean",
+          "description": "Show colored revision icons in gutter",
+          "default": true,
+          "order": 41,
+          "tags": [
+            "blame",
+            "gutter"
+          ]
+        },
+        "svn.blame.gutter.showText": {
+          "type": "boolean",
+          "description": "Show author/revision/date text in gutter (verbose)",
+          "default": false,
+          "order": 42,
+          "tags": [
+            "blame",
+            "gutter"
+          ]
+        },
+        "svn.blame.gutter.template": {
+          "type": "string",
+          "markdownDescription": "Gutter text template. Variables: `${author}`, `${revision}`, `${date}`, `${message}`",
+          "default": "${author} (${revision}) ${date}",
+          "order": 43,
+          "tags": [
+            "blame",
+            "gutter",
+            "advanced"
+          ]
+        },
+        "svn.blame.gutter.dateFormat": {
+          "type": "string",
+          "enum": [
+            "relative",
+            "absolute"
+          ],
+          "description": "Date format for gutter annotations",
+          "default": "relative",
+          "order": 44,
+          "tags": [
+            "blame",
+            "gutter"
+          ]
+        },
+        "svn.blame.inline.enabled": {
+          "type": "boolean",
+          "markdownDescription": "Show inline blame annotations at end of lines (GitLens-style).",
+          "default": true,
+          "order": 50,
+          "tags": [
+            "blame",
+            "inline"
+          ]
+        },
+        "svn.blame.inline.currentLineOnly": {
+          "type": "boolean",
+          "description": "Only show inline annotation on current line (cursor position)",
+          "default": true,
+          "order": 51,
+          "tags": [
+            "blame",
+            "inline"
+          ]
+        },
+        "svn.blame.inline.showMessage": {
+          "type": "boolean",
+          "markdownDescription": "Include commit message in inline annotation. **Slower** - requires fetching log data.",
+          "default": false,
+          "order": 52,
+          "tags": [
+            "blame",
+            "inline",
+            "performance"
+          ]
+        },
+        "svn.blame.inline.opacity": {
+          "type": "number",
+          "description": "Opacity of inline annotations (0.0 = invisible, 1.0 = solid)",
+          "default": 0.5,
+          "minimum": 0,
+          "maximum": 1,
+          "order": 53,
+          "tags": [
+            "blame",
+            "inline"
+          ]
+        },
+        "svn.blame.inline.template": {
+          "type": "string",
+          "markdownDescription": "Inline annotation template. Variables: `${author}`, `${revision}`, `${date}`, `${message}`",
+          "default": "  ${author}, ${date} (r${revision}) • ${message}",
+          "order": 54,
+          "tags": [
+            "blame",
+            "inline",
+            "advanced"
+          ]
+        },
+        "svn.blame.statusBar.enabled": {
+          "type": "boolean",
+          "description": "Show blame info for current line in status bar",
+          "default": true,
+          "order": 60,
+          "tags": [
+            "blame",
+            "statusBar"
+          ]
+        },
+        "svn.blame.statusBar.template": {
+          "type": "string",
+          "markdownDescription": "Status bar template. Variables: `${author}`, `${revision}`, `${date}`, `${message}`",
+          "default": "$(person) ${author}, $(clock) ${date} - ${message}",
+          "order": 61,
+          "tags": [
+            "blame",
+            "statusBar",
+            "advanced"
+          ]
+        },
+        "svn.sparse.confirmExclude": {
+          "type": "boolean",
+          "markdownDescription": "Show confirmation before excluding folders (removes files from disk).",
+          "default": true,
+          "order": 70,
+          "tags": [
+            "sparse"
+          ]
+        },
+        "svn.sparse.largeFileWarningMb": {
+          "type": "number",
+          "markdownDescription": "Warn before downloading files larger than this (MB). Set `0` to disable.",
+          "default": 10,
+          "minimum": 0,
+          "maximum": 1000,
+          "order": 71,
+          "tags": [
+            "sparse"
+          ]
+        },
+        "svn.sparse.downloadTimeoutMinutes": {
+          "type": "number",
+          "description": "Timeout for download operations (minutes). Increase for large folders.",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 60,
+          "order": 72,
+          "tags": [
+            "sparse",
+            "performance"
+          ]
+        },
+        "svn.sparse.preScanTimeoutSeconds": {
+          "type": "number",
+          "description": "Timeout for folder size estimation (seconds)",
+          "default": 30,
+          "minimum": 5,
+          "maximum": 300,
+          "order": 73,
+          "tags": [
+            "sparse",
+            "performance"
+          ]
+        },
+        "svn.remoteChanges.checkFrequency": {
+          "type": "number",
+          "markdownDescription": "Interval (seconds) to check for remote changes. Shows count in status bar. Set `0` to disable.",
+          "default": 300,
+          "order": 80,
+          "tags": [
+            "remote",
+            "performance"
+          ]
+        },
+        "svn.refresh.remoteChanges": {
+          "type": "boolean",
+          "description": "Include remote changes check when running Refresh command",
+          "default": false,
+          "order": 81,
+          "tags": [
+            "remote"
           ]
         },
         "svn.update.ignoreExternals": {
           "type": "boolean",
-          "description": "Set to ignore externals definitions on update (add --ignore-externals)",
-          "default": true
+          "markdownDescription": "Skip externals when updating (`--ignore-externals`). Faster updates if externals not needed.",
+          "default": true,
+          "order": 82,
+          "tags": [
+            "update",
+            "performance"
+          ]
+        },
+        "svn.showUpdateMessage": {
+          "type": "boolean",
+          "description": "Show notification after update completes",
+          "default": true,
+          "order": 83,
+          "tags": [
+            "update",
+            "ui"
+          ]
+        },
+        "svn.auth.credentialMode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "systemKeyring",
+            "extensionStorage",
+            "prompt"
+          ],
+          "enumDescriptions": [
+            "System keyring locally, extension storage remotely (recommended)",
+            "Use native credential stores (Windows Credential Manager, gnome-keyring, macOS Keychain)",
+            "Use VS Code SecretStorage (isolated, works in all environments)",
+            "Always prompt - no credential storage"
+          ],
+          "markdownDescription": "How SVN credentials are stored. See [credentials documentation](https://github.com/vrognas/positron-svn#credentials) for details.",
+          "default": "auto",
+          "order": 90,
+          "tags": [
+            "auth",
+            "security"
+          ]
+        },
+        "svn.auth.commandTimeout": {
+          "type": "number",
+          "markdownDescription": "Timeout (seconds) for SVN commands. Increase for slow VPN/remote connections.",
+          "default": 60,
+          "minimum": 10,
+          "maximum": 600,
+          "order": 91,
+          "tags": [
+            "auth",
+            "performance"
+          ]
+        },
+        "svn.log.length": {
+          "type": "number",
+          "minimum": 1,
+          "markdownDescription": "Number of commits to show in history views. Higher values use more memory.",
+          "default": 50,
+          "order": 100,
+          "tags": [
+            "log",
+            "history"
+          ]
+        },
+        "svn.log.authorColors": {
+          "type": "boolean",
+          "description": "Show colored dots for different authors in history view",
+          "default": true,
+          "order": 101,
+          "tags": [
+            "log",
+            "history",
+            "ui"
+          ]
+        },
+        "svn.diff.withHead": {
+          "type": "boolean",
+          "markdownDescription": "Compare with HEAD (server latest) instead of BASE (your last update).",
+          "default": true,
+          "order": 110,
+          "tags": [
+            "diff"
+          ]
+        },
+        "svn.diff.tool": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "markdownDescription": "Path to external diff tool. Example: `C:\\Program Files\\Beyond Compare 5\\BCompare.exe`\n\nUses `svn diff --diff-cmd`.",
+          "default": null,
+          "scope": "machine",
+          "order": 111,
+          "tags": [
+            "diff",
+            "tools"
+          ]
+        },
+        "svn.layout.trunkRegex": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "markdownDescription": "Regex to detect trunk path. Set `null` to disable.\n\nDefault matches: `trunk/...`",
+          "default": "(trunk)(/.*)?"
+        },
+        "svn.layout.trunkRegexName": {
+          "type": [
+            "number"
+          ],
+          "description": "Regex capture group for trunk name",
+          "default": 1,
+          "tags": [
+            "layout",
+            "advanced"
+          ]
+        },
+        "svn.layout.branchesRegex": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "markdownDescription": "Regex to detect branches path. Set `null` to disable.\n\nDefault matches: `branches/<name>/...`",
+          "default": "branches/([^/]+)(/.*)?"
+        },
+        "svn.layout.branchesRegexName": {
+          "type": [
+            "number"
+          ],
+          "description": "Regex capture group for branch name",
+          "default": 1,
+          "tags": [
+            "layout",
+            "advanced"
+          ]
+        },
+        "svn.layout.tagsRegex": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "markdownDescription": "Regex to detect tags path. Set `null` to disable.\n\nDefault matches: `tags/<name>/...`",
+          "default": "tags/([^/]+)(/.*)?"
+        },
+        "svn.layout.tagRegexName": {
+          "type": [
+            "number"
+          ],
+          "description": "Regex capture group for tag name",
+          "default": 1,
+          "tags": [
+            "layout",
+            "advanced"
+          ]
+        },
+        "svn.layout.showFullName": {
+          "type": [
+            "boolean"
+          ],
+          "markdownDescription": "Show full path in branch names:\n- `true`: `branches/feature-x`\n- `false`: `feature-x`",
+          "default": true,
+          "tags": [
+            "layout"
+          ]
+        },
+        "svn.multipleFolders.enabled": {
+          "type": "boolean",
+          "markdownDescription": "Scan for SVN repositories in subfolders. Enable for monorepos with multiple SVN roots.",
+          "default": false,
+          "order": 130,
+          "tags": [
+            "multipleFolders",
+            "advanced"
+          ]
+        },
+        "svn.multipleFolders.depth": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum folder depth to scan for SVN repositories",
+          "default": 4,
+          "order": 131,
+          "tags": [
+            "multipleFolders",
+            "advanced"
+          ]
+        },
+        "svn.multipleFolders.ignore": {
+          "type": "array",
+          "description": "Folders to skip when scanning for SVN repositories",
+          "default": [
+            "**/.git",
+            "**/.hg",
+            "**/vendor",
+            "**/node_modules"
+          ],
+          "order": 132,
+          "tags": [
+            "multipleFolders",
+            "advanced"
+          ]
+        },
+        "svn.performance.maxXmlTags": {
+          "type": "number",
+          "markdownDescription": "Maximum XML tags to parse. Default works for repos <50k files.\n\n- **100k+ files**: Set to `2000000`\n- **Monorepos**: Set to `5000000`\n- **Unlimited**: Set to `0` (not recommended)",
+          "default": 500000,
+          "minimum": 0,
+          "maximum": 10000000,
+          "order": 200,
+          "tags": [
+            "performance",
+            "advanced"
+          ]
+        },
+        "svn.conflicts.autoResolve": {
+          "type": "boolean",
+          "markdownDescription": "Automatically mark file as resolved after fixing conflict markers. **Use with caution** - only enable if you always resolve conflicts fully.",
+          "default": false,
+          "order": 201,
+          "tags": [
+            "conflicts",
+            "advanced"
+          ]
+        },
+        "svn.delete.actionForDeletedFiles": {
+          "type": "string",
+          "enum": [
+            "none",
+            "prompt",
+            "remove"
+          ],
+          "enumDescriptions": [
+            "Do nothing when files are deleted",
+            "Ask what to do (recommended)",
+            "Automatically run 'svn delete'"
+          ],
+          "description": "Action when files are deleted outside SVN",
+          "default": "prompt",
+          "order": 202,
+          "tags": [
+            "delete",
+            "workflow"
+          ]
+        },
+        "svn.delete.ignoredRulesForDeletedFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "Glob patterns for files to ignore when deleted. Example: `[\"*.log\", \"temp/**\"]`",
+          "default": [],
+          "order": 203,
+          "tags": [
+            "delete"
+          ]
+        },
+        "svn.default.encoding": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "markdownDescription": "Force specific encoding for SVN output. Leave `null` for auto-detection.\n\nExample: `windows-1252` for legacy Windows repos.",
+          "default": null,
+          "order": 204,
+          "tags": [
+            "encoding",
+            "advanced"
+          ]
+        },
+        "svn.detectExternals": {
+          "type": "boolean",
+          "description": "Automatically detect and show svn:externals",
+          "default": true,
+          "order": 205,
+          "tags": [
+            "detection",
+            "advanced"
+          ]
+        },
+        "svn.detectIgnored": {
+          "type": "boolean",
+          "description": "Scan ignored folders for SVN repositories",
+          "default": true,
+          "order": 206,
+          "tags": [
+            "detection",
+            "advanced"
+          ]
+        },
+        "svn.defaultCheckoutDirectory": {
+          "type": "string",
+          "default": null,
+          "description": "Default folder for new checkouts",
+          "order": 207,
+          "tags": [
+            "checkout"
+          ]
+        },
+        "svn.previousCommitsUser": {
+          "type": "string",
+          "markdownDescription": "Filter commit history to specific user. Requires SVN 1.8+.",
+          "default": null,
+          "order": 208,
+          "tags": [
+            "log",
+            "advanced"
+          ]
+        },
+        "svn.ignoreRepositories": {
+          "type": [
+            "array",
+            null
+          ],
+          "default": null,
+          "scope": "resource",
+          "markdownDescription": "List of repository paths to ignore. Use for excluding specific working copies.",
+          "order": 209,
+          "tags": [
+            "advanced"
+          ]
+        },
+        "svn.ignoreMissingSvnWarning": {
+          "type": "boolean",
+          "description": "Suppress warning when SVN executable not found",
+          "default": false,
+          "order": 210,
+          "tags": [
+            "warnings"
+          ]
+        },
+        "svn.ignoreWorkingCopyIsTooOld": {
+          "type": "boolean",
+          "description": "Suppress warning when working copy needs upgrade",
+          "default": false,
+          "order": 211,
+          "tags": [
+            "warnings"
+          ]
+        },
+        "svn.showOutput": {
+          "type": "boolean",
+          "description": "Show SVN output panel on extension start",
+          "default": false,
+          "order": 212,
+          "tags": [
+            "ui",
+            "debug"
+          ]
+        },
+        "svn.output.authLogging": {
+          "type": "string",
+          "enum": [
+            "once",
+            "always",
+            "never"
+          ],
+          "enumDescriptions": [
+            "Log auth mode once at startup",
+            "Log auth mode with every command (verbose)",
+            "Never log auth mode"
+          ],
+          "description": "Auth mode logging frequency in output panel",
+          "default": "once",
+          "order": 213,
+          "tags": [
+            "debug",
+            "auth"
+          ]
+        },
+        "svn.debug.disableSanitization": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "**⚠️ SECURITY WARNING**: Disable error sanitization for debugging. Raw paths and credentials will be visible in logs.\n\n**Enable only temporarily for troubleshooting.**",
+          "order": 220,
+          "tags": [
+            "debug",
+            "security"
+          ]
+        },
+        "svn.experimental.detect_encoding": {
+          "type": "boolean",
+          "description": "Experimental: Auto-detect output encoding",
+          "default": false,
+          "order": 221,
+          "tags": [
+            "experimental",
+            "encoding"
+          ]
+        },
+        "svn.experimental.encoding_priority": {
+          "type": "array",
+          "description": "Encoding detection priority order",
+          "default": [],
+          "examples": [
+            [
+              "UTF-8",
+              "GB18030",
+              "windows-1251"
+            ]
+          ],
+          "order": 222,
+          "tags": [
+            "experimental",
+            "encoding"
+          ]
         }
       }
     },
