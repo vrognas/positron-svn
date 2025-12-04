@@ -7,6 +7,7 @@ import {
   SourceControlResourceDecorations,
   SourceControlResourceState,
   ThemeColor,
+  ThemeIcon,
   Uri
 } from "vscode";
 import { LockStatus, PropStatus, Status } from "./common/types";
@@ -75,8 +76,18 @@ export class Resource implements SourceControlResourceState {
   }
 
   get decorations(): SourceControlResourceDecorations {
-    // Don't override iconPath - let VS Code show default file/folder icons
+    // Directories: use ThemeIcon.Folder (SCM view doesn't auto-detect)
+    // Files: don't set iconPath, VS Code uses file extension icon
     // Badge (A/M/D) comes from FileDecorationProvider
+    if (this._kind === "dir") {
+      return {
+        strikeThrough: this.strikeThrough,
+        faded: this.faded,
+        tooltip: this.tooltip,
+        iconPath: ThemeIcon.Folder
+      };
+    }
+
     return {
       strikeThrough: this.strikeThrough,
       faded: this.faded,
