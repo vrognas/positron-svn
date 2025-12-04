@@ -1509,7 +1509,7 @@
         },
         {
           "command": "svn.stageWithChildren",
-          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != conflicts && scmResourceGroup != remotechanges && scmResourceGroup != staged",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceState == folder && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != conflicts && scmResourceGroup != remotechanges && scmResourceGroup != staged",
           "group": "1_modification@2"
         },
         {

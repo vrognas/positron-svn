@@ -74,6 +74,10 @@ export class Resource implements SourceControlResourceState {
     return this._lockStatus;
   }
 
+  get contextValue(): string {
+    return this._kind === "dir" ? "folder" : "file";
+  }
+
   get decorations(): SourceControlResourceDecorations {
     // No iconPath - VS Code uses file extension icons for files
     // FileDecorationProvider adds badges (A/M/D for files, FA/FM/FD for folders)
