@@ -43,13 +43,19 @@ export class PullIncommingChange extends Command {
     await this.runByRepository(uris, async (repository, resources) => {
       const files = resources.map(resource => resource.fsPath);
 
-      files.forEach(async path => {
-        const result = await repository.pullIncomingChange(path);
+      // Pull all files and collect results
+      const results = await Promise.all(
+        files.map(path => repository.pullIncomingChange(path))
+      );
 
-        if (showUpdateMessage) {
-          window.showInformationMessage(result);
-        }
-      });
+      // Show single batched notification
+      if (showUpdateMessage && results.length > 0) {
+        const message =
+          results.length === 1
+            ? results[0]!
+            : `Updated ${results.length} files`;
+        window.showInformationMessage(message);
+      }
     });
   }
 }
