@@ -540,15 +540,27 @@ export class RepoLogProvider
       for (const repo of this.sourceControlManager.repositories) {
         const remoteRoot = repo.branchRoot;
         const repoUrl = remoteRoot.toString(true);
+        const currentRevision = parseInt(repo.repository.info.revision, 10);
+        const prev = this.logCache.get(repoUrl);
+
+        // Detect if working copy revision changed (e.g., after svn update)
+        // If so, cache is stale and should be cleared
+        const revisionChanged =
+          prev?.persisted.baseRevision !== undefined &&
+          prev.persisted.baseRevision !== currentRevision;
+
         let persisted: ICachedLog["persisted"] = {
           commitFrom: "HEAD",
-          baseRevision: parseInt(repo.repository.info.revision, 10)
+          baseRevision: currentRevision
         };
-        const prev = this.logCache.get(repoUrl);
-        if (prev) {
+        if (prev && !revisionChanged) {
           persisted = prev.persisted;
         }
-        const entries = shouldClearCache ? [] : savedEntries.get(repoUrl) || [];
+
+        // Clear entries if explicit refresh OR revision changed
+        const clearEntries = shouldClearCache || revisionChanged;
+        const entries = clearEntries ? [] : savedEntries.get(repoUrl) || [];
+
         // LRU eviction before adding (if not updating existing)
         if (
           !this.logCache.has(repoUrl) &&
