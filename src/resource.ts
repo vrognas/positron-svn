@@ -2,14 +2,17 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
+import * as path from "path";
 import {
   Command,
   SourceControlResourceDecorations,
   SourceControlResourceState,
   ThemeColor,
-  ThemeIcon,
   Uri
 } from "vscode";
+
+// Path to icons directory (relative from out/)
+const iconsRootPath = path.join(__dirname, "..", "icons");
 import { LockStatus, PropStatus, Status } from "./common/types";
 import { memoize } from "./decorators";
 import { configuration } from "./helpers/configuration";
@@ -76,7 +79,7 @@ export class Resource implements SourceControlResourceState {
   }
 
   get decorations(): SourceControlResourceDecorations {
-    // Directories: use light/dark iconPath for folder icon (main icon, not badge)
+    // Directories: use custom folder SVG icons (SCM view can't auto-detect folders)
     // Files: don't set iconPath, VS Code uses file extension icon
     // Badge (A/M/D) comes from FileDecorationProvider
     if (this._kind === "dir") {
@@ -84,8 +87,12 @@ export class Resource implements SourceControlResourceState {
         strikeThrough: this.strikeThrough,
         faded: this.faded,
         tooltip: this.tooltip,
-        light: { iconPath: ThemeIcon.Folder },
-        dark: { iconPath: ThemeIcon.Folder }
+        light: {
+          iconPath: Uri.file(path.join(iconsRootPath, "light", "folder.svg"))
+        },
+        dark: {
+          iconPath: Uri.file(path.join(iconsRootPath, "dark", "folder.svg"))
+        }
       };
     }
 
