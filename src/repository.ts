@@ -1239,9 +1239,15 @@ export class Repository implements IRemoteRepository {
         const result = await this.retryRun(runOperation);
 
         const checkRemote = operation === Operation.StatusRemote;
-        // Force refresh for changelist operations to bypass 2s cache
-        // These operations modify which group files appear in
+        // Force refresh to bypass 2s cache for operations that change file status
+        // Without this, Explorer decorations may show stale state
         const forceRefresh =
+          operation === Operation.Commit ||
+          operation === Operation.Revert ||
+          operation === Operation.Add ||
+          operation === Operation.Remove ||
+          operation === Operation.Update ||
+          operation === Operation.Resolve ||
           operation === Operation.AddChangelist ||
           operation === Operation.RemoveChangelist;
 
