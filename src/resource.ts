@@ -8,7 +8,6 @@ import {
   SourceControlResourceDecorations,
   SourceControlResourceState,
   ThemeColor,
-  ThemeIcon,
   Uri
 } from "vscode";
 import { LockStatus, PropStatus, Status } from "./common/types";
@@ -110,23 +109,11 @@ export class Resource implements SourceControlResourceState {
 
   get decorations(): SourceControlResourceDecorations {
     // TODO@joh, still requires restart/redraw in the SCM viewlet
+    const light = { iconPath: this.getIconPath("light") };
+    const dark = { iconPath: this.getIconPath("dark") };
     const tooltip = this.tooltip;
     const strikeThrough = this.strikeThrough;
     const faded = this.faded;
-
-    // Use colored ThemeIcon.Folder for directories to show both folder shape and status
-    if (this._kind === "dir") {
-      const color = this.getColor(this._type);
-      return {
-        strikeThrough,
-        faded,
-        tooltip,
-        iconPath: color ? new ThemeIcon("folder", color) : ThemeIcon.Folder
-      };
-    }
-
-    const light = { iconPath: this.getIconPath("light") };
-    const dark = { iconPath: this.getIconPath("dark") };
 
     return {
       strikeThrough,
@@ -135,29 +122,6 @@ export class Resource implements SourceControlResourceState {
       light,
       dark
     };
-  }
-
-  /**
-   * Get status color for a given type
-   */
-  private getColor(status: string): ThemeColor | undefined {
-    switch (status) {
-      case Status.MODIFIED:
-      case Status.REPLACED:
-        return new ThemeColor("gitDecoration.modifiedResourceForeground");
-      case Status.DELETED:
-      case Status.MISSING:
-        return new ThemeColor("gitDecoration.deletedResourceForeground");
-      case Status.ADDED:
-      case Status.UNVERSIONED:
-        return new ThemeColor("gitDecoration.untrackedResourceForeground");
-      case Status.IGNORED:
-        return new ThemeColor("gitDecoration.ignoredResourceForeground");
-      case Status.CONFLICTED:
-        return new ThemeColor("gitDecoration.conflictingResourceForeground");
-      default:
-        return undefined;
-    }
   }
 
   @memoize
