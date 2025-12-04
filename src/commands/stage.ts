@@ -92,6 +92,48 @@ export class Stage extends Command {
   }
 }
 
+/**
+ * Stage resources including all children of directories.
+ * For folders, stages the folder plus all changed files within.
+ */
+export class StageWithChildren extends Command {
+  constructor() {
+    super("svn.stageWithChildren");
+  }
+
+  public async execute(...resourceStates: SourceControlResourceState[]) {
+    const selection = await this.getResourceStatesOrExit(resourceStates);
+    if (!selection) return;
+
+    // Warn if files are in other changelists
+    const affected = getAffectedChangelists(selection);
+    if (!(await warnAboutChangelists(affected))) return;
+
+    // Build map of original changelists before staging
+    const originalChangelists = buildOriginalChangelistMap(selection);
+
+    const uris = selection.map(resource => resource.resourceUri);
+
+    await this.runByRepository(uris, async (repository, resources) => {
+      const paths = resources.map(r => r.fsPath);
+
+      // Save original changelists for restore on unstage
+      for (const path of paths) {
+        const original = originalChangelists.get(path);
+        if (original) {
+          repository.staging.saveOriginalChangelist(path, original);
+        }
+      }
+
+      // Use optimistic update with children - expands directories
+      await this.handleRepositoryOperation(
+        async () => repository.stageOptimisticWithChildren(paths),
+        "Unable to stage files"
+      );
+    });
+  }
+}
+
 export class StageAll extends Command {
   constructor() {
     super("svn.stageAll");

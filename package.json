@@ -812,6 +812,12 @@
         "icon": "$(add)"
       },
       {
+        "command": "svn.stageWithChildren",
+        "title": "Stage with Children",
+        "category": "SVN",
+        "icon": "$(files)"
+      },
+      {
         "command": "svn.unstage",
         "title": "Unstage",
         "category": "SVN",
@@ -1093,6 +1099,10 @@
         },
         {
           "command": "svn.stageAll",
+          "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
+        },
+        {
+          "command": "svn.stageWithChildren",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         },
         {
@@ -1496,6 +1506,11 @@
           "command": "svn.stage",
           "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != conflicts && scmResourceGroup != remotechanges && scmResourceGroup != staged",
           "group": "1_modification@1"
+        },
+        {
+          "command": "svn.stageWithChildren",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external && scmResourceGroup != conflicts && scmResourceGroup != remotechanges && scmResourceGroup != staged",
+          "group": "1_modification@2"
         },
         {
           "command": "svn.stage",

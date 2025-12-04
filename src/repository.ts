@@ -757,17 +757,36 @@ export class Repository implements IRemoteRepository {
   }
 
   /**
-   * Stage files with optimistic UI update.
-   * Runs SVN changelist command but skips full status refresh.
-   * UI is updated immediately by moving resources between groups.
-   *
-   * Note: SVN changelists are file-only - directories can't be added.
-   * When staging a directory, we expand it to include all changed
-   * descendant files.
-   *
+   * Stage files with optimistic UI update (no directory expansion).
+   * Stages just the paths provided - folders are staged alone for visual grouping.
    * For unversioned files, `svn add` is called first before changelist.
    */
   public async stageOptimistic(files: string[]): Promise<void> {
+    // Find unversioned items that need `svn add` first
+    const unversionedPaths = this.findUnversionedPaths(files);
+    if (unversionedPaths.length > 0) {
+      // svn add handles parent directories automatically
+      await this.repository.addFiles(unversionedPaths);
+    }
+
+    // Filter out directories for SVN command (changelists are file-only)
+    // but keep them for UI update
+    const filesOnly = await this.filterOutDirectories(files);
+
+    // Run SVN command to update working copy state (files only)
+    if (filesOnly.length > 0) {
+      await this.repository.addChangelist(filesOnly, STAGING_CHANGELIST);
+    }
+    // Optimistically update UI (includes directories for visual grouping)
+    this.groupManager.moveToStaged(files);
+  }
+
+  /**
+   * Stage files with optimistic UI update, expanding directories.
+   * When staging a directory, includes all changed descendant files.
+   * For unversioned files, `svn add` is called first before changelist.
+   */
+  public async stageOptimisticWithChildren(files: string[]): Promise<void> {
     // Expand directories to include all changed descendant files
     // (SVN changelists don't support directories)
     const expanded = this.expandDirectoriesToChangedFiles(files);

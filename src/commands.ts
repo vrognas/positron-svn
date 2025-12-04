@@ -49,7 +49,7 @@ import { ResolveAll } from "./commands/resolveAll";
 import { Resolved } from "./commands/resolved";
 import { Revert } from "./commands/revert";
 import { RevertAll } from "./commands/revertAll";
-import { Stage, StageAll } from "./commands/stage";
+import { Stage, StageAll, StageWithChildren } from "./commands/stage";
 import { Unstage, UnstageAll } from "./commands/unstage";
 import { RevertChange } from "./commands/revertChange";
 import { RevertExplorer } from "./commands/revertExplorer";
@@ -103,6 +103,7 @@ export function registerCommands(
   disposables.push(new Revert());
   disposables.push(new Stage());
   disposables.push(new StageAll());
+  disposables.push(new StageWithChildren());
   disposables.push(new Unstage());
   disposables.push(new UnstageAll());
   disposables.push(new Update());
