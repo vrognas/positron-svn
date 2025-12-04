@@ -75,7 +75,7 @@ import {
   ISvnListItem
 } from "./common/types";
 import { debounce, globalSequentialize, memoize, throttle } from "./decorators";
-import { exists } from "./fs";
+import { exists, stat } from "./fs";
 import { configuration } from "./helpers/configuration";
 import OperationsImpl from "./operationsImpl";
 import { PathNormalizer } from "./pathNormalizer";
@@ -770,10 +770,35 @@ export class Repository implements IRemoteRepository {
     // (SVN changelists don't support directories)
     const expanded = this.expandDirectoriesToChangedFiles(files);
 
-    // Run SVN command to update working copy state
-    await this.repository.addChangelist(expanded, STAGING_CHANGELIST);
-    // Optimistically update UI without status refresh
+    // Filter out directories for SVN command (changelists are file-only)
+    // but keep them for UI update
+    const filesOnly = await this.filterOutDirectories(expanded);
+
+    // Run SVN command to update working copy state (files only)
+    if (filesOnly.length > 0) {
+      await this.repository.addChangelist(filesOnly, STAGING_CHANGELIST);
+    }
+    // Optimistically update UI (includes directories for visual grouping)
     this.groupManager.moveToStaged(expanded);
+  }
+
+  /**
+   * Filter out directories from path list.
+   */
+  private async filterOutDirectories(paths: string[]): Promise<string[]> {
+    const files: string[] = [];
+    for (const p of paths) {
+      try {
+        const stats = await stat(p);
+        if (!stats.isDirectory()) {
+          files.push(p);
+        }
+      } catch {
+        // If stat fails (file doesn't exist), include it anyway
+        files.push(p);
+      }
+    }
+    return files;
   }
 
   /**
@@ -791,9 +816,8 @@ export class Repository implements IRemoteRepository {
       result.add(p);
 
       // Check if any changed files are descendants of this path
-      const prefix = p.endsWith("/") || p.endsWith("\\") ? p : p + "/";
       for (const changed of changedPaths) {
-        if (changed.startsWith(prefix)) {
+        if (isDescendant(p, changed)) {
           result.add(changed);
         }
       }
@@ -815,12 +839,17 @@ export class Repository implements IRemoteRepository {
     // Expand directories to include all staged descendant files
     const expanded = this.expandDirectoriesToStagedFiles(files);
 
-    if (targetChangelist) {
-      // Restore to original changelist
-      await this.repository.addChangelist(expanded, targetChangelist);
-    } else {
-      // Remove from changelist entirely
-      await this.repository.removeChangelist(expanded);
+    // Filter out directories for SVN command (changelists are file-only)
+    const filesOnly = await this.filterOutDirectories(expanded);
+
+    if (filesOnly.length > 0) {
+      if (targetChangelist) {
+        // Restore to original changelist
+        await this.repository.addChangelist(filesOnly, targetChangelist);
+      } else {
+        // Remove from changelist entirely
+        await this.repository.removeChangelist(filesOnly);
+      }
     }
     // Optimistically update UI without status refresh
     this.groupManager.moveFromStaged(expanded, targetChangelist);
@@ -838,9 +867,8 @@ export class Repository implements IRemoteRepository {
     for (const p of paths) {
       result.add(p);
 
-      const prefix = p.endsWith("/") || p.endsWith("\\") ? p : p + "/";
       for (const staged of stagedPaths) {
-        if (staged.startsWith(prefix)) {
+        if (isDescendant(p, staged)) {
           result.add(staged);
         }
       }

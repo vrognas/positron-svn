@@ -5,6 +5,7 @@
 import { Disposable, Uri, workspace } from "vscode";
 import { IFileStatus, LockStatus, Status } from "../common/types";
 import { configuration } from "../helpers/configuration";
+import { stat } from "../fs";
 import { Resource } from "../resource";
 import { Repository as BaseRepository } from "../svnRepository";
 import { isDescendant } from "../util";
@@ -108,7 +109,7 @@ export class StatusService implements IStatusService {
     );
 
     // Categorize resources
-    const categorized = this.categorizeStatuses(
+    const categorized = await this.categorizeStatuses(
       statusesRepository,
       excludeList,
       config
@@ -256,11 +257,11 @@ export class StatusService implements IStatusService {
   /**
    * Categorize statuses into resource groups
    */
-  private categorizeStatuses(
+  private async categorizeStatuses(
     statuses: IFileStatus[],
     excludeList: string[],
     config: StatusConfig
-  ): {
+  ): Promise<{
     changes: Resource[];
     conflicts: Resource[];
     unversioned: Resource[];
@@ -269,7 +270,7 @@ export class StatusService implements IStatusService {
     statusIgnored: IFileStatus[];
     isIncomplete: boolean;
     needCleanUp: boolean;
-  } {
+  }> {
     const changes: Resource[] = [];
     const conflicts: Resource[] = [];
     const unversioned: Resource[] = [];
@@ -343,6 +344,18 @@ export class StatusService implements IStatusService {
         lockStatus = LockStatus.T;
       }
 
+      // Detect kind if not provided by SVN status
+      let kind = status.kind;
+      if (!kind) {
+        try {
+          const stats = await stat(uri.fsPath);
+          kind = stats.isDirectory() ? "dir" : "file";
+        } catch {
+          // If stat fails, assume file
+          kind = "file";
+        }
+      }
+
       const resource = new Resource(
         uri,
         status.status,
@@ -354,7 +367,7 @@ export class StatusService implements IStatusService {
         status.wcStatus.hasLockToken,
         lockStatus,
         status.changelist,
-        status.kind
+        kind
       );
 
       // Skip normal/unchanged items (but keep locked files for decoration)
