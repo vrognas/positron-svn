@@ -22,6 +22,8 @@ export interface IRemoteRepository {
   ): Promise<ISvnLogEntry[]>;
 
   show(filePath: string | Uri, revision?: string): Promise<string>;
+
+  clearLogCache(): void;
 }
 
 export class RemoteRepository implements IRemoteRepository {
@@ -58,5 +60,9 @@ export class RemoteRepository implements IRemoteRepository {
     revision?: string
   ): Promise<string> {
     return this.repo.show(filePath, revision);
+  }
+
+  public clearLogCache(): void {
+    this.repo.clearLogCache();
   }
 }

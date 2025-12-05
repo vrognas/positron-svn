@@ -73,7 +73,11 @@ export class ItemLogProvider
         this.openDiffBaseCmd,
         this
       ),
-      commands.registerCommand("svn.itemlog.refresh", this.refresh, this),
+      commands.registerCommand(
+        "svn.itemlog.refresh",
+        () => this.refresh(undefined, undefined, false, true),
+        this
+      ),
       commands.registerCommand(
         "svn.itemlog.gotoRepolog",
         this.gotoRepologCmd,
@@ -148,7 +152,8 @@ export class ItemLogProvider
   public async refresh(
     element?: ILogTreeItem,
     te?: TextEditor,
-    loadMore?: boolean
+    loadMore?: boolean,
+    explicitRefresh?: boolean
   ) {
     // TODO maybe make autorefresh optionable?
     if (loadMore && this.currentItem) {
@@ -166,6 +171,10 @@ export class ItemLogProvider
         const repo = this.sourceControlManager.getRepository(uri);
         if (repo !== null) {
           try {
+            // Clear low-level log cache on explicit refresh to force fresh SVN call
+            if (explicitRefresh) {
+              repo.clearLogCache();
+            }
             const info = await repo.getInfo(uri.fsPath);
             this.currentItem = {
               isComplete: false,

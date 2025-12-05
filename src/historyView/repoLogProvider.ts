@@ -496,6 +496,13 @@ export class RepoLogProvider
         }
       }
 
+      // Clear low-level log cache on explicit refresh to force fresh SVN call
+      if (shouldClearCache) {
+        for (const repo of this.sourceControlManager.repositories) {
+          repo.clearLogCache();
+        }
+      }
+
       // Rebuild cache with preserved or empty entries
       for (const repo of this.sourceControlManager.repositories) {
         const remoteRoot = repo.branchRoot;

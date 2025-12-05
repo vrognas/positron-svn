@@ -1201,11 +1201,15 @@ export class Repository implements IRemoteRepository {
       this.repository.commitFiles(message, files)
     );
     // Clear log cache so fresh data is fetched (log cache has 60s TTL)
-    this.repository.clearLogCache();
+    this.clearLogCache();
     // Fetch history views to show new commit
     await commands.executeCommand("svn.repolog.fetch");
     await commands.executeCommand("svn.itemlog.refresh");
     return result;
+  }
+
+  public clearLogCache(): void {
+    this.repository.clearLogCache();
   }
 
   public async revert(files: string[], depth: keyof typeof SvnDepth) {
