@@ -289,10 +289,13 @@ export class SvnHistoryProvider
       }
 
       // Map paths to changes
+      // Use proper URI construction with svn scheme and encoded path
       return entry.paths.map(pathEntry => ({
-        uri: Uri.parse(
-          `svn:${this.repository.branchRoot.toString()}${pathEntry._}?ref=${revision}`
-        )
+        uri: Uri.from({
+          scheme: "svn",
+          path: pathEntry._,
+          query: `ref=${revision}`
+        })
       }));
     } catch (error) {
       console.error(
