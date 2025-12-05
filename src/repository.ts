@@ -576,10 +576,9 @@ export class Repository implements IRemoteRepository {
       return;
     }
 
-    if (!this.operations.isIdle()) {
-      return;
-    }
-
+    // Don't check idle here - eventuallyUpdateWhenIdleAndWait handles
+    // idle-waiting via whenIdleAndFocused(). Previously, events were
+    // silently dropped if operations were running, causing missed updates.
     this.eventuallyUpdateWhenIdleAndWait();
   }
 
@@ -615,7 +614,8 @@ export class Repository implements IRemoteRepository {
   }
 
   private lastModelUpdate: number = 0;
-  private readonly MODEL_CACHE_MS = 2000; // 2s cache
+  // Cache matches debounce time (500ms) - after debounce completes, cache expired
+  private readonly MODEL_CACHE_MS = 500;
 
   @globalSequentialize("updateModelState")
   public async updateModelState(
@@ -1523,9 +1523,10 @@ export class Repository implements IRemoteRepository {
   }
 
   public onDidSaveTextDocument(document: TextDocument) {
-    // Always refresh status on save to update Changes view
-    // Uses 2s cache to avoid excessive SVN calls on rapid saves
-    void this.updateModelState();
+    // Schedule status refresh on save to update Changes view
+    // Uses same debounce path as file watcher for consistency
+    // The 500ms debounce handles rapid saves, then status() runs
+    this.eventuallyUpdateWhenIdleAndWait();
 
     // Handle conflict auto-resolution
     const uriString = document.uri.toString();
