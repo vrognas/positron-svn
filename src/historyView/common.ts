@@ -214,9 +214,6 @@ export function getLimit(): number {
 
 /// @note: cached.svnTarget should be valid
 export async function fetchMore(cached: ICachedLog) {
-  console.log(
-    `[SVN fetchMore] called, entries.length=${cached.entries.length}, svnTarget=${cached.svnTarget}`
-  );
   let rfrom = cached.persisted.commitFrom;
   const entries = cached.entries;
   if (entries.length) {
@@ -224,22 +221,16 @@ export async function fetchMore(cached: ICachedLog) {
     // Already at r1, nothing more to fetch
     if (lastRev <= 1) {
       cached.isComplete = true;
-      console.log("[SVN fetchMore] early return: at r1");
       return;
     }
     rfrom = (lastRev - 1).toString();
   }
   let moreCommits: ISvnLogEntry[] = [];
   const limit = getLimit();
-  console.log(
-    `[SVN fetchMore] fetching log from=${rfrom}, limit=${limit}, target=${cached.svnTarget}`
-  );
   try {
     moreCommits = await cached.repo.log(rfrom, "1", limit, cached.svnTarget);
-    console.log(`[SVN fetchMore] got ${moreCommits.length} commits`);
-  } catch (e) {
+  } catch {
     // Item didn't exist
-    console.log(`[SVN fetchMore] error: ${e}`);
   }
   if (!needFetch(entries, moreCommits, limit)) {
     cached.isComplete = true;

@@ -371,6 +371,15 @@ export class Repository {
     }
   }
 
+  /**
+   * Clear all log cache entries.
+   * Call after operations that create new revisions (commit, update).
+   */
+  public clearLogCache(): void {
+    this._logCache.forEach(entry => clearTimeout(entry.timeout));
+    this._logCache.clear();
+  }
+
   private evictLogEntry(): void {
     let oldestKey: string | null = null;
     let oldestTime = Infinity;

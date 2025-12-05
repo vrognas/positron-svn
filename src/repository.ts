@@ -1149,10 +1149,10 @@ export class Repository implements IRemoteRepository {
     const result = await this.run(Operation.Commit, () =>
       this.repository.commitFiles(message, files)
     );
+    // Clear log cache so fresh data is fetched (log cache has 60s TTL)
+    this.repository.clearLogCache();
     // Fetch history views to show new commit
-    console.log("[SVN repository] commit done, calling repolog.fetch...");
     await commands.executeCommand("svn.repolog.fetch");
-    console.log("[SVN repository] repolog.fetch done");
     await commands.executeCommand("svn.itemlog.refresh");
     return result;
   }
