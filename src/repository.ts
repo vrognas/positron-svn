@@ -778,14 +778,22 @@ export class Repository implements IRemoteRepository {
     };
   }
 
+  /**
+   * Force re-validation of the commit input box.
+   * VS Code only calls validateInput when text changes, so we toggle value
+   * to trigger re-validation after staging/unstaging operations.
+   */
+  private triggerInputValidation(): void {
+    const inputBox = this.sourceControl.inputBox;
+    const currentValue = inputBox.value;
+    // Toggle value to force validateInput callback
+    inputBox.value = currentValue + " ";
+    inputBox.value = currentValue;
+  }
+
   private validateCommitInput(text: string): InputBoxValidation | undefined {
     const stagedCount = this.groupManager.staged.resourceStates.length;
     const conflictCount = this.groupManager.conflicts.resourceStates.length;
-
-    // Debug logging
-    console.log(
-      `[SVN validateInput] staged=${stagedCount}, conflicts=${conflictCount}, text="${text}"`
-    );
 
     // Error: conflicts must be resolved first
     if (conflictCount > 0) {
@@ -911,6 +919,7 @@ export class Repository implements IRemoteRepository {
     // Optimistically update UI (includes directories for visual grouping)
     this.groupManager.moveToStaged(files);
     this.updateActionButton();
+    this.triggerInputValidation();
   }
 
   /**
@@ -941,6 +950,7 @@ export class Repository implements IRemoteRepository {
     // Optimistically update UI (includes directories for visual grouping)
     this.groupManager.moveToStaged(expanded);
     this.updateActionButton();
+    this.triggerInputValidation();
   }
 
   /**
@@ -1029,6 +1039,7 @@ export class Repository implements IRemoteRepository {
     // Optimistically update UI without status refresh
     this.groupManager.moveFromStaged(expanded, targetChangelist);
     this.updateActionButton();
+    this.triggerInputValidation();
   }
 
   /**
