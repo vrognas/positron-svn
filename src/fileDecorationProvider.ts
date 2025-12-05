@@ -28,6 +28,15 @@ export class SvnFileDecorationProvider
 
   constructor(private repository: Repository) {
     this.disposables.push(this._onDidChangeFileDecorations);
+
+    // Refresh decorations when BASE color setting changes
+    this.disposables.push(
+      configuration.onDidChange(e => {
+        if (e.affectsConfiguration("svn.decorator.baseColor")) {
+          this._onDidChangeFileDecorations.fire(undefined);
+        }
+      })
+    );
   }
 
   dispose(): void {
@@ -44,7 +53,7 @@ export class SvnFileDecorationProvider
       if (queryParams.get("isBase") === "true") {
         const baseColor = configuration.get<string>(
           "decorator.baseColor",
-          "charts.purple"
+          "charts.blue"
         );
         return {
           badge: "B",

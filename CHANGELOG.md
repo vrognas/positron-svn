@@ -1,3 +1,11 @@
+## [2.33.18] (2025-12-05)
+
+### Change: Default BASE Color to Blue + Live Updates
+
+- **Change**: Default BASE decorator color changed from purple to blue
+- **New**: Changing `svn.decorator.baseColor` now updates immediately (no reload)
+- **Affected**: package.json, fileDecorationProvider.ts
+
 ## [2.33.17] (2025-12-05)
 
 ### Fix: Multi-file Delete Shows All as Deleted
@@ -12,7 +20,7 @@
 ### Feature: Configurable BASE Decorator Color
 
 - **New**: `svn.decorator.baseColor` setting to customize BASE revision badge color
-- **Options**: purple (default), blue, green, yellow, orange, red, info, warning
+- **Options**: blue (default), purple, green, yellow, orange, red, info, warning
 - **Affected**: package.json, fileDecorationProvider.ts
 
 ## [2.33.15] (2025-12-05)
