@@ -507,17 +507,12 @@ export class RepoLogProvider
       for (const repo of this.sourceControlManager.repositories) {
         const remoteRoot = repo.branchRoot;
         const repoUrl = remoteRoot.toString(true);
-        // Use commit.revision (last changed revision) instead of info.revision (BASE)
-        // After partial commit, info.revision may still show old revision for WC root
-        // but commit.revision reflects the latest commit touching this path
-        const currentRevision = parseInt(
-          repo.repository.info.commit?.revision ||
-            repo.repository.info.revision,
-          10
-        );
+        // Use info.revision (BASE revision) for working copy state
+        // After commit, BASE is updated to the new revision
+        const currentRevision = parseInt(repo.repository.info.revision, 10);
         const prev = this.logCache.get(repoUrl);
 
-        // Detect if working copy revision changed (e.g., after svn update)
+        // Detect if working copy revision changed (e.g., after commit/update)
         // If so, cache is stale and should be cleared
         const revisionChanged =
           prev?.persisted.baseRevision !== undefined &&
@@ -527,7 +522,9 @@ export class RepoLogProvider
           commitFrom: "HEAD",
           baseRevision: currentRevision
         };
-        if (prev && !revisionChanged) {
+        // Preserve persisted ONLY if: no explicit refresh AND no revision change
+        // Explicit refresh (shouldClearCache) should always update baseRevision
+        if (prev && !shouldClearCache && !revisionChanged) {
           persisted = prev.persisted;
         }
 

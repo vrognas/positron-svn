@@ -1,3 +1,13 @@
+## [2.33.20] (2025-12-05)
+
+### Fix: BASE Updates After Commit in Repo History
+
+- **Fix**: BASE decorator now updates to new revision after commit
+- **Root cause 1**: Used `info.commit.revision` (Last Changed Rev) instead of `info.revision` (BASE)
+- **Root cause 2**: Explicit refresh didn't force `baseRevision` update
+- **Solution**: Use `info.revision` and always update `baseRevision` on explicit refresh
+- **Affected**: repoLogProvider.ts
+
 ## [2.33.19] (2025-12-05)
 
 ### Fix: Lock Decorator Shows After Lock/Unlock
