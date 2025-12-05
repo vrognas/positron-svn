@@ -73,9 +73,24 @@ export class ItemLogProvider
         this.openDiffBaseCmd,
         this
       ),
-      commands.registerCommand("svn.itemlog.refresh", this.refresh, this)
+      commands.registerCommand("svn.itemlog.refresh", this.refresh, this),
+      commands.registerCommand(
+        "svn.itemlog.gotoRepolog",
+        this.gotoRepologCmd,
+        this
+      )
     );
     this.refresh();
+  }
+
+  // Navigate to the same revision in repository history
+  public async gotoRepologCmd(element: ILogTreeItem) {
+    if (element.kind !== LogTreeItemKind.Commit) {
+      return;
+    }
+    const commit = element.data as ISvnLogEntry;
+    const revision = parseInt(commit.revision, 10);
+    await commands.executeCommand("svn.repolog.goToRevision", revision);
   }
 
   public dispose() {

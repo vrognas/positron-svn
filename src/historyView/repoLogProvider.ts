@@ -175,6 +175,11 @@ export class RepoLogProvider
       ),
       commands.registerCommand("svn.repolog.goToBase", this.goToBase, this),
       commands.registerCommand(
+        "svn.repolog.goToRevision",
+        this.goToRevision,
+        this
+      ),
+      commands.registerCommand(
         "svn.repolog.fetch",
         this.explicitRefreshCmd,
         this
@@ -426,6 +431,39 @@ export class RepoLogProvider
         return;
       }
     }
+  }
+
+  // Navigate to a specific revision in the tree view
+  public async goToRevision(revision: number) {
+    if (!this.treeView) {
+      return;
+    }
+    const cached = this.getCached();
+    if (!cached) {
+      return;
+    }
+    const baseRev = cached.persisted.baseRevision;
+
+    // Find the commit in entries
+    for (const entry of cached.entries) {
+      if (parseInt(entry.revision, 10) === revision) {
+        const item: ILogTreeItem = {
+          kind: LogTreeItemKind.Commit,
+          data: entry,
+          isBase: baseRev === revision
+        };
+        await this.treeView.reveal(item, {
+          select: true,
+          focus: true,
+          expand: false
+        });
+        return;
+      }
+    }
+    // Revision not in current entries - could fetch more, but for now just notify
+    window.showInformationMessage(
+      `Revision ${revision} not loaded. Use "Load more" to fetch older revisions.`
+    );
   }
 
   public async refresh(

@@ -578,6 +578,16 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "svn.itemlog.gotoRepolog",
+        "category": "SVN",
+        "title": "Go to Repository History"
+      },
+      {
+        "command": "svn.repolog.goToRevision",
+        "category": "SVN",
+        "title": "Go to revision"
+      },
+      {
         "command": "svn.log",
         "title": "Show commit messages",
         "category": "SVN"
@@ -997,6 +1007,14 @@
           "when": "false"
         },
         {
+          "command": "svn.itemlog.gotoRepolog",
+          "when": "false"
+        },
+        {
+          "command": "svn.repolog.goToRevision",
+          "when": "false"
+        },
+        {
           "command": "svn.log",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         },
@@ -1278,6 +1296,11 @@
         {
           "command": "svn.itemlog.copyrevision",
           "when": "view == itemlog && viewItem == diffable"
+        },
+        {
+          "command": "svn.itemlog.gotoRepolog",
+          "when": "view == itemlog && viewItem == diffable",
+          "group": "navigation"
         },
         {
           "command": "svn.repolog.openDiff",
