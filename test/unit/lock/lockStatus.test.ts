@@ -34,16 +34,23 @@ describe("Lock Status in Status Parser", () => {
       expect(result[0].reposStatus?.lock).toBeTruthy();
     });
 
-    it("detects working copy lock (wc-locked)", async () => {
+    it("detects user lock via wc-status lock element", async () => {
+      // User locks appear as <lock> child element inside <wc-status>
+      // wc-locked="true" is for WC admin locks from 'svn cleanup', not user locks
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <status>
   <target path=".">
     <entry path="model.rds">
-      <wc-status props="none" item="normal" wc-locked="true">
+      <wc-status props="none" item="normal">
         <commit revision="150">
           <author>charlie</author>
           <date>2025-11-22T08:00:00.000000Z</date>
         </commit>
+        <lock>
+          <token>opaquelocktoken:12345</token>
+          <owner>charlie</owner>
+          <created>2025-11-22T08:00:00.000000Z</created>
+        </lock>
       </wc-status>
     </entry>
   </target>
@@ -53,6 +60,7 @@ describe("Lock Status in Status Parser", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].wcStatus.locked).toBe(true);
+      expect(result[0].wcStatus.hasLockToken).toBe(true);
     });
 
     it("reports unlocked file correctly", async () => {
@@ -108,12 +116,18 @@ describe("Lock Status in Status Parser", () => {
 
   describe("Lock Status Badge Detection", () => {
     it("returns K when we have local token but no server check", async () => {
+      // Local lock token is <lock> element inside <wc-status>
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <status>
   <target path=".">
     <entry path="myfile.csv">
-      <wc-status props="none" item="normal" wc-locked="true">
+      <wc-status props="none" item="normal">
         <commit revision="100"/>
+        <lock>
+          <token>opaquelocktoken:12345</token>
+          <owner>myuser</owner>
+          <created>2025-11-01T10:00:00.000000Z</created>
+        </lock>
       </wc-status>
     </entry>
   </target>
@@ -128,12 +142,18 @@ describe("Lock Status in Status Parser", () => {
 
     it("returns K when we have local token and server confirms our lock", async () => {
       // Parser returns K; T detection happens in StatusService when lockOwner !== username
+      // Local lock token is <lock> element inside <wc-status>
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <status>
   <target path=".">
     <entry path="myfile.csv">
-      <wc-status props="none" item="normal" wc-locked="true">
+      <wc-status props="none" item="normal">
         <commit revision="100"/>
+        <lock>
+          <token>opaquelocktoken:12345</token>
+          <owner>myuser</owner>
+          <created>2025-11-01T10:00:00.000000Z</created>
+        </lock>
       </wc-status>
       <repos-status props="none" item="none">
         <lock>
@@ -182,12 +202,19 @@ describe("Lock Status in Status Parser", () => {
     });
 
     it("returns B when we have local token but server shows no lock (broken)", async () => {
+      // Local lock token is <lock> element inside <wc-status>
+      // Server shows no lock - our token is stale/broken
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <status>
   <target path=".">
     <entry path="broken.csv">
-      <wc-status props="none" item="normal" wc-locked="true">
+      <wc-status props="none" item="normal">
         <commit revision="100"/>
+        <lock>
+          <token>opaquelocktoken:stale</token>
+          <owner>myuser</owner>
+          <created>2025-01-01T10:00:00.000000Z</created>
+        </lock>
       </wc-status>
       <repos-status props="none" item="none"/>
     </entry>
@@ -198,7 +225,8 @@ describe("Lock Status in Status Parser", () => {
 
       expect(result[0].wcStatus.lockStatus).toBe(LockStatus.B);
       expect(result[0].wcStatus.hasLockToken).toBe(true);
-      expect(result[0].wcStatus.lockOwner).toBeUndefined();
+      // Lock owner comes from local token when server has no lock
+      expect(result[0].wcStatus.lockOwner).toBe("myuser");
       expect(result[0].wcStatus.serverChecked).toBe(true);
     });
   });

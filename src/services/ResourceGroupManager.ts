@@ -3,7 +3,7 @@
 // Licensed under MIT License
 
 import { Disposable, SourceControl, Uri } from "vscode";
-import { ISvnResourceGroup } from "../common/types";
+import { ISvnResourceGroup, LockStatus } from "../common/types";
 import { Resource } from "../resource";
 import { StatusResult } from "./StatusService";
 import { StagingService, STAGING_CHANGELIST } from "./stagingService";
@@ -23,6 +23,8 @@ export type ResourceGroupConfig = {
 export type ResourceGroupUpdateData = {
   readonly result: StatusResult;
   readonly config: ResourceGroupConfig;
+  /** If true, lock status in result is fresh (from --show-updates), don't preserve old status */
+  readonly lockStatusFresh?: boolean;
 };
 
 /**
@@ -178,7 +180,59 @@ export class ResourceGroupManager implements IResourceGroupManager {
    * Returns the total count for source control badge.
    */
   updateGroups(data: ResourceGroupUpdateData): number {
-    const { result, config } = data;
+    const { result, config, lockStatusFresh } = data;
+
+    // Preserve lock status from existing resources (lock info is only visible with --show-updates)
+    // When status is called without --show-updates, we don't want to lose lock info
+    // BUT if lockStatusFresh=true, the current status is authoritative (from --show-updates)
+    const preservedLockStatus = new Map<
+      string,
+      { lockStatus: LockStatus; lockOwner?: string; hasLockToken: boolean }
+    >();
+
+    // Only preserve lock status if current call did NOT use --show-updates
+    if (!lockStatusFresh) {
+      for (const resource of this._resourceIndex.values()) {
+        if (resource.lockStatus) {
+          const key = normalizePath(resource.resourceUri.fsPath);
+          preservedLockStatus.set(key, {
+            lockStatus: resource.lockStatus,
+            lockOwner: resource.lockOwner,
+            hasLockToken: resource.hasLockToken
+          });
+        }
+      }
+    }
+
+    // Helper to merge preserved lock status into new resources
+    const mergePreservedLockStatus = (resources: Resource[]): Resource[] => {
+      if (lockStatusFresh) {
+        return resources; // Don't merge if current status is authoritative
+      }
+      return resources.map(r => {
+        if (!r.lockStatus) {
+          const key = normalizePath(r.resourceUri.fsPath);
+          const preserved = preservedLockStatus.get(key);
+          if (preserved) {
+            // Create new Resource with preserved lock status
+            return new Resource(
+              r.resourceUri,
+              r.type,
+              r.renameResourceUri,
+              r.props,
+              r.remote,
+              true, // locked
+              preserved.lockOwner,
+              preserved.hasLockToken,
+              preserved.lockStatus,
+              r.changelist,
+              r.kind
+            );
+          }
+        }
+        return r;
+      });
+    };
 
     // Extract staged files from __staged__ changelist
     const stagedResources = result.changelists.get(STAGING_CHANGELIST) ?? [];
@@ -217,9 +271,14 @@ export class ResourceGroupManager implements IResourceGroupManager {
     }
 
     // Update groups, preserving staged directories
-    this._staged.resourceStates = [...stagedResources, ...stagedDirs];
-    this._changes.resourceStates = filteredChanges;
-    this._conflicts.resourceStates = filteredConflicts;
+    // Apply lock status preservation to all resources
+    this._staged.resourceStates = mergePreservedLockStatus([
+      ...stagedResources,
+      ...stagedDirs
+    ]);
+    this._changes.resourceStates = mergePreservedLockStatus(filteredChanges);
+    this._conflicts.resourceStates =
+      mergePreservedLockStatus(filteredConflicts);
 
     // Clear existing changelist groups
     this._changelists.forEach(group => {
@@ -245,7 +304,7 @@ export class ResourceGroupManager implements IResourceGroupManager {
         this._changelists.set(changelist, group);
       }
 
-      group.resourceStates = resources;
+      group.resourceStates = mergePreservedLockStatus(resources);
     });
 
     // Dispose removed changelists (excluding __staged__ which is never in _changelists)
@@ -266,7 +325,9 @@ export class ResourceGroupManager implements IResourceGroupManager {
       this._unversioned.hideWhenEmpty = true;
     }
 
-    this._unversioned.resourceStates = result.unversioned;
+    this._unversioned.resourceStates = mergePreservedLockStatus(
+      result.unversioned
+    );
 
     // Recreate or create remote changes group (must be last)
     if (

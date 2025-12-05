@@ -1,3 +1,14 @@
+## [2.33.26] (2025-12-06)
+
+### Fix: Preserve Lock Status Across Status Refreshes
+
+- **Fix**: Lock badge no longer disappears after status refresh
+- **Root cause**: SVN only reports lock info with `--show-updates` flag
+- **Solution**: Preserve lock status in ResourceGroupManager when status called without `--show-updates`
+- **Technical**: New `lockStatusFresh` flag prevents stale lock info from being cleared
+- **Tests**: Updated lock status tests to use correct XML structure (`<lock>` element)
+- **Affected**: ResourceGroupManager.ts, repository.ts, lockStatus.test.ts
+
 ## [2.33.25] (2025-12-06)
 
 ### Fix: Needs-Lock Workflow Enforcement

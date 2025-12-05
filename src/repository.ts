@@ -76,6 +76,7 @@ import {
   ISvnResourceGroup,
   IUnlockOptions,
   IUpdateResult,
+  LockStatus,
   Operation,
   RepositoryState,
   Status,
@@ -195,6 +196,14 @@ export class Repository implements IRemoteRepository {
   private needsLockFilesSet = new Set<string>();
   private needsLockCacheExpiry = 0;
   private static readonly NEEDS_LOCK_CACHE_TTL = 60000; // 60 seconds
+
+  // Lock status cache: preserves lock info between status calls
+  // Lock status is only visible with --show-updates, so we cache it
+  // Map: relative path -> { lockStatus, lockOwner, hasLockToken }
+  private lockStatusCache = new Map<
+    string,
+    { lockStatus: LockStatus; lockOwner?: string; hasLockToken: boolean }
+  >();
 
   private _fsWatcher: RepositoryFilesWatcher;
   public get fsWatcher() {
@@ -822,7 +831,9 @@ export class Repository implements IRemoteRepository {
           "sourceControl.countUnversioned",
           false
         )
-      }
+      },
+      // Lock status is authoritative when fetched with --show-updates
+      lockStatusFresh: fetchLockStatus
     });
 
     this.sourceControl.count = count;
@@ -2007,6 +2018,42 @@ export class Repository implements IRemoteRepository {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Update lock status cache with info from --show-updates status call.
+   * Called when fetchLockStatus=true in updateModelState.
+   */
+  public updateLockCache(
+    relativePath: string,
+    lockStatus: LockStatus,
+    lockOwner?: string,
+    hasLockToken: boolean = false
+  ): void {
+    this.lockStatusCache.set(relativePath, {
+      lockStatus,
+      lockOwner,
+      hasLockToken
+    });
+  }
+
+  /**
+   * Get cached lock status for a file.
+   * Returns undefined if not in cache.
+   */
+  public getCachedLockStatus(
+    relativePath: string
+  ):
+    | { lockStatus: LockStatus; lockOwner?: string; hasLockToken: boolean }
+    | undefined {
+    return this.lockStatusCache.get(relativePath);
+  }
+
+  /**
+   * Clear lock cache for a specific file (after unlock).
+   */
+  public clearLockCacheEntry(relativePath: string): void {
+    this.lockStatusCache.delete(relativePath);
   }
 
   /**
