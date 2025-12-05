@@ -1,3 +1,13 @@
+## [2.33.23] (2025-12-05)
+
+### Fix: Lock Decorator and Needs-Lock Toggle
+
+- **Fix**: Lock badge now shows even when lock command fails ("already locked")
+- **Fix**: Needs-lock toggle now sets file read-only/writable in filesystem
+- **Behavior**: Toggle needs-lock ON → file becomes read-only
+- **Behavior**: Toggle needs-lock OFF → file becomes writable
+- **Affected**: repository.ts, needsLock.ts, fs/chmod.ts (new)
+
 ## [2.33.22] (2025-12-05)
 
 ### Feature: Server Revision Decorator (S badge)

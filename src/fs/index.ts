@@ -3,6 +3,7 @@
 // Licensed under MIT License
 
 export { access } from "./access";
+export { makeReadOnly, makeWritable } from "./chmod";
 export { exists } from "./exists";
 export { lstat } from "./lstat";
 export { mkdir } from "./mkdir";

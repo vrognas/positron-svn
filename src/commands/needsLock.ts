@@ -3,6 +3,7 @@
 
 import { SourceControlResourceState, Uri, window } from "vscode";
 import { Command } from "./command";
+import { makeReadOnly, makeWritable } from "../fs";
 
 /**
  * Toggle svn:needs-lock property on files.
@@ -52,6 +53,12 @@ export class ToggleNeedsLock extends Command {
       if (hasProperty) {
         const result = await repository.removeNeedsLock(filePath);
         if (result.exitCode === 0) {
+          // Make file writable since needs-lock is removed
+          try {
+            await makeWritable(filePath);
+          } catch {
+            // Ignore permission errors
+          }
           successCount++;
           action = "removed";
         } else {
@@ -62,6 +69,12 @@ export class ToggleNeedsLock extends Command {
       } else {
         const result = await repository.setNeedsLock(filePath);
         if (result.exitCode === 0) {
+          // Make file read-only since needs-lock is set
+          try {
+            await makeReadOnly(filePath);
+          } catch {
+            // Ignore permission errors
+          }
           successCount++;
           action = "set";
         } else {

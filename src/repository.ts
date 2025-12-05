@@ -1767,6 +1767,16 @@ export class Repository implements IRemoteRepository {
 
         return result;
       } catch (err) {
+        // Lock/Unlock: refresh status even on error (e.g., "already locked")
+        // to show correct lock state regardless of command success
+        if (operation === Operation.Lock || operation === Operation.Unlock) {
+          try {
+            await this.updateModelState(false, true, true);
+          } catch {
+            // Ignore status errors during error handling
+          }
+        }
+
         const svnError = err as ISvnErrorData;
         if (svnError.svnErrorCode === svnErrorCodes.NotASvnRepository) {
           this.state = RepositoryState.Disposed;
