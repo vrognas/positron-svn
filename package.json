@@ -764,7 +764,7 @@
         "command": "svn.repolog.refresh",
         "category": "SVN",
         "title": "Refresh log",
-        "icon": "$(cloud-download)"
+        "icon": "$(git-fetch)"
       },
       {
         "command": "svn.repolog.remove",
