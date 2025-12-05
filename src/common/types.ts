@@ -218,6 +218,14 @@ export interface IEntry {
     movedFrom?: string;
     wcLocked?: string;
     switched?: string;
+    /** Local lock token when you have locked this file */
+    lock?: {
+      token?: string;
+      owner?: string;
+      created?: string;
+      expires?: string;
+      comment?: string;
+    };
     commit: {
       revision: string;
       author: string;

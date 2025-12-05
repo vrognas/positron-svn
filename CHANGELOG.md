@@ -1,3 +1,12 @@
+## [2.33.24] (2025-12-05)
+
+### Fix: Lock Token Detection
+
+- **Fix**: Lock badge now detects local lock token correctly
+- **Root cause**: Was checking `wcLocked` attr (WC admin lock) instead of `lock` element (user lock)
+- **Technical**: wcStatus.lock element indicates local lock token, not wcLocked attribute
+- **Affected**: types.ts, statusParser.ts
+
 ## [2.33.23] (2025-12-05)
 
 ### Fix: Lock Decorator and Needs-Lock Toggle
