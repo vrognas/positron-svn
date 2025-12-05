@@ -64,6 +64,7 @@ import { Command } from "./commands/command";
 import { SearchLogByRevision } from "./commands/search_log_by_revision";
 import { SearchLogByText } from "./commands/search_log_by_text";
 import { RevealInExplorer } from "./commands/revealInExplorer";
+import { RevealInExplorerView } from "./commands/revealInExplorerView";
 import { Merge } from "./commands/merge";
 import { DiffWithExternalTool } from "./commands/diffWithExternalTool";
 import { Blame } from "./commands/blame";
@@ -86,6 +87,7 @@ export function registerCommands(
   disposables.push(new FileOpen());
   disposables.push(new OpenFile());
   disposables.push(new RevealInExplorer());
+  disposables.push(new RevealInExplorerView());
   disposables.push(new PromptAuth());
   disposables.push(new CommitWithMessage());
   disposables.push(new CommitAll());

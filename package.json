@@ -633,6 +633,11 @@
         "icon": "$(folder-opened)"
       },
       {
+        "command": "svn.revealInExplorerView",
+        "title": "Reveal in Explorer View",
+        "category": "SVN"
+      },
+      {
         "command": "svn.openHEADFile",
         "title": "Open File (HEAD - Server Latest)",
         "category": "SVN"
@@ -1481,6 +1486,11 @@
           "group": "navigation"
         },
         {
+          "command": "svn.revealInExplorerView",
+          "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != external",
+          "group": "navigation"
+        },
+        {
           "command": "svn.openHEADFile",
           "when": "config.svn.enabled && scmProvider == svn && scmResourceGroup != unversioned && scmResourceGroup != external",
           "group": "navigation"
@@ -1654,11 +1664,6 @@
           "command": "svn.changelist",
           "group": "9_svn",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
-        },
-        {
-          "command": "svn.blame.toggleBlame",
-          "group": "9_svn@1",
-          "when": "config.svn.blame.enabled && svnOpenRepositoryCount != 0 && !explorerResourceIsFolder"
         },
         {
           "command": "svn.revertExplorer",

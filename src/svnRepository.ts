@@ -1866,7 +1866,9 @@ export class Repository {
       throw new Error(`Invalid file path: ${filePath}`);
     }
 
-    return this.exec(["propset", "svn:needs-lock", "*", filePath]);
+    // Note: Value doesn't matter - SVN just checks property presence
+    // Using 'yes' instead of '*' to avoid glob expansion on Windows
+    return this.exec(["propset", "svn:needs-lock", "yes", filePath]);
   }
 
   /**
