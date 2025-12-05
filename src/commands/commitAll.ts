@@ -63,14 +63,19 @@ export class CommitAll extends Command {
     ) as Resource[];
 
     // Use Set to avoid duplicates when multiple files share parent dirs
-    const filePathSet = new Set(
+    // Display paths: shown in picker (only new names for renames)
+    const displayPathSet = new Set(
       resourcesToCommit.map(state => state.resourceUri.fsPath)
     );
 
+    // Track renamed files: map new path -> old path (for SVN commit)
+    const renameMap = new Map<string, string>();
+
     // Handle renamed files and parent directories
     resourcesToCommit.forEach(state => {
+      // Track old paths for renamed files (needed for SVN commit, not for display)
       if (state.type === Status.ADDED && state.renameResourceUri) {
-        filePathSet.add(state.renameResourceUri.fsPath);
+        renameMap.set(state.resourceUri.fsPath, state.renameResourceUri.fsPath);
       }
 
       let dir = path.dirname(state.resourceUri.fsPath);
@@ -78,14 +83,15 @@ export class CommitAll extends Command {
 
       while (parent) {
         if (parent.type === Status.ADDED) {
-          filePathSet.add(dir);
+          displayPathSet.add(dir);
         }
         dir = path.dirname(dir);
         parent = repository.getResourceFromFile(dir);
       }
     });
 
-    const filePaths = Array.from(filePathSet);
+    // Display paths for file picker (excludes old paths of renamed files)
+    const displayPaths = Array.from(displayPathSet);
 
     // Get config options
     const useQuickPick = configuration.get<boolean>(
@@ -102,11 +108,12 @@ export class CommitAll extends Command {
     );
 
     let message: string | undefined;
+    let selectedPaths: string[] | undefined;
 
     if (useQuickPick) {
       const result = await this.commitFlowService.runCommitFlow(
         repository,
-        filePaths,
+        displayPaths,
         {
           conventionalCommits,
           updateBeforeCommit
@@ -117,23 +124,34 @@ export class CommitAll extends Command {
         return;
       }
       message = result.message;
+      selectedPaths = result.selectedFiles;
     } else {
       message = await inputCommitMessage(
         repository.inputBox.value,
         true,
-        filePaths
+        displayPaths
       );
+      selectedPaths = displayPaths; // All paths when not using QuickPick
     }
 
-    if (message === undefined) {
+    if (message === undefined || !selectedPaths) {
       return;
     }
 
+    // Add old paths for renamed files (required for SVN commit)
+    const commitPaths = [...selectedPaths];
+    for (const selectedPath of selectedPaths) {
+      const oldPath = renameMap.get(selectedPath);
+      if (oldPath) {
+        commitPaths.push(oldPath);
+      }
+    }
+
     await this.handleRepositoryOperation(async () => {
-      const result = await repository.commitFiles(message!, filePaths);
+      const result = await repository.commitFiles(message!, commitPaths);
       window.showInformationMessage(result);
       repository.inputBox.value = "";
-      repository.staging.clearOriginalChangelists(filePaths);
+      repository.staging.clearOriginalChangelists(commitPaths);
     }, "Unable to commit");
   }
 }

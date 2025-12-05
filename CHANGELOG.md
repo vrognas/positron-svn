@@ -1,3 +1,11 @@
+## [2.33.14] (2025-12-05)
+
+### Fix: Renamed File Shows Once in Commit
+
+- **Fix**: Renamed files now show only once in commit file picker (not both old and new paths)
+- **Behavior**: Old path is automatically included in commit when selecting renamed file
+- **Affected**: commitAll.ts, commitStaged.ts, commitFromInputBox.ts
+
 ## [2.33.13] (2025-12-05)
 
 ### Fix: Lock Decorator Now Shows
