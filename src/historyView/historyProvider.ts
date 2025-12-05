@@ -77,6 +77,8 @@ export interface SourceControlHistoryProvider {
   readonly currentHistoryItemRemoteRef?: SourceControlHistoryItemRef;
   readonly currentHistoryItemBaseRef?: SourceControlHistoryItemRef;
   readonly onDidChangeCurrentHistoryItemRefs?: Event<void>;
+  // VS Code requires this event for the Graph view to work
+  readonly onDidChangeHistoryItemRefs?: Event<SourceControlHistoryItemRefsChangeEvent>;
 
   provideHistoryItems(
     options: SourceControlHistoryOptions,
@@ -88,6 +90,14 @@ export interface SourceControlHistoryProvider {
     historyItemParentId: string | undefined,
     token: CancellationToken
   ): Promise<SourceControlHistoryItemChange[]>;
+}
+
+/** Event for history item refs changes */
+export interface SourceControlHistoryItemRefsChangeEvent {
+  readonly added: readonly SourceControlHistoryItemRef[];
+  readonly removed: readonly SourceControlHistoryItemRef[];
+  readonly modified: readonly SourceControlHistoryItemRef[];
+  readonly silent?: boolean;
 }
 
 // ============================================================================
@@ -190,6 +200,11 @@ export class SvnHistoryProvider
   readonly onDidChangeCurrentHistoryItemRefs =
     this._onDidChangeCurrentHistoryItemRefs.event;
 
+  // VS Code requires this event for the Graph view to refresh
+  private _onDidChangeHistoryItemRefs =
+    new EventEmitter<SourceControlHistoryItemRefsChangeEvent>();
+  readonly onDidChangeHistoryItemRefs = this._onDidChangeHistoryItemRefs.event;
+
   private disposables: Disposable[] = [];
 
   // Current ref points to HEAD
@@ -201,6 +216,7 @@ export class SvnHistoryProvider
 
   constructor(private repository: IHistoryRepository) {
     this.disposables.push(this._onDidChangeCurrentHistoryItemRefs);
+    this.disposables.push(this._onDidChangeHistoryItemRefs);
   }
 
   /**
@@ -304,6 +320,13 @@ export class SvnHistoryProvider
    */
   refresh(): void {
     this._onDidChangeCurrentHistoryItemRefs.fire();
+    // Fire refs change event to trigger Graph view refresh
+    this._onDidChangeHistoryItemRefs.fire({
+      added: [],
+      removed: [],
+      modified: [],
+      silent: false
+    });
   }
 
   dispose(): void {
