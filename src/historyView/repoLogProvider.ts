@@ -462,7 +462,14 @@ export class RepoLogProvider
       for (const repo of this.sourceControlManager.repositories) {
         const remoteRoot = repo.branchRoot;
         const repoUrl = remoteRoot.toString(true);
-        const currentRevision = parseInt(repo.repository.info.revision, 10);
+        // Use commit.revision (last changed revision) instead of info.revision (BASE)
+        // After partial commit, info.revision may still show old revision for WC root
+        // but commit.revision reflects the latest commit touching this path
+        const currentRevision = parseInt(
+          repo.repository.info.commit?.revision ||
+            repo.repository.info.revision,
+          10
+        );
         const prev = this.logCache.get(repoUrl);
 
         // Detect if working copy revision changed (e.g., after svn update)
