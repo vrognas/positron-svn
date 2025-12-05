@@ -1,3 +1,12 @@
+## [2.33.21] (2025-12-05)
+
+### Fix: BASE Correct for Partial Commits
+
+- **Fix**: BASE now correctly shows new revision after partial commit (mixed-revision)
+- **Scenario**: Commit to r106 without updating, but root is still at r101
+- **Solution**: Parse revision from commit output, update `info.revision` directly
+- **Affected**: repository.ts
+
 ## [2.33.20] (2025-12-05)
 
 ### Fix: BASE Updates After Commit in Repo History

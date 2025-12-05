@@ -1308,7 +1308,22 @@ export class Repository implements IRemoteRepository {
     );
     // Clear log cache so fresh data is fetched (log cache has 60s TTL)
     this.clearLogCache();
-    // Refresh repo info so history views get the new BASE revision
+
+    // Parse commit revision from result (e.g., "3 files commited: revision 106.")
+    // For partial commits, svn info on root might not show new revision
+    const revMatch = result.match(/revision (\d+)/i);
+    if (revMatch && revMatch[1]) {
+      const newRevision = revMatch[1];
+      // Update info.revision directly so BASE indicator is correct
+      // This handles mixed-revision working copies after partial commit
+      if (
+        parseInt(newRevision, 10) > parseInt(this.repository.info.revision, 10)
+      ) {
+        (this.repository.info as { revision: string }).revision = newRevision;
+      }
+    }
+
+    // Refresh repo info (will use cache if revision unchanged)
     await this.repository.updateInfo(true);
     // Fetch history views to show new commit
     await commands.executeCommand("svn.repolog.fetch");
