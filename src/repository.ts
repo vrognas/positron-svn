@@ -761,7 +761,8 @@ export class Repository implements IRemoteRepository {
   @globalSequentialize("updateModelState")
   public async updateModelState(
     checkRemoteChanges: boolean = false,
-    forceRefresh: boolean = false
+    forceRefresh: boolean = false,
+    fetchLockStatus: boolean = false
   ) {
     // Skip status updates during sparse checkout downloads
     // Prevents working copy lock conflicts on Windows
@@ -787,7 +788,10 @@ export class Repository implements IRemoteRepository {
 
     // Get categorized status from StatusService
     const result = await this.retryRun(async () => {
-      return this.statusService.updateStatus({ checkRemoteChanges });
+      return this.statusService.updateStatus({
+        checkRemoteChanges,
+        fetchLockStatus
+      });
     });
 
     // Update metadata

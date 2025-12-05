@@ -1,3 +1,12 @@
+## [2.33.13] (2025-12-05)
+
+### Fix: Lock Decorator Now Shows
+
+- **Fix**: Lock decorator (🔒) now properly shows after lock/unlock operations
+- **Root cause**: Previous fix disabled `--show-updates` flag needed to see lock status
+- **Solution**: Added `fetchLockStatus` option that adds `--show-updates` without the `hasRemoteChanges()` optimization
+- **Affected**: svnRepository.ts, StatusService.ts, repository.ts, lock.ts, unlock.ts
+
 ## [2.33.12] (2025-12-05)
 
 ### Change: Auto-Delete Default

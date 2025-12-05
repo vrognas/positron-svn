@@ -32,6 +32,7 @@ export type StatusResult = {
  */
 export type StatusUpdateOptions = {
   readonly checkRemoteChanges: boolean;
+  readonly fetchLockStatus?: boolean;
 };
 
 /**
@@ -96,7 +97,8 @@ export class StatusService implements IStatusService {
     // Fetch statuses from SVN
     const statuses = await this.fetchStatuses(
       config.combineExternal,
-      options.checkRemoteChanges
+      options.checkRemoteChanges,
+      options.fetchLockStatus
     );
 
     // Get file exclusion patterns
@@ -170,12 +172,14 @@ export class StatusService implements IStatusService {
    */
   private async fetchStatuses(
     includeExternals: boolean,
-    checkRemoteChanges: boolean
+    checkRemoteChanges: boolean,
+    fetchLockStatus?: boolean
   ): Promise<IFileStatus[]> {
     return await this.repository.getStatus({
       includeIgnored: true,
       includeExternals,
       checkRemoteChanges,
+      fetchLockStatus,
       // Only fetch external UUIDs when combineExternal=true (needed to filter by repo)
       // Skips N sequential svn info calls when combineExternal=false (default)
       fetchExternalUuids: includeExternals

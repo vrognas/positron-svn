@@ -208,6 +208,7 @@ export class Repository {
     includeIgnored?: boolean;
     includeExternals?: boolean;
     checkRemoteChanges?: boolean;
+    fetchLockStatus?: boolean;
     fetchExternalUuids?: boolean;
   }): Promise<IFileStatus[]> {
     params = Object.assign(
@@ -216,13 +217,15 @@ export class Repository {
         includeIgnored: false,
         includeExternals: true,
         checkRemoteChanges: false,
+        fetchLockStatus: false,
         fetchExternalUuids: false
       },
       params
     );
 
     // Optimization: Check for remote changes before expensive status call
-    if (params.checkRemoteChanges) {
+    // Skip this optimization if fetchLockStatus=true (need --show-updates for locks)
+    if (params.checkRemoteChanges && !params.fetchLockStatus) {
       const hasChanges = await this.hasRemoteChanges();
       if (!hasChanges) {
         console.log("Remote poll: No new revisions, skipping status");
@@ -238,7 +241,8 @@ export class Repository {
     if (!params.includeExternals) {
       args.push("--ignore-externals");
     }
-    if (params.checkRemoteChanges) {
+    // --show-updates needed for both remote changes AND lock status
+    if (params.checkRemoteChanges || params.fetchLockStatus) {
       args.push("--show-updates");
     }
 
