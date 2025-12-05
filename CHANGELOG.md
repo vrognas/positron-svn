@@ -1,3 +1,11 @@
+## [2.33.15] (2025-12-05)
+
+### Fix: BASE Updates After Commit
+
+- **Fix**: BASE revision badge (B) now updates to new commit after committing
+- **Root cause**: Repository info wasn't refreshed before history views fetched
+- **Affected**: repository.ts
+
 ## [2.33.14] (2025-12-05)
 
 ### Fix: Renamed File Shows Once in Commit

@@ -1298,6 +1298,8 @@ export class Repository implements IRemoteRepository {
     );
     // Clear log cache so fresh data is fetched (log cache has 60s TTL)
     this.clearLogCache();
+    // Refresh repo info so history views get the new BASE revision
+    await this.repository.updateInfo(true);
     // Fetch history views to show new commit
     await commands.executeCommand("svn.repolog.fetch");
     await commands.executeCommand("svn.itemlog.refresh");
