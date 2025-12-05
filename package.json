@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.33.21",
+  "version": "2.33.22",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.105.0",
@@ -2400,6 +2400,36 @@
           "markdownDescription": "Color for the BASE revision badge (B) in repository log. Uses VS Code theme colors.",
           "default": "charts.blue",
           "order": 204,
+          "tags": [
+            "decorator",
+            "ui"
+          ]
+        },
+        "svn.decorator.serverColor": {
+          "type": "string",
+          "enum": [
+            "charts.orange",
+            "charts.yellow",
+            "charts.red",
+            "charts.purple",
+            "charts.blue",
+            "charts.green",
+            "editorWarning.foreground",
+            "editorInfo.foreground"
+          ],
+          "enumDescriptions": [
+            "Orange (default)",
+            "Yellow",
+            "Red",
+            "Purple",
+            "Blue",
+            "Green",
+            "Warning foreground color",
+            "Info foreground color"
+          ],
+          "markdownDescription": "Color for the Server revision badge (S) in repository log. Shows commits not yet synced to your working copy.",
+          "default": "charts.orange",
+          "order": 205,
           "tags": [
             "decorator",
             "ui"

@@ -29,10 +29,13 @@ export class SvnFileDecorationProvider
   constructor(private repository: Repository) {
     this.disposables.push(this._onDidChangeFileDecorations);
 
-    // Refresh decorations when BASE color setting changes
+    // Refresh decorations when decorator color settings change
     this.disposables.push(
       configuration.onDidChange(e => {
-        if (e.affectsConfiguration("svn.decorator.baseColor")) {
+        if (
+          e.affectsConfiguration("svn.decorator.baseColor") ||
+          e.affectsConfiguration("svn.decorator.serverColor")
+        ) {
           this._onDidChangeFileDecorations.fire(undefined);
         }
       })
@@ -47,7 +50,7 @@ export class SvnFileDecorationProvider
    * Provide decoration for a file URI
    */
   async provideFileDecoration(uri: Uri): Promise<FileDecoration | undefined> {
-    // Check for BASE commit decoration (from repo/item log)
+    // Check for commit decorations (from repo/item log)
     if (uri.scheme === "svn-commit") {
       const queryParams = new URLSearchParams(uri.query);
       if (queryParams.get("isBase") === "true") {
@@ -59,6 +62,17 @@ export class SvnFileDecorationProvider
           badge: "B",
           tooltip: "Your working copy's BASE revision",
           color: new ThemeColor(baseColor)
+        };
+      }
+      if (queryParams.get("isServerOnly") === "true") {
+        const serverColor = configuration.get<string>(
+          "decorator.serverColor",
+          "charts.orange"
+        );
+        return {
+          badge: "S",
+          tooltip: "Server revision - not synced yet (run svn update)",
+          color: new ThemeColor(serverColor)
         };
       }
       return undefined;

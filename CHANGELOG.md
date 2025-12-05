@@ -1,3 +1,12 @@
+## [2.33.22] (2025-12-05)
+
+### Feature: Server Revision Decorator (S badge)
+
+- **New**: Revisions above BASE now show "S" badge (Server - not synced yet)
+- **New**: `svn.decorator.serverColor` setting to customize S badge color (default: orange)
+- **Visual**: Helps identify commits you haven't updated to yet
+- **Affected**: common.ts, repoLogProvider.ts, fileDecorationProvider.ts, package.json
+
 ## [2.33.21] (2025-12-05)
 
 ### Fix: BASE Correct for Partial Commits

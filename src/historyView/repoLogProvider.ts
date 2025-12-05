@@ -574,10 +574,14 @@ export class RepoLogProvider
       ti.tooltip = getCommitToolTip(commit);
       ti.iconPath = getCommitIcon(commit.author);
       ti.contextValue = "commit";
-      // Use resourceUri to trigger FileDecorationProvider for BASE badge
+      // Use resourceUri to trigger FileDecorationProvider for status badges
       if (element.isBase) {
         ti.resourceUri = Uri.parse(
           `svn-commit:r${commit.revision}?isBase=true`
+        );
+      } else if (element.isServerOnly) {
+        ti.resourceUri = Uri.parse(
+          `svn-commit:r${commit.revision}?isServerOnly=true`
         );
       }
     } else if (element.kind === LogTreeItemKind.CommitDetail) {

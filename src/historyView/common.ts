@@ -84,6 +84,7 @@ export interface ILogTreeItem {
   data: TreeItemData;
   readonly parent?: ILogTreeItem;
   isBase?: boolean; // True if this commit is the BASE revision
+  isServerOnly?: boolean; // True if revision > BASE (not synced yet)
 }
 
 export function transform(
@@ -146,8 +147,9 @@ function needFetch(
 }
 
 /**
- * Mark the BASE revision commit in the output list.
- * The BASE commit is the one matching the working copy's current revision.
+ * Mark commit status in the output list:
+ * - isBase: true if revision === BASE (your working copy revision)
+ * - isServerOnly: true if revision > BASE (not synced yet)
  */
 export function insertBaseMarker(
   item: ICachedLog,
@@ -159,7 +161,6 @@ export function insertBaseMarker(
     return;
   }
 
-  // Find the commit that matches or is closest to BASE revision
   for (let i = 0; i < out.length; i++) {
     const logItem = out[i];
     if (logItem?.kind !== LogTreeItemKind.Commit) {
@@ -170,7 +171,9 @@ export function insertBaseMarker(
     if (rev === baseRev) {
       // Mark this commit as BASE
       logItem.isBase = true;
-      return;
+    } else if (rev > baseRev) {
+      // Mark commits above BASE as server-only (not synced)
+      logItem.isServerOnly = true;
     }
   }
 }
