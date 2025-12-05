@@ -567,9 +567,7 @@ export class RepoLogProvider
         TreeItemCollapsibleState.Collapsed
       );
       ti.description = getCommitDescription(commit);
-      ti.tooltip = element.isBase
-        ? `${getCommitToolTip(commit)}\n\n📍 This is your working copy's BASE revision`
-        : getCommitToolTip(commit);
+      ti.tooltip = getCommitToolTip(commit);
       ti.iconPath = getCommitIcon(commit.author);
       ti.contextValue = "commit";
       // Use resourceUri to trigger FileDecorationProvider for BASE badge
