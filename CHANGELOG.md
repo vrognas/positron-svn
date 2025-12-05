@@ -1,3 +1,11 @@
+## [2.33.16] (2025-12-05)
+
+### Feature: Configurable BASE Decorator Color
+
+- **New**: `svn.decorator.baseColor` setting to customize BASE revision badge color
+- **Options**: purple (default), blue, green, yellow, orange, red, info, warning
+- **Affected**: package.json, fileDecorationProvider.ts
+
 ## [2.33.15] (2025-12-05)
 
 ### Fix: BASE Updates After Commit

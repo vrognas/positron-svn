@@ -11,6 +11,7 @@ import {
   Uri
 } from "vscode";
 import { LockStatus, Status } from "./common/types";
+import { configuration } from "./helpers/configuration";
 import { Repository } from "./repository";
 
 /**
@@ -41,10 +42,14 @@ export class SvnFileDecorationProvider
     if (uri.scheme === "svn-commit") {
       const queryParams = new URLSearchParams(uri.query);
       if (queryParams.get("isBase") === "true") {
+        const baseColor = configuration.get<string>(
+          "decorator.baseColor",
+          "charts.purple"
+        );
         return {
           badge: "B",
           tooltip: "Your working copy's BASE revision",
-          color: new ThemeColor("charts.purple")
+          color: new ThemeColor(baseColor)
         };
       }
       return undefined;
