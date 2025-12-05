@@ -1734,10 +1734,20 @@ export class Repository implements IRemoteRepository {
           operation === Operation.Update ||
           operation === Operation.Resolve ||
           operation === Operation.AddChangelist ||
-          operation === Operation.RemoveChangelist;
+          operation === Operation.RemoveChangelist ||
+          operation === Operation.Lock ||
+          operation === Operation.Unlock;
+
+        // Lock/Unlock need --show-updates to see lock status from server
+        const fetchLockStatus =
+          operation === Operation.Lock || operation === Operation.Unlock;
 
         if (!isReadOnly(operation)) {
-          await this.updateModelState(checkRemote, forceRefresh);
+          await this.updateModelState(
+            checkRemote,
+            forceRefresh,
+            fetchLockStatus
+          );
         }
 
         return result;

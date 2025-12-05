@@ -38,8 +38,6 @@ export class Lock extends Command {
         const result = await repository.lock(paths, comment ? { comment } : {});
         if (result.exitCode === 0) {
           window.showInformationMessage(`Locked ${paths.length} file(s)`);
-          // Refresh status with lock info (fetchLockStatus triggers --show-updates)
-          await repository.updateModelState(false, true, true);
         } else {
           window.showErrorMessage(
             `Lock failed: ${result.stderr || "Unknown error"}`
@@ -61,8 +59,6 @@ export class Lock extends Command {
         const result = await repository.lock(paths, comment ? { comment } : {});
         if (result.exitCode === 0) {
           window.showInformationMessage(`Locked ${paths.length} file(s)`);
-          // Refresh status with lock info (fetchLockStatus triggers --show-updates)
-          await repository.updateModelState(false, true, true);
         } else {
           window.showErrorMessage(
             `Lock failed: ${result.stderr || "Unknown error"}`
@@ -105,8 +101,6 @@ export class StealLock extends Command {
           window.showInformationMessage(
             `Stole lock on ${paths.length} file(s)`
           );
-          // Refresh status with lock info (fetchLockStatus triggers --show-updates)
-          await repository.updateModelState(false, true, true);
         } else {
           window.showErrorMessage(
             `Steal lock failed: ${result.stderr || "Unknown error"}`
@@ -130,8 +124,6 @@ export class StealLock extends Command {
           window.showInformationMessage(
             `Stole lock on ${paths.length} file(s)`
           );
-          // Refresh status with lock info (fetchLockStatus triggers --show-updates)
-          await repository.updateModelState(false, true, true);
         } else {
           window.showErrorMessage(
             `Steal lock failed: ${result.stderr || "Unknown error"}`

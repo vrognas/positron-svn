@@ -1,3 +1,13 @@
+## [2.33.19] (2025-12-05)
+
+### Fix: Lock Decorator Shows After Lock/Unlock
+
+- **Fix**: Lock decorator (🔒) now reliably shows after lock/unlock operations
+- **Root cause**: `run()` method didn't use `fetchLockStatus` for Lock/Unlock operations
+- **Solution**: Added Lock/Unlock to forceRefresh list and pass fetchLockStatus to updateModelState
+- **Cleanup**: Removed redundant manual updateModelState calls from lock.ts/unlock.ts
+- **Affected**: repository.ts, lock.ts, unlock.ts
+
 ## [2.33.18] (2025-12-05)
 
 ### Change: Default BASE Color to Blue + Live Updates
