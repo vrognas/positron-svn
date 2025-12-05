@@ -782,6 +782,11 @@ export class Repository implements IRemoteRepository {
     const stagedCount = this.groupManager.staged.resourceStates.length;
     const conflictCount = this.groupManager.conflicts.resourceStates.length;
 
+    // Debug logging
+    console.log(
+      `[SVN validateInput] staged=${stagedCount}, conflicts=${conflictCount}, text="${text}"`
+    );
+
     // Error: conflicts must be resolved first
     if (conflictCount > 0) {
       return {
