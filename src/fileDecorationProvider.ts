@@ -97,16 +97,16 @@ export class SvnFileDecorationProvider
     const color = this.getColor(status);
     let tooltip = this.getTooltip(status, resource.renameResourceUri, isFolder);
 
-    // Add lock info to tooltip and badge (K/O/B/T per SVN convention)
+    // Add lock info to tooltip and badge (🔒 for locked files)
     if (resource.lockStatus) {
       const lockInfo = this.getLockTooltip(
         resource.lockStatus,
         resource.lockOwner
       );
       tooltip = tooltip ? `${tooltip} (${lockInfo})` : lockInfo;
-      // Show lock badge if no other badge
+      // Show 🔒 badge for locked files
       if (!badge) {
-        badge = resource.lockStatus;
+        badge = "🔒";
       }
     } else if (resource.locked) {
       // Fallback for legacy lock detection without lockStatus
@@ -117,7 +117,7 @@ export class SvnFileDecorationProvider
           : "Locked by others";
       tooltip = tooltip ? `${tooltip} (${lockInfo})` : lockInfo;
       if (!badge) {
-        badge = resource.hasLockToken ? "K" : "O";
+        badge = "🔒";
       }
     }
 
