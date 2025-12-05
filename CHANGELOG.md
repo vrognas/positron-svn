@@ -1,3 +1,11 @@
+## [2.33.11] (2025-12-05)
+
+### Fix: Faster Extension Activation
+
+- **Fix**: Extension now activates faster when opening SVN workspaces
+- **Root cause**: Recursive `.svn` glob pattern was slow; added root `.svn` check
+- **Affected**: package.json
+
 ## [2.33.10] (2025-12-05)
 
 ### Fix: Revert Renamed Files
