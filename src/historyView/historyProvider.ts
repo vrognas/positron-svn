@@ -18,7 +18,8 @@ import {
   Disposable,
   Event,
   EventEmitter,
-  Uri
+  Uri,
+  workspace
 } from "vscode";
 import { ISvnLogEntry, ISvnLogEntryPath } from "../common/types";
 
@@ -140,6 +141,40 @@ function extractSubject(message: string): string {
 }
 
 /**
+ * Compute parent IDs with optional author connections.
+ * When enabled, adds secondary parent linking to same author's previous commit.
+ *
+ * @param entry - Current log entry
+ * @param chronologicalParentId - The primary (chronological) parent ID
+ * @param authorLastCommit - Map tracking each author's most recent commit ID
+ * @returns Array of parent IDs
+ */
+export function computeParentIds(
+  entry: ISvnLogEntry,
+  chronologicalParentId: string | undefined,
+  authorLastCommit: Map<string, string> | undefined
+): string[] {
+  const parentIds: string[] = [];
+
+  // Always add chronological parent first (primary)
+  if (chronologicalParentId) {
+    parentIds.push(chronologicalParentId);
+  }
+
+  // Add author connection if enabled and different from chronological parent
+  if (authorLastCommit && entry.author) {
+    const authorPrevCommit = authorLastCommit.get(entry.author);
+    if (authorPrevCommit && authorPrevCommit !== chronologicalParentId) {
+      parentIds.push(authorPrevCommit);
+    }
+    // Update tracking for this author
+    authorLastCommit.set(entry.author, `r${entry.revision}`);
+  }
+
+  return parentIds;
+}
+
+/**
  * Map an SVN log entry to a SourceControlHistoryItem.
  */
 export function mapLogEntryToHistoryItem(
@@ -229,6 +264,13 @@ export class SvnHistoryProvider
     const limit = typeof options.limit === "number" ? options.limit : 50;
     const skip = options.skip ?? 0;
 
+    // Check if author connections are enabled
+    const config = workspace.getConfiguration("svn.graph");
+    const showAuthorConnections = config.get<boolean>(
+      "showAuthorConnections",
+      false
+    );
+
     try {
       // Fetch one extra entry to determine the parent of the last displayed entry
       const entries = await this.repository.log(
@@ -245,15 +287,41 @@ export class SvnHistoryProvider
       // Apply skip, keep limit+1 to have parent info for last entry
       const withExtra = entries.slice(skip, skip + limit + 1);
 
+      // Track author's last commit for connections (when enabled)
+      // Process in reverse (oldest first) to build author tracking correctly
+      const authorLastCommit = showAuthorConnections
+        ? new Map<string, string>()
+        : undefined;
+
+      // First pass: build author tracking from oldest to newest
+      if (authorLastCommit) {
+        for (let i = withExtra.length - 1; i >= 0; i--) {
+          const entry = withExtra[i]!;
+          if (entry.author) {
+            authorLastCommit.set(entry.author, `r${entry.revision}`);
+          }
+        }
+        // Reset for second pass
+        authorLastCommit.clear();
+      }
+
       // Map to history items (only return `limit` items, use extra for parent)
+      // Process oldest first to track author connections correctly
       const result: SourceControlHistoryItem[] = [];
-      for (let i = 0; i < Math.min(withExtra.length, limit); i++) {
+      for (let i = Math.min(withExtra.length, limit) - 1; i >= 0; i--) {
         const entry = withExtra[i]!;
         const nextEntry = withExtra[i + 1];
         // Parent is the next entry in the log (older revision)
         // because SVN log only contains revisions that touched this path
-        const parentIds = nextEntry ? [`r${nextEntry.revision}`] : [];
-        result.push(mapLogEntryToHistoryItem(entry, parentIds));
+        const chronologicalParent = nextEntry
+          ? `r${nextEntry.revision}`
+          : undefined;
+        const parentIds = computeParentIds(
+          entry,
+          chronologicalParent,
+          authorLastCommit
+        );
+        result.unshift(mapLogEntryToHistoryItem(entry, parentIds));
       }
       return result;
     } catch (error) {

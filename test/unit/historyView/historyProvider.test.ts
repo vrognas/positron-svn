@@ -5,7 +5,8 @@ import * as assert from "assert";
 import {
   mapLogEntryToHistoryItem,
   createAuthorReference,
-  calculateStatistics
+  calculateStatistics,
+  computeParentIds
 } from "../../../src/historyView/historyProvider";
 import { ISvnLogEntry } from "../../../src/common/types";
 
@@ -139,6 +140,60 @@ suite("HistoryProvider", () => {
       const stats = calculateStatistics(undefined);
 
       assert.strictEqual(stats.files, 0);
+    });
+  });
+
+  suite("computeParentIds", () => {
+    test("returns chronological parent only when tracking disabled", () => {
+      const entry: ISvnLogEntry = {
+        revision: "10",
+        author: "alice",
+        date: "2025-01-01T00:00:00Z",
+        msg: "Test",
+        paths: []
+      };
+
+      const parentIds = computeParentIds(entry, "r9", undefined);
+
+      assert.deepStrictEqual(parentIds, ["r9"]);
+    });
+
+    test("adds author connection when tracking enabled", () => {
+      const authorLastCommit = new Map<string, string>();
+      authorLastCommit.set("alice", "r5");
+
+      const entry: ISvnLogEntry = {
+        revision: "10",
+        author: "alice",
+        date: "2025-01-01T00:00:00Z",
+        msg: "Test",
+        paths: []
+      };
+
+      const parentIds = computeParentIds(entry, "r9", authorLastCommit);
+
+      // Should have both chronological parent and author's previous commit
+      assert.deepStrictEqual(parentIds, ["r9", "r5"]);
+      // Should update tracking
+      assert.strictEqual(authorLastCommit.get("alice"), "r10");
+    });
+
+    test("skips duplicate when author parent equals chronological parent", () => {
+      const authorLastCommit = new Map<string, string>();
+      authorLastCommit.set("alice", "r9");
+
+      const entry: ISvnLogEntry = {
+        revision: "10",
+        author: "alice",
+        date: "2025-01-01T00:00:00Z",
+        msg: "Test",
+        paths: []
+      };
+
+      const parentIds = computeParentIds(entry, "r9", authorLastCommit);
+
+      // Should not duplicate r9
+      assert.deepStrictEqual(parentIds, ["r9"]);
     });
   });
 });

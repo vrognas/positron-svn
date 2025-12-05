@@ -1,3 +1,12 @@
+## [2.33.7] (2025-12-05)
+
+### Feat: Author Connections in Graph View
+
+- **New**: Optional `svn.graph.showAuthorConnections` setting (default: false)
+- **New**: When enabled, creates visual "author lanes" by linking same-author commits
+- **Note**: Experimental - may create complex graph layouts with many authors
+- **Affected**: package.json, src/historyView/historyProvider.ts
+
 ## [2.33.6] (2025-12-05)
 
 ### Feat: Native Graph View (Experimental)
