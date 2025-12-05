@@ -86,7 +86,7 @@ import {
   ISvnListItem
 } from "./common/types";
 import { debounce, globalSequentialize, memoize, throttle } from "./decorators";
-import { exists, stat } from "./fs";
+import { exists, rename as fsRename, stat } from "./fs";
 import { configuration } from "./helpers/configuration";
 import OperationsImpl from "./operationsImpl";
 import { PathNormalizer } from "./pathNormalizer";
@@ -388,6 +388,11 @@ export class Repository implements IRemoteRepository {
     );
     this.disposables.push(this.fileDecorationProvider);
 
+    // Intercept file renames to use svn move for tracked files
+    this.disposables.push(
+      workspace.onDidRenameFiles(e => this.onDidRenameFiles(e))
+    );
+
     // For each deleted file, add to set (auto-deduplicates)
     this._fsWatcher.onDidWorkspaceDelete(
       uri => this.deletedUris.add(uri),
@@ -566,6 +571,52 @@ export class Repository implements IRemoteRepository {
       if (this.groupManager.remoteChanges) {
         this.groupManager.remoteChanges.resourceStates = [];
       }
+    }
+  }
+
+  /**
+   * Intercept file renames to use svn move for tracked files.
+   * This preserves file history when renaming via Explorer.
+   */
+  private async onDidRenameFiles(e: {
+    files: ReadonlyArray<{ oldUri: Uri; newUri: Uri }>;
+  }): Promise<void> {
+    for (const { oldUri, newUri } of e.files) {
+      // Skip files outside this repository
+      if (!oldUri.fsPath.startsWith(this.workspaceRoot)) {
+        continue;
+      }
+
+      try {
+        // Check if old path was tracked by SVN (will show as "missing" now)
+        const wasTracked = await this.wasFileTracked(oldUri.fsPath);
+
+        if (wasTracked) {
+          // Undo the filesystem rename
+          await fsRename(newUri.fsPath, oldUri.fsPath);
+
+          // Use svn rename to preserve history
+          await this.rename(oldUri.fsPath, newUri.fsPath);
+        }
+      } catch (err) {
+        // Log but don't block - user can manually fix if needed
+        logError(`Failed to convert rename to svn move: ${oldUri.fsPath}`, err);
+      }
+    }
+  }
+
+  /**
+   * Check if a file path was tracked by SVN before it was renamed/deleted.
+   * Uses svn info which works even on missing files.
+   */
+  private async wasFileTracked(filePath: string): Promise<boolean> {
+    try {
+      // svn info succeeds for tracked files, even if missing
+      await this.repository.getInfo(filePath);
+      return true;
+    } catch {
+      // Not tracked or error
+      return false;
     }
   }
 

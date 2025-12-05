@@ -8,6 +8,7 @@ export { lstat } from "./lstat";
 export { mkdir } from "./mkdir";
 export { readFile } from "./read_file";
 export { readdir } from "./readdir";
+export { rename } from "./rename";
 export { rmdir } from "./rmdir";
 export { stat } from "./stat";
 export { unlink } from "./unlink";
