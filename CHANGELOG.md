@@ -1,3 +1,15 @@
+## [2.33.27] (2025-12-06)
+
+### UI: SVN Lock Status Letters
+
+- **Change**: Lock badges now use SVN standard letters instead of emojis
+- **K**: File locked by you (you hold lock token)
+- **O**: File locked by others
+- **B**: Your lock was broken (stale token)
+- **T**: Your lock was stolen
+- **L**: File has svn:needs-lock (read-only until locked)
+- **Affected**: fileDecorationProvider.ts, sparseFileDecorationProvider.ts, resource.ts
+
 ## [2.33.26] (2025-12-06)
 
 ### Fix: Preserve Lock Status Across Status Refreshes

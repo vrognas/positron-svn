@@ -15,7 +15,7 @@ import { LockStatus } from "../common/types";
  * Provides file decorations for selective download tree items.
  * - Ghost items (not checked out) are visually de-emphasized
  * - Outdated items (local < server revision) show update indicator
- * - Locked items show 🔒 badge
+ * - Locked items show K/O/B/T badge (SVN lock status)
  *
  * Uses svn-sparse:// scheme to prevent VS Code SCM decorations from appearing.
  */
@@ -70,9 +70,11 @@ export class SparseFileDecorationProvider
         : outdatedTooltip;
     }
 
-    // Lock badge (🔒 combined with other badges like 🔒↓)
+    // Lock badge using SVN status letters (K=yours, O=others, B=broken, T=stolen)
     if (lockStatus) {
-      decoration.badge = decoration.badge ? `🔒${decoration.badge}` : "🔒";
+      decoration.badge = decoration.badge
+        ? `${lockStatus}${decoration.badge}`
+        : lockStatus;
       const lockTooltip = this.getLockTooltip(lockStatus, lockOwner);
       decoration.tooltip = decoration.tooltip
         ? `${decoration.tooltip} - ${lockTooltip}`

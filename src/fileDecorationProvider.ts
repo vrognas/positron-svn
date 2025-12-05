@@ -125,15 +125,16 @@ export class SvnFileDecorationProvider
     const color = this.getColor(status);
     let tooltip = this.getTooltip(status, resource.renameResourceUri, isFolder);
 
-    // Add lock info to tooltip and badge (🔒 for locked files)
+    // Add lock info to tooltip and badge (K/O/B/T per SVN convention)
     if (resource.lockStatus) {
       const lockInfo = this.getLockTooltip(
         resource.lockStatus,
         resource.lockOwner
       );
       tooltip = tooltip ? `${tooltip} (${lockInfo})` : lockInfo;
-      // Combine 🔒 with status badge (🔒M, 🔒A, etc.) or just 🔒
-      badge = badge ? `🔒${badge}` : "🔒";
+      // Use SVN lock letters: K=yours, O=others, B=broken, T=stolen
+      const lockLetter = resource.lockStatus;
+      badge = badge ? `${lockLetter}${badge}` : lockLetter;
     } else if (resource.locked) {
       // Fallback for legacy lock detection without lockStatus
       const lockInfo = resource.hasLockToken
@@ -142,8 +143,9 @@ export class SvnFileDecorationProvider
           ? `Locked by ${resource.lockOwner}`
           : "Locked by others";
       tooltip = tooltip ? `${tooltip} (${lockInfo})` : lockInfo;
-      // Combine 🔒 with status badge (🔒M, 🔒A, etc.) or just 🔒
-      badge = badge ? `🔒${badge}` : "🔒";
+      // K=yours, O=others
+      const lockLetter = resource.hasLockToken ? "K" : "O";
+      badge = badge ? `${lockLetter}${badge}` : lockLetter;
     }
 
     if (!badge && !color) {
@@ -180,7 +182,7 @@ export class SvnFileDecorationProvider
     }
 
     return {
-      badge: "🔓",
+      badge: "L",
       tooltip: "Needs lock - file is read-only until locked",
       propagate: false
     };

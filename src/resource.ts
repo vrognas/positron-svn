@@ -138,8 +138,8 @@ export class Resource implements SourceControlResourceState {
     // Add lock info to tooltip
     if (this._locked) {
       const lockInfo = this._lockOwner
-        ? `🔒 Locked by ${this._lockOwner}`
-        : "🔒 Locked";
+        ? `Locked by ${this._lockOwner}`
+        : "Locked";
       tip = `${tip} (${lockInfo})`;
     }
 
