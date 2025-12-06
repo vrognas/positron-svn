@@ -1,3 +1,13 @@
+## [2.33.29] (2025-12-06)
+
+### Fix: Lock Badges Appear Immediately
+
+- **Bug**: Lock badges (K/O/B/T) only appeared after periodic remote check
+- **Cause**: `fetchLockStatus` was only true for Lock/Unlock operations
+- **Fix**: Always fetch lock status with `--show-updates` on status refresh
+- **Result**: Lock badges now appear immediately on any status refresh
+- **Affected**: repository.ts
+
 ## [2.33.28] (2025-12-06)
 
 ### Fix: User-Locked Files Now Appear in Resource Groups
