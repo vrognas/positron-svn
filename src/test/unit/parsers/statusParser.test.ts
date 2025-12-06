@@ -54,7 +54,7 @@ suite("StatusParser", () => {
     assert.strictEqual(result[1]!.status, "added");
   });
 
-  test("parses external repository", async () => {
+  test("parses external repository and user-locked file", async () => {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <status>
   <target path=".">
@@ -62,8 +62,13 @@ suite("StatusParser", () => {
       <wc-status props="none" item="external"/>
     </entry>
     <entry path="locked.txt">
-      <wc-status props="none" item="normal" wc-locked="true">
+      <wc-status props="none" item="normal">
         <commit revision="200"/>
+        <lock>
+          <token>opaquelocktoken:12345</token>
+          <owner>myuser</owner>
+          <created>2025-11-01T10:00:00.000000Z</created>
+        </lock>
       </wc-status>
     </entry>
   </target>
@@ -74,15 +79,22 @@ suite("StatusParser", () => {
     assert.strictEqual(result.length, 2);
     assert.strictEqual(result[0]!.status, "external");
     assert.strictEqual(result[1]!.wcStatus.locked, true);
+    assert.strictEqual(result[1]!.wcStatus.hasLockToken, true);
   });
 
-  test("lockStatus K when wcLocked=true and no server check", async () => {
+  test("lockStatus K when has lock token and no server check", async () => {
+    // User lock is <lock> element inside <wc-status>, not wc-locked attribute
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <status>
   <target path=".">
     <entry path="myfile.txt">
-      <wc-status props="none" item="normal" wc-locked="true">
+      <wc-status props="none" item="normal">
         <commit revision="50"/>
+        <lock>
+          <token>opaquelocktoken:12345</token>
+          <owner>myuser</owner>
+          <created>2025-11-01T10:00:00.000000Z</created>
+        </lock>
       </wc-status>
     </entry>
   </target>
@@ -122,13 +134,20 @@ suite("StatusParser", () => {
     assert.strictEqual(result[0]!.wcStatus.serverChecked, true);
   });
 
-  test("lockStatus B when wcLocked=true but server has no lock (broken)", async () => {
+  test("lockStatus B when has lock token but server has no lock (broken)", async () => {
+    // User lock is <lock> element inside <wc-status>
+    // When server has no lock, our local token is stale/broken
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <status>
   <target path=".">
     <entry path="broken.txt">
-      <wc-status props="none" item="normal" wc-locked="true">
+      <wc-status props="none" item="normal">
         <commit revision="70"/>
+        <lock>
+          <token>opaquelocktoken:stale</token>
+          <owner>myuser</owner>
+          <created>2025-01-01T10:00:00.000000Z</created>
+        </lock>
       </wc-status>
       <repos-status props="none" item="none"/>
     </entry>
@@ -140,6 +159,7 @@ suite("StatusParser", () => {
     assert.strictEqual(result[0]!.wcStatus.hasLockToken, true);
     assert.strictEqual(result[0]!.wcStatus.lockStatus, LockStatus.B);
     assert.strictEqual(result[0]!.wcStatus.serverChecked, true);
-    assert.strictEqual(result[0]!.wcStatus.lockOwner, undefined);
+    // Lock owner comes from local token
+    assert.strictEqual(result[0]!.wcStatus.lockOwner, "myuser");
   });
 });
