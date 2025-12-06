@@ -1732,21 +1732,23 @@
             "workflow"
           ]
         },
-        "svn.commit.updateBeforeCommit": {
-          "type": "boolean",
-          "markdownDescription": "Run `svn update` before commit to sync with server. **Recommended** for team projects to avoid out-of-date conflicts.\n\n⚠️ May add 2-10s delay on slow connections.",
-          "default": true,
+        "svn.commit.autoUpdate": {
+          "type": "string",
+          "enum": [
+            "both",
+            "before",
+            "after",
+            "none"
+          ],
+          "enumDescriptions": [
+            "Update before AND after commit (recommended)",
+            "Update before commit only (prevents out-of-date errors)",
+            "Update after commit only (syncs BASE revision)",
+            "No automatic updates"
+          ],
+          "markdownDescription": "When to run `svn update` around commits.\n\n- **both**: Sync before (avoid conflicts) and after (update BASE)\n- **before**: Only sync before commit\n- **after**: Only sync after commit\n- **none**: Manual updates only",
+          "default": "both",
           "order": 11,
-          "tags": [
-            "commit",
-            "workflow"
-          ]
-        },
-        "svn.commit.updateAfterCommit": {
-          "type": "boolean",
-          "markdownDescription": "Run `svn update` after commit to sync BASE revision. Makes your working copy match the just-committed revision (more Git-like behavior).",
-          "default": true,
-          "order": 12,
           "tags": [
             "commit",
             "workflow"

@@ -1,11 +1,11 @@
 ## [2.33.32] (2025-12-06)
 
-### Feature: Auto-Update After Commit
+### Feature: Unified Auto-Update Setting
 
-- **New setting**: `svn.commit.updateAfterCommit` (default: true)
-- **Behavior**: Runs `svn update` after commit to sync BASE revision
-- **Result**: Working copy matches just-committed revision (Git-like behavior)
-- **UI**: Shows "Syncing working copy..." progress notification
+- **New setting**: `svn.commit.autoUpdate` (dropdown)
+- **Options**: `both` (default), `before`, `after`, `none`
+- **Replaces**: `updateBeforeCommit` and `updateAfterCommit` booleans
+- **Result**: Single setting controls pre/post commit updates
 
 ### Fix: Lock Badges in Explorer
 

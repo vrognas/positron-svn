@@ -102,10 +102,8 @@ export class CommitFromInputBox extends Command {
       "commit.conventionalCommits",
       true
     );
-    const updateBeforeCommit = configuration.get<boolean>(
-      "commit.updateBeforeCommit",
-      true
-    );
+    const autoUpdate = configuration.get<string>("commit.autoUpdate", "both");
+    const updateBeforeCommit = autoUpdate === "both" || autoUpdate === "before";
 
     let message: string | undefined;
     let selectedPaths: string[] | undefined;

@@ -1346,11 +1346,8 @@ export class Repository implements IRemoteRepository {
     this.clearLogCache();
 
     // Post-commit update: sync working copy to new revision (if enabled)
-    const updateAfterCommit = configuration.get<boolean>(
-      "commit.updateAfterCommit",
-      true
-    );
-    if (updateAfterCommit) {
+    const autoUpdate = configuration.get<string>("commit.autoUpdate", "both");
+    if (autoUpdate === "both" || autoUpdate === "after") {
       try {
         await window.withProgress(
           {

@@ -41,7 +41,9 @@
       "Bash(git push:*)",
       "WebFetch(domain:svnbook.red-bean.com)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(svn info:*)",
+      "Bash(svn log:*)"
     ],
     "deny": [],
     "ask": []
