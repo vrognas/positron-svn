@@ -122,10 +122,10 @@ export class SvnFileDecorationProvider
 
     const isFolder = resource.kind === "dir";
     let badge = this.getBadge(status, resource.renameResourceUri, isFolder);
-    const color = this.getColor(status);
+    let color = this.getColor(status);
     let tooltip = this.getTooltip(status, resource.renameResourceUri, isFolder);
 
-    // Add lock info to tooltip and badge (K/O/B/T per SVN convention)
+    // Add lock info to tooltip, badge, and color (K/O/B/T per SVN convention)
     if (resource.lockStatus) {
       const lockInfo = this.getLockTooltip(
         resource.lockStatus,
@@ -135,6 +135,14 @@ export class SvnFileDecorationProvider
       // Use SVN lock letters: K=yours, O=others, B=broken, T=stolen
       const lockLetter = resource.lockStatus;
       badge = badge ? `${lockLetter}${badge}` : lockLetter;
+      // Lock color: B/T always red, K/O if no status color
+      if (
+        resource.lockStatus === LockStatus.B ||
+        resource.lockStatus === LockStatus.T ||
+        !color
+      ) {
+        color = this.getLockColor(resource.lockStatus);
+      }
     } else if (resource.locked) {
       // Fallback for legacy lock detection without lockStatus
       const lockInfo = resource.hasLockToken
@@ -144,8 +152,12 @@ export class SvnFileDecorationProvider
           : "Locked by others";
       tooltip = tooltip ? `${tooltip} (${lockInfo})` : lockInfo;
       // K=yours, O=others
-      const lockLetter = resource.hasLockToken ? "K" : "O";
+      const lockLetter = resource.hasLockToken ? LockStatus.K : LockStatus.O;
       badge = badge ? `${lockLetter}${badge}` : lockLetter;
+      // Use lock color if no status color
+      if (!color) {
+        color = this.getLockColor(lockLetter);
+      }
     }
 
     if (!badge && !color) {
@@ -184,6 +196,7 @@ export class SvnFileDecorationProvider
     return {
       badge: "L",
       tooltip: "Needs lock - file is read-only until locked",
+      color: new ThemeColor("list.deemphasizedForeground"),
       propagate: false
     };
   }
@@ -291,6 +304,22 @@ export class SvnFileDecorationProvider
         return lockOwner
           ? `Lock stolen by ${lockOwner}`
           : "Lock stolen by another user";
+    }
+  }
+
+  /**
+   * Get color for lock status
+   * K=blue (safe), O=orange (blocked), B/T=red (error)
+   */
+  private getLockColor(lockStatus: LockStatus): ThemeColor {
+    switch (lockStatus) {
+      case LockStatus.K:
+        return new ThemeColor("charts.blue");
+      case LockStatus.O:
+        return new ThemeColor("charts.orange");
+      case LockStatus.B:
+      case LockStatus.T:
+        return new ThemeColor("errorForeground");
     }
   }
 

@@ -79,9 +79,35 @@ export class SparseFileDecorationProvider
       decoration.tooltip = decoration.tooltip
         ? `${decoration.tooltip} - ${lockTooltip}`
         : lockTooltip;
+      // Lock color: B/T always red (error), K/O if not ghost/outdated
+      if (
+        lockStatus === LockStatus.B ||
+        lockStatus === LockStatus.T ||
+        (!isGhost && !isOutdated)
+      ) {
+        decoration.color = this.getLockColor(lockStatus);
+      }
     }
 
     return decoration;
+  }
+
+  /**
+   * Get color for lock status
+   * K=blue (safe), O=orange (blocked), B/T=red (error)
+   */
+  private getLockColor(lockStatus: LockStatus): ThemeColor {
+    switch (lockStatus) {
+      case LockStatus.K:
+        return new ThemeColor("charts.blue");
+      case LockStatus.O:
+        return new ThemeColor("charts.orange");
+      case LockStatus.B:
+      case LockStatus.T:
+        return new ThemeColor("errorForeground");
+      default:
+        return new ThemeColor("charts.orange");
+    }
   }
 
   private getLockTooltip(
