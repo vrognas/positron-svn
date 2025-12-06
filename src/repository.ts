@@ -1789,9 +1789,8 @@ export class Repository implements IRemoteRepository {
           operation === Operation.Lock ||
           operation === Operation.Unlock;
 
-        // Lock/Unlock need --show-updates to see lock status from server
-        const fetchLockStatus =
-          operation === Operation.Lock || operation === Operation.Unlock;
+        // Always fetch lock status to show K/O/B/T badges in explorer
+        const fetchLockStatus = true;
 
         if (!isReadOnly(operation)) {
           await this.updateModelState(
