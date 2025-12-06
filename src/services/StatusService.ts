@@ -293,10 +293,11 @@ export class StatusService implements IStatusService {
     }
 
     for (const status of statuses) {
-      // Check for incomplete/locked status on root
+      // Check for incomplete/WC-admin-locked status on root
       if (status.path === ".") {
         isIncomplete = status.status === Status.INCOMPLETE;
-        needCleanUp = status.wcStatus.locked;
+        // WC admin lock (from wc-locked attr) means cleanup needed, not user lock
+        needCleanUp = !!status.wcStatus.wcAdminLocked;
       }
 
       // If exists a switched item, the repository is incomplete
@@ -304,9 +305,11 @@ export class StatusService implements IStatusService {
         isIncomplete = true;
       }
 
-      // Skip locked/switched/incomplete items
+      // Skip WC-admin-locked/switched/incomplete items (but NOT user-locked files)
+      // wcAdminLocked = WC admin lock from interrupted checkout, needs cleanup
+      // locked = user lock (K/O/B/T), should NOT be skipped
       if (
-        status.wcStatus.locked ||
+        status.wcStatus.wcAdminLocked ||
         status.wcStatus.switched ||
         status.status === Status.INCOMPLETE
       ) {

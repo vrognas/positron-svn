@@ -1,3 +1,13 @@
+## [2.33.28] (2025-12-06)
+
+### Fix: User-Locked Files Now Appear in Resource Groups
+
+- **Bug**: User-locked files (K/O/B/T) were being skipped entirely
+- **Cause**: StatusService checked `wcStatus.locked` which includes user locks
+- **Fix**: Now only skips `wcStatus.wcAdminLocked` (WC admin locks from interrupted checkouts)
+- **Result**: Locked files now appear in Changes group with K/O/B/T badge
+- **Affected**: types.ts, statusParser.ts, StatusService.ts
+
 ## [2.33.27] (2025-12-06)
 
 ### UI: SVN Lock Status Letters

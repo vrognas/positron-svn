@@ -160,7 +160,10 @@ export interface ISvnResourceGroup extends SourceControlResourceGroup {
 }
 
 export interface IWcStatus {
+  /** True if file has a user lock (K/O/B/T) */
   locked: boolean;
+  /** True if WC is administratively locked (from wc-locked attribute, needs cleanup) */
+  wcAdminLocked?: boolean;
   switched: boolean;
   /** Lock owner username (from repos-status) */
   lockOwner?: string;

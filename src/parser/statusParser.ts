@@ -77,8 +77,13 @@ function processEntry(
     lockStatus = LockStatus.O;
   }
 
+  // WC admin lock is from wc-locked="true" attribute (needs cleanup, different from user locks)
+  const wcAdminLocked =
+    !!entry.wcStatus.wcLocked && entry.wcStatus.wcLocked === "true";
+
   const wcStatus: IWcStatus = {
     locked: hasLockToken || serverHasLock,
+    wcAdminLocked,
     switched: !!entry.wcStatus.switched && entry.wcStatus.switched === "true",
     lockOwner,
     hasLockToken,
