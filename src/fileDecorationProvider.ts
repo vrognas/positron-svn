@@ -160,8 +160,10 @@ export class SvnFileDecorationProvider
       }
     }
 
-    // Check if file has needs-lock property (always show L prefix)
+    // Check if file has needs-lock property
+    // Note: VS Code limits badges to 2 chars, so L is only shown if no lock status
     const hasNeedsLock = this.repository.hasNeedsLockCached(uri.fsPath);
+    const hasLockBadge = !!resource.lockStatus || resource.locked;
 
     if (!badge && !color) {
       // No status decoration - show just L if needs-lock
@@ -176,9 +178,12 @@ export class SvnFileDecorationProvider
       return undefined;
     }
 
-    // Prepend L to badge if needs-lock (e.g., LM, LA, LKM)
+    // Add L prefix if needs-lock AND no lock badge (to stay within 2 char limit)
+    // If locked (K/O/B/T), L is implied and shown in tooltip only
     if (hasNeedsLock) {
-      badge = badge ? `L${badge}` : "L";
+      if (!hasLockBadge && badge && badge.length === 1) {
+        badge = `L${badge}`; // e.g., LM, LA (2 chars max)
+      }
       tooltip = tooltip
         ? `${tooltip} (needs-lock)`
         : "Needs lock - file is read-only until locked";
