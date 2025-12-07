@@ -105,7 +105,7 @@ export class ItemLogProvider
 
   // Rollback file to selected revision using reverse merge
   public async rollbackToRevisionCmd(element: ILogTreeItem) {
-    if (!this.currentItem) {
+    if (!this.currentItem || !this.currentItem.localPath) {
       return;
     }
     if (element.kind !== LogTreeItemKind.Commit) {
@@ -118,7 +118,7 @@ export class ItemLogProvider
     }
 
     try {
-      const filePath = this.currentItem.svnTarget.fsPath;
+      const filePath = this.currentItem.localPath;
       await this.currentItem.repo.rollbackToRevision(filePath, commit.revision);
       window.showInformationMessage(
         `Rolled back to revision ${commit.revision}. Review changes and commit.`
@@ -213,6 +213,7 @@ export class ItemLogProvider
               entries: [],
               repo,
               svnTarget: Uri.parse(info.url),
+              localPath: uri.fsPath,
               persisted: {
                 commitFrom: "HEAD",
                 baseRevision: parseInt(info.revision, 10)

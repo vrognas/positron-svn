@@ -64,8 +64,10 @@ export class SvnPath {
 
 export interface ICachedLog {
   entries: ISvnLogEntry[];
-  // Uri of svn repository
+  // Uri of svn repository (remote URL)
   svnTarget: Uri;
+  // Local working copy file path (for file-level history)
+  localPath?: string;
   isComplete: boolean;
   repo: IRemoteRepository;
   persisted: {
