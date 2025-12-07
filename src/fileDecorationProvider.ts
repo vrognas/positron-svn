@@ -243,34 +243,6 @@ export class SvnFileDecorationProvider
   }
 
   /**
-   * Get decoration for files with svn:needs-lock property (not locked).
-   * Uses batch-populated cache - no SVN calls.
-   */
-  private getNeedsLockDecoration(uri: Uri): FileDecoration | undefined {
-    // Only check file scheme
-    if (uri.scheme !== "file") {
-      return undefined;
-    }
-
-    // Check if file is in working copy
-    if (!uri.fsPath.startsWith(this.repository.workspaceRoot)) {
-      return undefined;
-    }
-
-    // Check batch cache (sync, no SVN call)
-    if (!this.repository.hasNeedsLockCached(uri.fsPath)) {
-      return undefined;
-    }
-
-    return {
-      badge: "L",
-      tooltip: "Needs lock - file is read-only until locked",
-      color: new ThemeColor("list.deemphasizedForeground"),
-      propagate: false
-    };
-  }
-
-  /**
    * Refresh decorations for changed files
    */
   refresh(uris?: Uri | Uri[]): void {

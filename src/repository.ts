@@ -819,6 +819,13 @@ export class Repository implements IRemoteRepository {
     this.isIncomplete = result.isIncomplete;
     this.needCleanUp = result.needCleanUp;
 
+    // Populate lock status cache from status results
+    // Clear and replace to remove stale entries (unlocked files)
+    this.lockStatusCache.clear();
+    for (const [relativePath, lockInfo] of result.lockStatuses) {
+      this.lockStatusCache.set(relativePath, lockInfo);
+    }
+
     // Delegate group management to ResourceGroupManager
     const count = this.groupManager.updateGroups({
       result,

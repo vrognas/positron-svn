@@ -15,6 +15,15 @@ import * as path from "path";
 /**
  * Result from status update operation
  */
+/**
+ * Lock info for a file (for cache population)
+ */
+export type LockInfo = {
+  readonly lockStatus: LockStatus;
+  readonly lockOwner?: string;
+  readonly hasLockToken: boolean;
+};
+
 export type StatusResult = {
   readonly changes: Resource[];
   readonly conflicts: Resource[];
@@ -25,6 +34,8 @@ export type StatusResult = {
   readonly statusIgnored: readonly IFileStatus[];
   readonly isIncomplete: boolean;
   readonly needCleanUp: boolean;
+  /** Lock statuses for all locked files (by relative path) */
+  readonly lockStatuses: ReadonlyMap<string, LockInfo>;
 };
 
 /**
@@ -126,7 +137,8 @@ export class StatusService implements IStatusService {
       statusExternal,
       statusIgnored: categorized.statusIgnored,
       isIncomplete: categorized.isIncomplete,
-      needCleanUp: categorized.needCleanUp
+      needCleanUp: categorized.needCleanUp,
+      lockStatuses: categorized.lockStatuses
     };
   }
 
@@ -274,6 +286,7 @@ export class StatusService implements IStatusService {
     statusIgnored: IFileStatus[];
     isIncomplete: boolean;
     needCleanUp: boolean;
+    lockStatuses: Map<string, LockInfo>;
   }> {
     const changes: Resource[] = [];
     const conflicts: Resource[] = [];
@@ -281,6 +294,7 @@ export class StatusService implements IStatusService {
     const changelists = new Map<string, Resource[]>();
     const remoteChanges: Resource[] = [];
     const statusIgnored: IFileStatus[] = [];
+    const lockStatuses = new Map<string, LockInfo>();
     let isIncomplete = false;
     let needCleanUp = false;
 
@@ -356,6 +370,15 @@ export class StatusService implements IStatusService {
         status.wcStatus.lockOwner !== this.repository.username
       ) {
         lockStatus = LockStatus.T;
+      }
+
+      // Collect lock statuses for cache (BEFORE skip check)
+      if (lockStatus) {
+        lockStatuses.set(status.path, {
+          lockStatus,
+          lockOwner: status.wcStatus.lockOwner,
+          hasLockToken: status.wcStatus.hasLockToken ?? false
+        });
       }
 
       // Detect kind if not provided by SVN status
@@ -446,7 +469,8 @@ export class StatusService implements IStatusService {
       remoteChanges,
       statusIgnored,
       isIncomplete,
-      needCleanUp
+      needCleanUp,
+      lockStatuses
     };
   }
 

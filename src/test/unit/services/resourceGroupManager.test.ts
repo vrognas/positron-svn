@@ -93,7 +93,8 @@ suite("ResourceGroupManager Tests", () => {
       statusExternal: [],
       statusIgnored: [],
       isIncomplete: false,
-      needCleanUp: false
+      needCleanUp: false,
+      lockStatuses: new Map()
     };
 
     // Act
@@ -158,7 +159,8 @@ suite("ResourceGroupManager Tests", () => {
       statusExternal: [],
       statusIgnored: [],
       isIncomplete: false,
-      needCleanUp: false
+      needCleanUp: false,
+      lockStatuses: new Map()
     };
 
     manager.updateGroups(result1);
@@ -201,7 +203,8 @@ suite("ResourceGroupManager Tests", () => {
       statusExternal: [],
       statusIgnored: [],
       isIncomplete: false,
-      needCleanUp: false
+      needCleanUp: false,
+      lockStatuses: new Map()
     };
 
     manager.updateGroups(result2);
@@ -234,7 +237,8 @@ suite("ResourceGroupManager Tests", () => {
       statusExternal: [],
       statusIgnored: [],
       isIncomplete: false,
-      needCleanUp: false
+      needCleanUp: false,
+      lockStatuses: new Map()
     };
 
     const config = { ignoreOnStatusCountList: [], countUnversioned: false };
@@ -271,7 +275,8 @@ suite("ResourceGroupManager Tests", () => {
       statusExternal: [],
       statusIgnored: [],
       isIncomplete: false,
-      needCleanUp: false
+      needCleanUp: false,
+      lockStatuses: new Map()
     };
 
     const result2: StatusResult = {
@@ -286,7 +291,8 @@ suite("ResourceGroupManager Tests", () => {
       statusExternal: [],
       statusIgnored: [],
       isIncomplete: false,
-      needCleanUp: false
+      needCleanUp: false,
+      lockStatuses: new Map()
     };
 
     const config = { ignoreOnStatusCountList: [], countUnversioned: false };
@@ -333,7 +339,8 @@ suite("ResourceGroupManager Tests", () => {
       statusExternal: [],
       statusIgnored: [],
       isIncomplete: false,
-      needCleanUp: false
+      needCleanUp: false,
+      lockStatuses: new Map()
     };
 
     const changelists = new Map<string, Resource[]>();
@@ -350,7 +357,8 @@ suite("ResourceGroupManager Tests", () => {
       statusExternal: [],
       statusIgnored: [],
       isIncomplete: false,
-      needCleanUp: false
+      needCleanUp: false,
+      lockStatuses: new Map()
     };
 
     const config = { ignoreOnStatusCountList: [], countUnversioned: false };
