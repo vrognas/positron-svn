@@ -1,3 +1,14 @@
+## [2.34.0] (2025-12-07)
+
+### Feature: File Rollback to Revision
+
+- **New command**: "Rollback to this revision" in File History view
+- **Location**: Right-click any revision in File History → "Rollback to this revision"
+- **Method**: Uses `svn merge -r HEAD:REV file` (reverse merge per SVN book)
+- **Behavior**: Creates local modifications; user must commit manually
+- **Confirmation**: Modal warning before rollback
+- **Files**: svnRepository.ts, repository.ts, remoteRepository.ts, itemLogProvider.ts, input/rollback.ts
+
 ## [2.33.30] (2025-12-06)
 
 ### Feature: Semantic Lock Colors

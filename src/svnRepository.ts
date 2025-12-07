@@ -1099,6 +1099,30 @@ export class Repository {
     return true;
   }
 
+  /**
+   * Rollback a file to a previous revision using reverse merge.
+   * Uses: svn merge -r HEAD:TARGET_REV file
+   *
+   * This creates local modifications that must be committed separately.
+   * Per SVN book: reverse merge undoes changes by merging backwards.
+   *
+   * @param filePath Absolute path to the file
+   * @param targetRevision The revision to rollback to
+   * @returns SVN merge output
+   */
+  public async rollbackToRevision(
+    filePath: string,
+    targetRevision: string
+  ): Promise<string> {
+    const relativePath = this.removeAbsolutePath(filePath);
+    const args = ["merge", "-r", `HEAD:${targetRevision}`, relativePath];
+
+    const result = await this.exec(args);
+    this.resetInfoCache();
+
+    return result.stdout;
+  }
+
   public async revert(files: string[], depth: keyof typeof SvnDepth) {
     files = files.map(file => this.removeAbsolutePath(file));
 

@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.33.31",
+  "version": "2.34.0",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.105.0",
@@ -582,6 +582,11 @@
         "command": "svn.itemlog.gotoRepolog",
         "category": "SVN",
         "title": "Go to Repository History"
+      },
+      {
+        "command": "svn.itemlog.rollbackToRevision",
+        "category": "SVN",
+        "title": "Rollback to this revision"
       },
       {
         "command": "svn.repolog.goToRevision",
@@ -1307,6 +1312,11 @@
           "command": "svn.itemlog.gotoRepolog",
           "when": "view == itemlog && viewItem == diffable",
           "group": "navigation"
+        },
+        {
+          "command": "svn.itemlog.rollbackToRevision",
+          "when": "view == itemlog && viewItem == diffable",
+          "group": "2_rollback"
         },
         {
           "command": "svn.repolog.openDiff",

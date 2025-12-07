@@ -1038,6 +1038,15 @@ export class Repository implements IRemoteRepository {
     });
   }
 
+  public async rollbackToRevision(
+    filePath: string,
+    targetRevision: string
+  ): Promise<string> {
+    return this.run<string>(Operation.Merge, () => {
+      return this.repository.rollbackToRevision(filePath, targetRevision);
+    });
+  }
+
   public async showBuffer(
     filePath: string | Uri,
     revision?: string
