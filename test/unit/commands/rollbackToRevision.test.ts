@@ -12,14 +12,26 @@ import { window } from "vscode";
 describe("Rollback To Revision", () => {
   describe("rollbackToRevision() argument building", () => {
     /**
+     * Simulates fixPegRevision from util.ts
+     * Appends @ to filenames containing @ to prevent SVN peg revision parsing
+     */
+    function fixPegRevision(file: string): string {
+      if (/@/.test(file)) {
+        file += "@";
+      }
+      return file;
+    }
+
+    /**
      * Simulates the rollbackToRevision argument building logic
-     * from svnRepository.ts
+     * from svnRepository.ts (with peg revision fix)
      */
     function buildRollbackArgs(
       relativePath: string,
       targetRevision: string
     ): string[] {
-      return ["merge", "-r", `HEAD:${targetRevision}`, relativePath];
+      const safePath = fixPegRevision(relativePath);
+      return ["merge", "-r", `HEAD:${targetRevision}`, safePath];
     }
 
     it("builds correct args for standard revision", () => {
@@ -46,6 +58,18 @@ describe("Rollback To Revision", () => {
       const args = buildRollbackArgs("src/components/ui/Button.tsx", "250");
       expect(args[3]).toBe("src/components/ui/Button.tsx");
       expect(args[2]).toBe("HEAD:250");
+    });
+
+    it("fixes peg revision for filenames with @ symbol", () => {
+      // file@2024.txt would be interpreted as file at revision 2024
+      // fixPegRevision appends @ to prevent this: file@2024.txt@
+      const args = buildRollbackArgs("report@2024.txt", "50");
+      expect(args[3]).toBe("report@2024.txt@");
+    });
+
+    it("fixes peg revision for paths with @ in directory", () => {
+      const args = buildRollbackArgs("user@domain/file.txt", "100");
+      expect(args[3]).toBe("user@domain/file.txt@");
     });
   });
 

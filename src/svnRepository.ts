@@ -1115,7 +1115,9 @@ export class Repository {
     targetRevision: string
   ): Promise<string> {
     const relativePath = this.removeAbsolutePath(filePath);
-    const args = ["merge", "-r", `HEAD:${targetRevision}`, relativePath];
+    // Fix peg revision for filenames with @ (e.g., file@2024.txt)
+    const safePath = fixPegRevision(relativePath);
+    const args = ["merge", "-r", `HEAD:${targetRevision}`, safePath];
 
     const result = await this.exec(args);
     this.resetInfoCache();
