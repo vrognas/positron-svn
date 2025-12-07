@@ -2054,8 +2054,10 @@ export class Repository {
     const repoRoot = info.repository.root;
 
     // Build source URL with peg revision
-    // Format: URL@revision tells SVN to look at path as it existed at that revision
-    const sourceUrl = `${repoRoot}${remotePath}@${pegRevision}`;
+    // Must escape @ in path before adding peg revision
+    // fixPegRevision adds trailing @ if path contains @, then we add @revision
+    const escapedPath = fixPegRevision(remotePath);
+    const sourceUrl = `${repoRoot}${escapedPath}@${pegRevision}`;
 
     // Determine target path
     let targetPath: string;

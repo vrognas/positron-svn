@@ -2,9 +2,10 @@
 // Copyright (c) 2025-present Viktor Rognas
 // Licensed under MIT License
 
+import * as fs from "fs";
 import * as path from "path";
-import { QuickPickItem, window } from "vscode";
-import { IDeletedItem, ISvnErrorData } from "../common/types";
+import { QuickPickItem, Uri, window } from "vscode";
+import { IDeletedItem, ISvnErrorData, Status } from "../common/types";
 import { exists } from "../fs";
 import { Repository } from "../repository";
 import { Command } from "./command";
@@ -82,8 +83,20 @@ export class Resurrect extends Command {
     const targetExists = await exists(fullTargetPath);
 
     if (targetExists) {
+      // Check if existing target is versioned
+      const targetUri = Uri.file(fullTargetPath);
+      const resource = repository.getResourceFromFile(fullTargetPath);
+      const isVersioned =
+        resource &&
+        resource.type !== Status.UNVERSIONED &&
+        resource.type !== Status.IGNORED;
+
+      const warningMsg = isVersioned
+        ? `"${targetPath}" exists and is versioned. Overwriting will replace it.`
+        : `"${targetPath}" already exists. How would you like to proceed?`;
+
       const action = await window.showWarningMessage(
-        `"${targetPath}" already exists. How would you like to proceed?`,
+        warningMsg,
         { modal: true },
         "Overwrite",
         "Choose Different Name",
@@ -111,8 +124,29 @@ export class Resurrect extends Command {
         }
 
         targetPath = newName;
+      } else if (action === "Overwrite") {
+        // Delete existing before svn copy
+        if (isVersioned) {
+          // Use svn delete for versioned files
+          await repository.removeFiles([targetUri.fsPath], false);
+        } else {
+          // Direct filesystem delete for unversioned
+          try {
+            const stat = fs.statSync(fullTargetPath);
+            if (stat.isDirectory()) {
+              fs.rmSync(fullTargetPath, { recursive: true });
+            } else {
+              fs.unlinkSync(fullTargetPath);
+            }
+          } catch (err) {
+            logError("Failed to delete existing file for overwrite", err);
+            window.showErrorMessage(
+              `Failed to delete existing "${targetPath}": ${err instanceof Error ? err.message : "Unknown error"}`
+            );
+            return;
+          }
+        }
       }
-      // If "Overwrite", continue with original targetPath
     }
 
     // Execute resurrect
