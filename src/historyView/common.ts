@@ -67,9 +67,16 @@ import {
   ILogFilter,
   filterLogEntries,
   hasActiveFilter,
-  getFilterSummary
+  getFilterSummary,
+  ACTION_LABELS
 } from "./logFilter";
-export { ILogFilter, filterLogEntries, hasActiveFilter, getFilterSummary };
+export {
+  ILogFilter,
+  filterLogEntries,
+  hasActiveFilter,
+  getFilterSummary,
+  ACTION_LABELS
+};
 
 export interface ICachedLog {
   entries: ISvnLogEntry[];

@@ -46,7 +46,8 @@ import {
   ILogFilter,
   filterLogEntries,
   hasActiveFilter,
-  getFilterSummary
+  getFilterSummary,
+  ACTION_LABELS
 } from "./common";
 import { revealFileInOS, diffWithExternalTool } from "../util/fileOperations";
 import { logError } from "../util/errorLogger";
@@ -248,6 +249,11 @@ export class RepoLogProvider
       commands.registerCommand(
         "svn.repolog.filterByDateRange",
         this.filterByDateRangeCmd,
+        this
+      ),
+      commands.registerCommand(
+        "svn.repolog.filterByAction",
+        this.filterByActionCmd,
         this
       ),
       commands.registerCommand(
@@ -686,6 +692,42 @@ export class RepoLogProvider
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined
     });
+  }
+
+  // Filter command: Filter by action type (Added/Modified/Deleted/Replaced)
+  public async filterByActionCmd() {
+    const actionTypes = Object.entries(ACTION_LABELS).map(([code, label]) => ({
+      label: `$(${this.getActionIcon(code)}) ${label}`,
+      code,
+      picked: this._filter.actions?.includes(code) ?? false
+    }));
+
+    const selected = await window.showQuickPick(actionTypes, {
+      placeHolder: "Select action types to filter by",
+      title: "Filter by Action Type",
+      canPickMany: true
+    });
+
+    if (!selected) return;
+
+    const actions = selected.length > 0 ? selected.map(s => s.code) : undefined;
+    this.setFilter({ ...this._filter, actions });
+  }
+
+  // Get icon name for action type
+  private getActionIcon(action: string): string {
+    switch (action) {
+      case "A":
+        return "diff-added";
+      case "M":
+        return "diff-modified";
+      case "D":
+        return "diff-removed";
+      case "R":
+        return "diff-renamed";
+      default:
+        return "file";
+    }
   }
 
   // Filter command: Show active filters

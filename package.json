@@ -843,6 +843,12 @@
         "icon": "$(calendar)"
       },
       {
+        "command": "svn.repolog.filterByAction",
+        "category": "SVN",
+        "title": "Filter by Action Type",
+        "icon": "$(diff)"
+      },
+      {
         "command": "svn.repolog.clearFilters",
         "category": "SVN",
         "title": "Clear Filters",
@@ -1182,6 +1188,10 @@
           "when": "false"
         },
         {
+          "command": "svn.repolog.filterByAction",
+          "when": "false"
+        },
+        {
           "command": "svn.repolog.clearFilters",
           "when": "false"
         },
@@ -1304,14 +1314,19 @@
           "group": "filter@3"
         },
         {
-          "command": "svn.repolog.clearFilters",
+          "command": "svn.repolog.filterByAction",
           "when": "view == repolog",
           "group": "filter@4"
         },
         {
-          "command": "svn.repolog.showActiveFilters",
+          "command": "svn.repolog.clearFilters",
           "when": "view == repolog",
           "group": "filter@5"
+        },
+        {
+          "command": "svn.repolog.showActiveFilters",
+          "when": "view == repolog",
+          "group": "filter@6"
         },
         {
           "command": "svn.itemlog.refresh",

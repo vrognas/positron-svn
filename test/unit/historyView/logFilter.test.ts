@@ -4,7 +4,8 @@ import {
   filterLogEntries,
   ILogFilter,
   hasActiveFilter,
-  getFilterSummary
+  getFilterSummary,
+  ACTION_LABELS
 } from "../../../src/historyView/logFilter";
 
 /**
@@ -258,5 +259,78 @@ describe("Log Filter - Helper Functions", () => {
     expect(summary).toBe(
       "author:alice | 2024-01-01 to 2024-12-31 | path:/trunk"
     );
+  });
+});
+
+describe("Log Filter - Action Types", () => {
+  it("filters by single action type", () => {
+    const filter: ILogFilter = { actions: ["A"] };
+    const result = filterLogEntries(sampleEntries, filter);
+
+    // Only entries with at least one Added file
+    expect(result.length).toBe(2);
+    expect(result.map(e => e.revision)).toEqual(["100", "98"]);
+  });
+
+  it("filters by multiple action types", () => {
+    const filter: ILogFilter = { actions: ["M"] };
+    const result = filterLogEntries(sampleEntries, filter);
+
+    // Entries with Modified files: 99, 97
+    expect(result.length).toBe(2);
+    expect(result.map(e => e.revision)).toEqual(["99", "97"]);
+  });
+
+  it("filters by A or M actions", () => {
+    const filter: ILogFilter = { actions: ["A", "M"] };
+    const result = filterLogEntries(sampleEntries, filter);
+
+    // All entries have either A or M
+    expect(result.length).toBe(4);
+  });
+
+  it("returns empty for non-matching action", () => {
+    const filter: ILogFilter = { actions: ["D"] };
+    const result = filterLogEntries(sampleEntries, filter);
+
+    // No entries have deleted files in our sample
+    expect(result.length).toBe(0);
+  });
+
+  it("empty actions array returns all entries", () => {
+    const filter: ILogFilter = { actions: [] };
+    const result = filterLogEntries(sampleEntries, filter);
+
+    expect(result.length).toBe(sampleEntries.length);
+  });
+
+  it("combines action filter with author filter", () => {
+    const filter: ILogFilter = { author: "alice", actions: ["A"] };
+    const result = filterLogEntries(sampleEntries, filter);
+
+    // Alice with Added files: 100, 98
+    expect(result.length).toBe(2);
+    expect(result.every(e => e.author === "alice")).toBe(true);
+  });
+
+  it("hasActiveFilter returns true for actions", () => {
+    expect(hasActiveFilter({ actions: ["A"] })).toBe(true);
+    expect(hasActiveFilter({ actions: ["A", "M"] })).toBe(true);
+    expect(hasActiveFilter({ actions: [] })).toBe(false);
+  });
+
+  it("getFilterSummary formats action filter", () => {
+    expect(getFilterSummary({ actions: ["A"] })).toBe("Added");
+    expect(getFilterSummary({ actions: ["M", "D"] })).toBe("Modified+Deleted");
+    expect(getFilterSummary({ actions: ["A", "M", "D", "R"] })).toBe(
+      "Added+Modified+Deleted+Replaced"
+    );
+  });
+
+  it("ACTION_LABELS contains all standard actions", () => {
+    expect(ACTION_LABELS["A"]).toBe("Added");
+    expect(ACTION_LABELS["M"]).toBe("Modified");
+    expect(ACTION_LABELS["D"]).toBe("Deleted");
+    expect(ACTION_LABELS["R"]).toBe("Replaced");
   });
 });
