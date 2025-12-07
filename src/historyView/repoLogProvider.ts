@@ -963,7 +963,7 @@ export class RepoLogProvider
       }
 
       // Show filter hint if results are empty due to filter
-      if (result.length === 0 && hasActiveFilter(this._filter)) {
+      if (logentries.length === 0 && hasActiveFilter(this._filter)) {
         const ti = new TreeItem("No commits match filter");
         ti.description = getFilterSummary(this._filter);
         ti.tooltip = "Click to clear filters";

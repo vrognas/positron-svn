@@ -38,7 +38,10 @@ export function filterLogEntries(
   return entries.filter(entry => {
     // Author filter (case-insensitive)
     if (filter.author) {
-      if (entry.author.toLowerCase() !== filter.author.toLowerCase()) {
+      if (
+        !entry.author ||
+        entry.author.toLowerCase() !== filter.author.toLowerCase()
+      ) {
         return false;
       }
     }
@@ -64,8 +67,8 @@ export function filterLogEntries(
     // Path filter - check if any path in commit matches pattern
     if (filter.path) {
       const pathPattern = filter.path.toLowerCase();
-      const hasMatchingPath = entry.paths.some(p =>
-        p._.toLowerCase().includes(pathPattern)
+      const hasMatchingPath = entry.paths.some(
+        p => p._ && p._.toLowerCase().includes(pathPattern)
       );
       if (!hasMatchingPath) {
         return false;
