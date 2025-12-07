@@ -386,12 +386,15 @@ export class ResourceGroupManager implements IResourceGroupManager {
   }
 
   /**
-   * Simple hash of resource paths for change detection
+   * Hash resources including path, type, and lock status for change detection.
+   * Includes type/lockStatus so index is rebuilt when properties change.
    */
   private hashPaths(resources: Resource[]): string {
-    // Sort paths for consistent hash regardless of order
-    const paths = resources.map(r => r.resourceUri.fsPath).sort();
-    return paths.join(";");
+    // Include path, type, and lockStatus to detect property changes
+    const hashes = resources
+      .map(r => `${r.resourceUri.fsPath}:${r.type}:${r.lockStatus ?? ""}`)
+      .sort();
+    return hashes.join(";");
   }
 
   /**

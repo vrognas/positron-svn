@@ -1355,7 +1355,7 @@ export class Repository implements IRemoteRepository {
             cancellable: false
           },
           async () => {
-            await this.update();
+            await this.updateRevision();
           }
         );
       } catch (updateErr) {
