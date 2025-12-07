@@ -384,14 +384,15 @@ export class StatusService implements IStatusService {
         kind
       );
 
-      // Skip normal/unchanged items (but keep locked files for decoration)
+      // Skip normal/unchanged items (locked-only files get decorator from cache)
       const isNormal =
         status.status === Status.NORMAL || status.status === Status.NONE;
       const propsNormal =
         status.props === Status.NORMAL || status.props === Status.NONE;
       const noChangelist = !status.changelist;
-      const noLockStatus = !lockStatus;
-      const willSkip = isNormal && propsNormal && noChangelist && noLockStatus;
+      // Skip locked-only files (no content changes) - lock is already on server
+      // Lock badge is shown via lockStatusCache, not resource group
+      const willSkip = isNormal && propsNormal && noChangelist;
 
       if (willSkip) {
         continue;

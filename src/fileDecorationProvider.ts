@@ -109,8 +109,8 @@ export class SvnFileDecorationProvider
     const resource = this.repository.getResourceFromFile(uri.fsPath);
 
     if (!resource) {
-      // File not in changes list - check if needs-lock (from batch cache)
-      return this.getNeedsLockDecoration(uri);
+      // File not in changes list - check lock cache and needs-lock
+      return this.getLockOnlyDecoration(uri);
     }
 
     const status = resource.type;
@@ -194,6 +194,51 @@ export class SvnFileDecorationProvider
       tooltip,
       color,
       propagate: true // Show on parent folders like Git
+    };
+  }
+
+  /**
+   * Get decoration for locked-only files or needs-lock files (not in Changes).
+   * Checks lock cache first (for K/O/B/T badge), then falls back to needs-lock.
+   */
+  private getLockOnlyDecoration(uri: Uri): FileDecoration | undefined {
+    // Only check file scheme
+    if (uri.scheme !== "file") {
+      return undefined;
+    }
+
+    // Check if file is in working copy
+    if (!uri.fsPath.startsWith(this.repository.workspaceRoot)) {
+      return undefined;
+    }
+
+    // Check lock cache first (for locked-only files)
+    const lockInfo = this.repository.getLockStatusCached(uri.fsPath);
+    if (lockInfo) {
+      const lockLetter = lockInfo.lockStatus;
+      const tooltip = this.getLockTooltip(
+        lockInfo.lockStatus,
+        lockInfo.lockOwner
+      );
+      const color = this.getLockColor(lockInfo.lockStatus);
+      return {
+        badge: lockLetter,
+        tooltip,
+        color,
+        propagate: false
+      };
+    }
+
+    // Fall back to needs-lock check
+    if (!this.repository.hasNeedsLockCached(uri.fsPath)) {
+      return undefined;
+    }
+
+    return {
+      badge: "L",
+      tooltip: "Needs lock - file is read-only until locked",
+      color: new ThemeColor("list.deemphasizedForeground"),
+      propagate: false
     };
   }
 

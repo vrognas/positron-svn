@@ -2056,7 +2056,7 @@ export class Repository implements IRemoteRepository {
   }
 
   /**
-   * Get cached lock status for a file.
+   * Get cached lock status for a file (by relative path).
    * Returns undefined if not in cache.
    */
   public getCachedLockStatus(
@@ -2064,6 +2064,27 @@ export class Repository implements IRemoteRepository {
   ):
     | { lockStatus: LockStatus; lockOwner?: string; hasLockToken: boolean }
     | undefined {
+    return this.lockStatusCache.get(relativePath);
+  }
+
+  /**
+   * Get cached lock status for a file (by absolute path).
+   * Sync method for use in decorators. Returns undefined if not in cache.
+   */
+  public getLockStatusCached(
+    filePath: string
+  ):
+    | { lockStatus: LockStatus; lockOwner?: string; hasLockToken: boolean }
+    | undefined {
+    // Convert absolute path to relative
+    let relativePath = filePath;
+    if (filePath.startsWith(this.workspaceRoot)) {
+      relativePath = filePath.substring(this.workspaceRoot.length);
+      // Remove leading separator
+      if (relativePath.startsWith("/") || relativePath.startsWith("\\")) {
+        relativePath = relativePath.substring(1);
+      }
+    }
     return this.lockStatusCache.get(relativePath);
   }
 
