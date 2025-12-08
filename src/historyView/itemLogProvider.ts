@@ -115,6 +115,19 @@ export class ItemLogProvider
     }
 
     const commit = element.data as ISvnLogEntry;
+    const targetRevision = parseInt(commit.revision, 10);
+
+    // Check if already at this revision (no-op)
+    if (
+      this.currentItem.persisted.baseRevision &&
+      targetRevision === this.currentItem.persisted.baseRevision
+    ) {
+      window.showInformationMessage(
+        `Already at revision ${commit.revision}. No rollback needed.`
+      );
+      return;
+    }
+
     if (!(await confirmRollback(commit.revision))) {
       return;
     }
