@@ -1194,6 +1194,20 @@ export class Repository {
     return message;
   }
 
+  /**
+   * Get diff for a specific revision (svn diff -c REV URL)
+   * Includes property changes in addition to content changes
+   */
+  public async patchRevision(revision: string, url: Uri): Promise<string> {
+    const result = await this.exec([
+      "diff",
+      "-c",
+      revision,
+      url.toString(true)
+    ]);
+    return result.stdout;
+  }
+
   public async removeFiles(files: string[], keepLocal: boolean) {
     files = files.map(file => this.removeAbsolutePath(file));
     const args = ["remove"];
