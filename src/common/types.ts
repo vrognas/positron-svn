@@ -121,6 +121,7 @@ export enum Operation {
   Merge = "Merge",
   NewBranch = "NewBranch",
   Patch = "Patch",
+  PropertyChange = "PropertyChange",
   Remove = "Remove",
   RemoveChangelist = "RemoveChangelist",
   Rename = "Rename",

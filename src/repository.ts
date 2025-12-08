@@ -2124,7 +2124,7 @@ export class Repository implements IRemoteRepository {
    * Set svn:needs-lock property on file (makes read-only until locked).
    */
   public async setNeedsLock(filePath: string) {
-    const result = await this.run(Operation.Update, () =>
+    const result = await this.run(Operation.PropertyChange, () =>
       this.repository.setNeedsLock(filePath)
     );
     // Update cache directly for immediate L badge update
@@ -2141,7 +2141,7 @@ export class Repository implements IRemoteRepository {
    * Remove svn:needs-lock property from file.
    */
   public async removeNeedsLock(filePath: string) {
-    const result = await this.run(Operation.Update, () =>
+    const result = await this.run(Operation.PropertyChange, () =>
       this.repository.removeNeedsLock(filePath)
     );
     // Update cache directly for immediate L badge removal
