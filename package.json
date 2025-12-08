@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.33.32",
+  "version": "2.35.0",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.105.0",
@@ -825,6 +825,42 @@
         "title": "Diff with External Tool"
       },
       {
+        "command": "svn.repolog.filterByAuthor",
+        "category": "SVN",
+        "title": "Filter by Author",
+        "icon": "$(person)"
+      },
+      {
+        "command": "svn.repolog.filterByPath",
+        "category": "SVN",
+        "title": "Filter by Path",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "svn.repolog.filterByDateRange",
+        "category": "SVN",
+        "title": "Filter by Date Range",
+        "icon": "$(calendar)"
+      },
+      {
+        "command": "svn.repolog.filterByAction",
+        "category": "SVN",
+        "title": "Filter by Action Type",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "svn.repolog.clearFilters",
+        "category": "SVN",
+        "title": "Clear Filters",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "svn.repolog.showActiveFilters",
+        "category": "SVN",
+        "title": "Show Active Filters",
+        "icon": "$(filter)"
+      },
+      {
         "command": "svn.resolve",
         "title": "Resolve conflicts for selected",
         "category": "SVN",
@@ -1140,6 +1176,30 @@
           "when": "false"
         },
         {
+          "command": "svn.repolog.filterByAuthor",
+          "when": "false"
+        },
+        {
+          "command": "svn.repolog.filterByPath",
+          "when": "false"
+        },
+        {
+          "command": "svn.repolog.filterByDateRange",
+          "when": "false"
+        },
+        {
+          "command": "svn.repolog.filterByAction",
+          "when": "false"
+        },
+        {
+          "command": "svn.repolog.clearFilters",
+          "when": "false"
+        },
+        {
+          "command": "svn.repolog.showActiveFilters",
+          "when": "false"
+        },
+        {
           "command": "svn.resolve",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         },
@@ -1237,6 +1297,36 @@
           "command": "svn.repolog.refresh",
           "when": "view == repolog",
           "group": "navigation@3"
+        },
+        {
+          "command": "svn.repolog.filterByAuthor",
+          "when": "view == repolog",
+          "group": "filter@1"
+        },
+        {
+          "command": "svn.repolog.filterByPath",
+          "when": "view == repolog",
+          "group": "filter@2"
+        },
+        {
+          "command": "svn.repolog.filterByDateRange",
+          "when": "view == repolog",
+          "group": "filter@3"
+        },
+        {
+          "command": "svn.repolog.filterByAction",
+          "when": "view == repolog",
+          "group": "filter@4"
+        },
+        {
+          "command": "svn.repolog.clearFilters",
+          "when": "view == repolog",
+          "group": "filter@5"
+        },
+        {
+          "command": "svn.repolog.showActiveFilters",
+          "when": "view == repolog",
+          "group": "filter@6"
         },
         {
           "command": "svn.itemlog.refresh",

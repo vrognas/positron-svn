@@ -1,3 +1,19 @@
+## [2.35.0] (2025-12-08)
+
+### Feature: Search/Filter Revision History
+
+- **Filter by Author**: QuickPick dropdown with authors from history + custom input
+- **Filter by Path**: QuickPick dropdown with paths from history + custom input
+- **Filter by Date Range**: InputBox with YYYY-MM-DD validation
+- **Clear Filters**: Single command to clear all active filters
+- **Show Active Filters**: Display current filter summary with clear option
+- **UI**: Active filter shown in tree view title ("Repo History (author:alice)")
+- **UI**: "No commits match filter" message when filter returns empty
+- **Commands**: Available in repolog view title menu under "filter" group
+- **Implementation**: Client-side filtering (author/path/date range)
+- **New files**: src/historyView/logFilter.ts, test/unit/historyView/logFilter.test.ts
+- **Affected**: repoLogProvider.ts, common.ts, package.json
+
 ## [2.34.0] (2025-12-08)
 
 ### Feature: File Rollback to Revision

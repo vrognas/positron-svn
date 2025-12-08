@@ -42,7 +42,12 @@ import {
   openPatch,
   SvnPath,
   transform,
-  getCommitDescription
+  getCommitDescription,
+  ILogFilter,
+  filterLogEntries,
+  hasActiveFilter,
+  getFilterSummary,
+  ACTION_LABELS
 } from "./common";
 import { revealFileInOS, diffWithExternalTool } from "../util/fileOperations";
 import { logError } from "../util/errorLogger";
@@ -88,6 +93,40 @@ export class RepoLogProvider
   private treeView?: TreeView<ILogTreeItem>;
   private refreshTimeout?: NodeJS.Timeout;
   private readonly DEBOUNCE_MS = 1000;
+
+  // Filter state for search/filter functionality
+  private _filter: ILogFilter = {};
+
+  /** Get the current filter */
+  public get filter(): ILogFilter {
+    return this._filter;
+  }
+
+  /** Set filter and refresh view */
+  public setFilter(filter: ILogFilter): void {
+    this._filter = filter;
+    // Clear cache when filter changes
+    this.logCache.clear();
+    // Update tree view title to show active filter
+    this.updateTreeViewTitle();
+    this.refresh(undefined, false, true);
+  }
+
+  /** Clear all filters */
+  public clearFilters(): void {
+    this.setFilter({});
+  }
+
+  /** Update tree view title with filter summary */
+  private updateTreeViewTitle(): void {
+    if (!this.treeView) return;
+    const summary = getFilterSummary(this._filter);
+    if (summary) {
+      this.treeView.title = `Repo History (${summary})`;
+    } else {
+      this.treeView.title = "Repo History";
+    }
+  }
 
   private evictOldestLogEntry(): void {
     let oldestKey: string | null = null;
@@ -194,6 +233,37 @@ export class RepoLogProvider
       commands.registerCommand(
         "svn.repolog.diffWithExternalTool",
         this.diffWithExternalToolCmd,
+        this
+      ),
+      // Filter commands
+      commands.registerCommand(
+        "svn.repolog.filterByAuthor",
+        this.filterByAuthorCmd,
+        this
+      ),
+      commands.registerCommand(
+        "svn.repolog.filterByPath",
+        this.filterByPathCmd,
+        this
+      ),
+      commands.registerCommand(
+        "svn.repolog.filterByDateRange",
+        this.filterByDateRangeCmd,
+        this
+      ),
+      commands.registerCommand(
+        "svn.repolog.filterByAction",
+        this.filterByActionCmd,
+        this
+      ),
+      commands.registerCommand(
+        "svn.repolog.clearFilters",
+        this.clearFilters,
+        this
+      ),
+      commands.registerCommand(
+        "svn.repolog.showActiveFilters",
+        this.showActiveFiltersCmd,
         this
       ),
       this.sourceControlManager.onDidChangeRepository(
@@ -485,6 +555,199 @@ export class RepoLogProvider
     );
   }
 
+  // Filter command: Filter by author
+  public async filterByAuthorCmd() {
+    const cached = this.getCached();
+    if (!cached) {
+      window.showWarningMessage("No repository history loaded");
+      return;
+    }
+
+    // Collect unique authors from cached entries
+    const authors = new Set<string>();
+    for (const entry of cached.entries) {
+      if (entry.author) {
+        authors.add(entry.author);
+      }
+    }
+
+    const items = Array.from(authors)
+      .sort()
+      .map(author => ({
+        label: author,
+        picked: this._filter.author === author
+      }));
+
+    // Add option to enter custom author
+    items.unshift({ label: "$(pencil) Enter author name...", picked: false });
+
+    const selected = await window.showQuickPick(items, {
+      placeHolder: "Select an author to filter by",
+      title: "Filter by Author"
+    });
+
+    if (!selected) return;
+
+    let author: string | undefined;
+    if (selected.label.startsWith("$(pencil)")) {
+      author = await window.showInputBox({
+        prompt: "Enter author name to filter by",
+        value: this._filter.author || ""
+      });
+    } else {
+      author = selected.label;
+    }
+
+    if (author !== undefined) {
+      this.setFilter({ ...this._filter, author: author || undefined });
+    }
+  }
+
+  // Filter command: Filter by path
+  public async filterByPathCmd() {
+    const cached = this.getCached();
+    if (!cached) {
+      window.showWarningMessage("No repository history loaded");
+      return;
+    }
+
+    // Collect unique paths from cached entries
+    const paths = new Set<string>();
+    for (const entry of cached.entries) {
+      for (const p of entry.paths) {
+        // Extract directory path
+        const dir = path.dirname(p._);
+        if (dir && dir !== ".") {
+          paths.add(dir);
+        }
+      }
+    }
+
+    const items = Array.from(paths)
+      .sort()
+      .map(p => ({
+        label: p,
+        picked: this._filter.path === p
+      }));
+
+    // Add option to enter custom path
+    items.unshift({ label: "$(pencil) Enter path pattern...", picked: false });
+
+    const selected = await window.showQuickPick(items, {
+      placeHolder: "Select a path to filter by",
+      title: "Filter by Path"
+    });
+
+    if (!selected) return;
+
+    let filterPath: string | undefined;
+    if (selected.label.startsWith("$(pencil)")) {
+      filterPath = await window.showInputBox({
+        prompt: "Enter path pattern to filter by (substring match)",
+        value: this._filter.path || ""
+      });
+    } else {
+      filterPath = selected.label;
+    }
+
+    if (filterPath !== undefined) {
+      this.setFilter({ ...this._filter, path: filterPath || undefined });
+    }
+  }
+
+  // Filter command: Filter by date range
+  public async filterByDateRangeCmd() {
+    const dateFrom = await window.showInputBox({
+      prompt: "Enter start date (YYYY-MM-DD) or leave empty",
+      value: this._filter.dateFrom || "",
+      placeHolder: "e.g., 2024-01-01",
+      validateInput: value => {
+        if (!value) return null; // Empty is OK
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          return "Date must be in YYYY-MM-DD format";
+        }
+        return null;
+      }
+    });
+
+    if (dateFrom === undefined) return; // User cancelled
+
+    const dateTo = await window.showInputBox({
+      prompt: "Enter end date (YYYY-MM-DD) or leave empty",
+      value: this._filter.dateTo || "",
+      placeHolder: "e.g., 2024-12-31",
+      validateInput: value => {
+        if (!value) return null; // Empty is OK
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          return "Date must be in YYYY-MM-DD format";
+        }
+        return null;
+      }
+    });
+
+    if (dateTo === undefined) return; // User cancelled
+
+    this.setFilter({
+      ...this._filter,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined
+    });
+  }
+
+  // Filter command: Filter by action type (Added/Modified/Deleted/Replaced)
+  public async filterByActionCmd() {
+    const actionTypes = Object.entries(ACTION_LABELS).map(([code, label]) => ({
+      label: `$(${this.getActionIcon(code)}) ${label}`,
+      code,
+      picked: this._filter.actions?.includes(code) ?? false
+    }));
+
+    const selected = await window.showQuickPick(actionTypes, {
+      placeHolder: "Select action types to filter by",
+      title: "Filter by Action Type",
+      canPickMany: true
+    });
+
+    if (!selected) return;
+
+    const actions = selected.length > 0 ? selected.map(s => s.code) : undefined;
+    this.setFilter({ ...this._filter, actions });
+  }
+
+  // Get icon name for action type
+  private getActionIcon(action: string): string {
+    switch (action) {
+      case "A":
+        return "diff-added";
+      case "M":
+        return "diff-modified";
+      case "D":
+        return "diff-removed";
+      case "R":
+        return "diff-renamed";
+      default:
+        return "file";
+    }
+  }
+
+  // Filter command: Show active filters
+  public async showActiveFiltersCmd() {
+    if (!hasActiveFilter(this._filter)) {
+      window.showInformationMessage("No filters active");
+      return;
+    }
+
+    const summary = getFilterSummary(this._filter);
+    const action = await window.showInformationMessage(
+      `Active filters: ${summary}`,
+      "Clear Filters"
+    );
+
+    if (action === "Clear Filters") {
+      this.clearFilters();
+    }
+  }
+
   public async refresh(
     element?: ILogTreeItem,
     fetchMoreClick?: boolean,
@@ -664,16 +927,23 @@ export class RepoLogProvider
       }
 
       const limit = getLimit();
-      const logentries = cached.entries;
+      let logentries = cached.entries;
 
       if (logentries.length === 0) {
         await fetchMore(cached);
+        logentries = cached.entries;
       }
+
+      // Apply client-side filter if active
+      if (hasActiveFilter(this._filter)) {
+        logentries = filterLogEntries(logentries, this._filter);
+      }
+
       const result = transform(logentries, LogTreeItemKind.Commit, undefined);
       insertBaseMarker(cached, logentries, result);
 
       // Check if we've reached r1 (no more revisions possible)
-      const lastEntry = logentries[logentries.length - 1];
+      const lastEntry = cached.entries[cached.entries.length - 1];
       const atFirstRevision =
         lastEntry && parseInt(lastEntry.revision, 10) <= 1;
       if (atFirstRevision) {
@@ -691,6 +961,20 @@ export class RepoLogProvider
         ti.iconPath = new ThemeIcon("unfold");
         result.push({ kind: LogTreeItemKind.TItem, data: ti });
       }
+
+      // Show filter hint if results are empty due to filter
+      if (logentries.length === 0 && hasActiveFilter(this._filter)) {
+        const ti = new TreeItem("No commits match filter");
+        ti.description = getFilterSummary(this._filter);
+        ti.tooltip = "Click to clear filters";
+        ti.command = {
+          command: "svn.repolog.clearFilters",
+          title: "Clear filters"
+        };
+        ti.iconPath = new ThemeIcon("filter");
+        result.push({ kind: LogTreeItemKind.TItem, data: ti });
+      }
+
       return result;
     } else if (element.kind === LogTreeItemKind.Commit) {
       const commit = element.data as ISvnLogEntry;
