@@ -3,7 +3,7 @@
 // Licensed under MIT License
 
 import * as path from "path";
-import { SourceControlResourceState } from "vscode";
+import { SourceControlResourceState, Uri } from "vscode";
 import { Status } from "../common/types";
 import { confirmRevert } from "../input/revert";
 import { Resource } from "../resource";
@@ -52,6 +52,8 @@ export class Revert extends Command {
         await repository.revert(allPaths, "infinity");
         // Invalidate needs-lock cache (revert may have changed svn:needs-lock)
         repository.invalidateNeedsLockCache();
+        // Refresh Explorer decorations for reverted files (L badge, etc)
+        repository.refreshExplorerDecorations(allPaths.map(p => Uri.file(p)));
         // Auto-unstage reverted files (they have no changes to commit)
         const revertedStaged = paths.filter(p => stagedPaths.includes(p));
         if (revertedStaged.length > 0) {

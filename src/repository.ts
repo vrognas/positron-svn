@@ -2043,6 +2043,14 @@ export class Repository implements IRemoteRepository {
   }
 
   /**
+   * Refresh Explorer file decorations for specific URIs.
+   * Pass undefined to refresh all decorations.
+   */
+  public refreshExplorerDecorations(uris?: Uri | Uri[]): void {
+    this.fileDecorationProvider?.refresh(uris);
+  }
+
+  /**
    * Check if file has svn:needs-lock property (sync, uses batch cache).
    * Returns true if file is in the cached set. Fast for decorations.
    */
