@@ -1058,6 +1058,12 @@ export class Repository implements IRemoteRepository {
     });
   }
 
+  public async patchRevision(revision: string, url: Uri): Promise<string> {
+    return this.run<string>(Operation.Show, () => {
+      return this.repository.patchRevision(revision, url);
+    });
+  }
+
   public async showBuffer(
     filePath: string | Uri,
     revision?: string
