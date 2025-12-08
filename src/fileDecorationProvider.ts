@@ -297,7 +297,7 @@ export class SvnFileDecorationProvider
         badge = "R";
         break;
       case Status.UNVERSIONED:
-        badge = "U";
+        badge = "?";
         break;
       case Status.MISSING:
         badge = "!";
