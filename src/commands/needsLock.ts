@@ -58,7 +58,8 @@ export class ToggleNeedsLock extends Command {
       this.inProgress.add(filePath);
 
       try {
-        const hasProperty = await repository.hasNeedsLock(filePath);
+        // Use cached check to avoid propget warning when property doesn't exist
+        const hasProperty = repository.hasNeedsLockCached(filePath);
 
         if (hasProperty) {
           const result = await repository.removeNeedsLock(filePath);

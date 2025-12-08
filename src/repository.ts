@@ -2127,7 +2127,13 @@ export class Repository implements IRemoteRepository {
     const result = await this.run(Operation.Update, () =>
       this.repository.setNeedsLock(filePath)
     );
-    this.invalidateNeedsLockCache();
+    // Update cache directly for immediate L badge update
+    if (result.exitCode === 0) {
+      const relativePath = this.toRelativePath(filePath);
+      this.needsLockFilesSet.add(relativePath);
+      // Fire decoration refresh for this file
+      this.fileDecorationProvider?.refresh(Uri.file(filePath));
+    }
     return result;
   }
 
@@ -2138,8 +2144,28 @@ export class Repository implements IRemoteRepository {
     const result = await this.run(Operation.Update, () =>
       this.repository.removeNeedsLock(filePath)
     );
-    this.invalidateNeedsLockCache();
+    // Update cache directly for immediate L badge removal
+    if (result.exitCode === 0) {
+      const relativePath = this.toRelativePath(filePath);
+      this.needsLockFilesSet.delete(relativePath);
+      // Fire decoration refresh for this file
+      this.fileDecorationProvider?.refresh(Uri.file(filePath));
+    }
     return result;
+  }
+
+  /**
+   * Convert absolute path to relative path.
+   */
+  private toRelativePath(filePath: string): string {
+    let relativePath = filePath;
+    if (filePath.startsWith(this.workspaceRoot)) {
+      relativePath = filePath.substring(this.workspaceRoot.length);
+      if (relativePath.startsWith("/") || relativePath.startsWith("\\")) {
+        relativePath = relativePath.substring(1);
+      }
+    }
+    return relativePath;
   }
 
   /**
