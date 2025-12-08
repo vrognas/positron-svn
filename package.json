@@ -594,6 +594,11 @@
         "title": "Go to Repository History"
       },
       {
+        "command": "svn.itemlog.rollbackToRevision",
+        "category": "SVN",
+        "title": "Rollback to this revision"
+      },
+      {
         "command": "svn.repolog.goToRevision",
         "category": "SVN",
         "title": "Go to revision"
@@ -1027,6 +1032,10 @@
           "when": "false"
         },
         {
+          "command": "svn.itemlog.rollbackToRevision",
+          "when": "false"
+        },
+        {
           "command": "svn.repolog.goToRevision",
           "when": "false"
         },
@@ -1317,6 +1326,11 @@
           "command": "svn.itemlog.gotoRepolog",
           "when": "view == itemlog && viewItem == diffable",
           "group": "navigation"
+        },
+        {
+          "command": "svn.itemlog.rollbackToRevision",
+          "when": "view == itemlog && viewItem == diffable",
+          "group": "2_rollback"
         },
         {
           "command": "svn.repolog.openDiff",

@@ -1,18 +1,15 @@
-## [2.33.32] (2025-12-06)
+## [2.34.0] (2025-12-08)
 
-### Feature: Unified Auto-Update Setting
+### Feature: File Rollback to Revision
 
-- **New setting**: `svn.commit.autoUpdate` (dropdown)
-- **Options**: `both` (default), `before`, `after`, `none`
-- **Replaces**: `updateBeforeCommit` and `updateAfterCommit` booleans
-- **Result**: Single setting controls pre/post commit updates
+- **New command**: "Rollback to this revision" in File History view
+- **Location**: Right-click any revision in File History → "Rollback to this revision"
+- **Method**: Uses `svn merge -r HEAD:REV file` (reverse merge per SVN book)
+- **Behavior**: Creates local modifications; user must commit manually
+- **Confirmation**: Modal warning before rollback
+- **Files**: svnRepository.ts, repository.ts, remoteRepository.ts, itemLogProvider.ts, input/rollback.ts
 
-### Fix: Lock Badges in Explorer
-
-- **Bug**: Lock badges (K/O/B/T) missing from some files in Explorer
-- **Cause**: Remote resources overwrote local resources in index
-- **Fix**: Local resources take precedence; remote only adds, never overwrites
-- **Affected**: ResourceGroupManager.ts
+## [2.33.32] (2025-12-06)### Feature: Unified Auto-Update Setting- **New setting**: `svn.commit.autoUpdate` (dropdown)- **Options**: `both` (default), `before`, `after`, `none`- **Replaces**: `updateBeforeCommit` and `updateAfterCommit` booleans- **Result**: Single setting controls pre/post commit updates### Fix: Lock Badges in Explorer- **Bug**: Lock badges (K/O/B/T) missing from some files in Explorer- **Cause**: Remote resources overwrote local resources in index- **Fix**: Local resources take precedence; remote only adds, never overwrites- **Affected**: ResourceGroupManager.ts
 
 ## [2.33.30] (2025-12-06)
 

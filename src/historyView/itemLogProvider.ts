@@ -17,6 +17,7 @@ import {
   window
 } from "vscode";
 import { ISvnLogEntry } from "../common/types";
+import { confirmRollback } from "../input/rollback";
 import { SourceControlManager } from "../source_control_manager";
 import { dispose } from "../util";
 import {
@@ -82,6 +83,11 @@ export class ItemLogProvider
         "svn.itemlog.gotoRepolog",
         this.gotoRepologCmd,
         this
+      ),
+      commands.registerCommand(
+        "svn.itemlog.rollbackToRevision",
+        this.rollbackToRevisionCmd,
+        this
       )
     );
     this.refresh();
@@ -95,6 +101,32 @@ export class ItemLogProvider
     const commit = element.data as ISvnLogEntry;
     const revision = parseInt(commit.revision, 10);
     await commands.executeCommand("svn.repolog.goToRevision", revision);
+  }
+
+  // Rollback file to selected revision using reverse merge
+  public async rollbackToRevisionCmd(element: ILogTreeItem) {
+    if (!this.currentItem || !this.currentItem.localPath) {
+      return;
+    }
+    if (element.kind !== LogTreeItemKind.Commit) {
+      return;
+    }
+
+    const commit = element.data as ISvnLogEntry;
+    if (!(await confirmRollback(commit.revision))) {
+      return;
+    }
+
+    try {
+      const filePath = this.currentItem.localPath;
+      await this.currentItem.repo.rollbackToRevision(filePath, commit.revision);
+      window.showInformationMessage(
+        `Rolled back to revision ${commit.revision}. Review changes and commit.`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      window.showErrorMessage(`Rollback failed: ${message}`);
+    }
   }
 
   public dispose() {
@@ -196,6 +228,7 @@ export class ItemLogProvider
               entries: [],
               repo,
               svnTarget: Uri.parse(info.url),
+              localPath: uri.fsPath,
               persisted: {
                 commitFrom: "HEAD",
                 baseRevision: parseInt(info.revision, 10)
