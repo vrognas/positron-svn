@@ -261,16 +261,25 @@ export abstract class Command implements Disposable {
     preserveFocus?: boolean,
     preserveSelection?: boolean
   ): Promise<void> {
-    // Property-only changes (status=NORMAL, props!=NONE) - show info message
-    // VS Code diff can't show property changes, so inform user instead
+    // Property-only changes (status=NORMAL, props!=NONE) - show patch
+    // VS Code diff can't show property changes, so show the SVN patch instead
     if (
       resource.type === Status.NORMAL &&
       resource.props &&
       resource.props !== PropStatus.NONE
     ) {
+      const scm = Command._sourceControlManager;
+      if (scm) {
+        const repository = scm.getRepository(resource.resourceUri);
+        if (repository) {
+          const content = await repository.patch([resource.resourceUri.fsPath]);
+          await this.showDiffPath(repository, content);
+          return;
+        }
+      }
+      // Fallback if can't get repository
       window.showInformationMessage(
-        `Only SVN properties changed (no file content diff). ` +
-          `Use 'svn diff' in terminal to see property changes.`
+        `Only SVN properties changed. Use 'svn diff' to see property changes.`
       );
       return;
     }
