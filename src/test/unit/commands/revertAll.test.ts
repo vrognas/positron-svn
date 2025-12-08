@@ -9,10 +9,10 @@ import * as revertInput from "../../../input/revert";
 
 interface MockState {
   confirmRevertResult: boolean;
-  revertCalls: Array<{ paths: string[]; depth: string }>;
+  revertCalls: Array<{ paths: string[]; depth?: string }>;
   confirmRevertCalled: boolean;
   revertCalled: boolean;
-  lastRevertCall?: { paths: string[]; depth: string };
+  lastRevertCall?: { paths: string[]; depth?: string };
 }
 
 suite("RevertAll & RevertExplorer Commands Tests", () => {
@@ -30,7 +30,7 @@ suite("RevertAll & RevertExplorer Commands Tests", () => {
 
     mockRepository = {
       root: "/test/repo",
-      revert: async (paths: string[], depth: string) => {
+      revert: async (paths: string[], depth?: string) => {
         mockState.revertCalled = true;
         mockState.lastRevertCall = { paths, depth };
         mockState.revertCalls.push({ paths, depth });

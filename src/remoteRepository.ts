@@ -28,6 +28,8 @@ export interface IRemoteRepository {
   rollbackToRevision(filePath: string, targetRevision: string): Promise<string>;
 
   patchRevision(revision: string, url: Uri): Promise<string>;
+
+  revert(files: string[]): Promise<string>;
 }
 
 export class RemoteRepository implements IRemoteRepository {
@@ -79,5 +81,9 @@ export class RemoteRepository implements IRemoteRepository {
 
   public async patchRevision(revision: string, url: Uri): Promise<string> {
     return this.repo.patchRevision(revision, url);
+  }
+
+  public async revert(files: string[]): Promise<string> {
+    return this.repo.revert(files, "empty");
   }
 }

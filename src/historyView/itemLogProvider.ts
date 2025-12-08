@@ -121,6 +121,8 @@ export class ItemLogProvider
 
     try {
       const filePath = this.currentItem.localPath;
+      // Revert any local changes first to prevent merge conflicts
+      await this.currentItem.repo.revert([filePath]);
       await this.currentItem.repo.rollbackToRevision(filePath, commit.revision);
       window.showInformationMessage(
         `Rolled back to revision ${commit.revision}. Review changes and commit.`

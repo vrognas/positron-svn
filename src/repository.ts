@@ -1421,7 +1421,7 @@ export class Repository implements IRemoteRepository {
     this.repository.clearLogCache();
   }
 
-  public async revert(files: string[], depth: keyof typeof SvnDepth) {
+  public async revert(files: string[], depth: keyof typeof SvnDepth = "empty") {
     return this.run(Operation.Revert, () =>
       this.repository.revert(files, depth)
     );
