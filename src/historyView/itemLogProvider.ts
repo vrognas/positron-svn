@@ -135,6 +135,11 @@ export class ItemLogProvider
     }
 
     this.isRollingBack = true;
+    // Clear any pending refresh to prevent stale data flash
+    if (this.refreshDebounceTimer) {
+      clearTimeout(this.refreshDebounceTimer);
+      this.refreshDebounceTimer = undefined;
+    }
     try {
       const filePath = this.currentItem.localPath;
       const fileUri = Uri.file(filePath);
@@ -253,7 +258,10 @@ export class ItemLogProvider
     }
     this.refreshDebounceTimer = setTimeout(() => {
       this.refreshDebounceTimer = undefined;
-      this.refresh(undefined, te);
+      // Re-check in case rollback started while waiting
+      if (!this.isRollingBack) {
+        this.refresh(undefined, te);
+      }
     }, 100);
   }
 
