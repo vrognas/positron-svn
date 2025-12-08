@@ -372,6 +372,7 @@ export abstract class Command implements Disposable {
       case Status.MODIFIED:
       case Status.UNVERSIONED:
       case Status.REPLACED:
+      case Status.NORMAL: // Property-only changes have status=NORMAL
         return resource.resourceUri;
       case Status.DELETED:
       case Status.MISSING:
