@@ -165,8 +165,12 @@ export class ItemLogProvider
     const commit = element.data as ISvnLogEntry;
     const pos = this.currentItem.entries.findIndex(e => e === commit);
     if (pos === this.currentItem.entries.length - 1) {
-      window.showWarningMessage("Cannot diff last commit");
-      return;
+      // First revision - no previous to diff against, show file content instead
+      return openFileRemote(
+        this.currentItem.repo,
+        this.currentItem.svnTarget,
+        commit.revision
+      );
     }
     const prevRev = this.currentItem.entries[pos + 1]!.revision;
     return openDiff(
