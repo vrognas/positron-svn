@@ -1335,12 +1335,17 @@ export class Repository implements IRemoteRepository {
 
   public async commitFiles(message: string, files: string[]) {
     // Check for needs-lock files that aren't locked
+    // Skip warning for property-only changes (e.g., setting svn:needs-lock itself)
     const unlockedNeedsLock: string[] = [];
     for (const file of files) {
       const hasNeedsLock = await this.hasNeedsLock(file);
       if (hasNeedsLock) {
         // Check if file has lock token
         const resource = this.getResourceFromFile(file);
+        // Skip if property-only change (status=NORMAL means no content changes)
+        if (resource?.type === Status.NORMAL) {
+          continue;
+        }
         if (!resource?.hasLockToken) {
           unlockedNeedsLock.push(file);
         }
