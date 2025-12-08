@@ -26,6 +26,8 @@ export interface IRemoteRepository {
   clearLogCache(): void;
 
   rollbackToRevision(filePath: string, targetRevision: string): Promise<string>;
+
+  patchRevision(revision: string, url: Uri): Promise<string>;
 }
 
 export class RemoteRepository implements IRemoteRepository {
@@ -73,5 +75,9 @@ export class RemoteRepository implements IRemoteRepository {
     targetRevision: string
   ): Promise<string> {
     return this.repo.rollbackToRevision(filePath, targetRevision);
+  }
+
+  public async patchRevision(revision: string, url: Uri): Promise<string> {
+    return this.repo.patchRevision(revision, url);
   }
 }

@@ -27,12 +27,14 @@ import {
   getCommitLabel,
   getCommitToolTip,
   getLimit,
+  hasContentChanges,
   ICachedLog,
   ILogTreeItem,
   insertBaseMarker,
   LogTreeItemKind,
   openDiff,
   openFileRemote,
+  openPatch,
   transform,
   getCommitDescription
 } from "./common";
@@ -172,6 +174,25 @@ export class ItemLogProvider
         commit.revision
       );
     }
+
+    // Check if it's property-only change (no content changes)
+    try {
+      const patch = await this.currentItem.repo.patchRevision(
+        commit.revision,
+        this.currentItem.svnTarget
+      );
+      if (patch && !hasContentChanges(patch)) {
+        // Property-only change - show patch instead of empty diff
+        return openPatch(
+          this.currentItem.repo,
+          this.currentItem.svnTarget,
+          commit.revision
+        );
+      }
+    } catch {
+      // Fall through to normal diff on error
+    }
+
     const prevRev = this.currentItem.entries[pos + 1]!.revision;
     return openDiff(
       this.currentItem.repo,

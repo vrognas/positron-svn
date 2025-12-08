@@ -389,3 +389,53 @@ export async function openFileRemote(
   };
   return commands.executeCommand<void>("vscode.open", localUri, opts);
 }
+
+/**
+ * Check if SVN diff output contains content changes (not just property changes)
+ * Property-only diffs start with "Property changes on:" but have no content hunks
+ */
+export function hasContentChanges(patchContent: string): boolean {
+  // Look for unified diff content markers (not property markers)
+  // Content diffs have lines starting with @@ (hunk headers)
+  const lines = patchContent.split("\n");
+  for (const line of lines) {
+    // Hunk header indicates content changes
+    if (line.startsWith("@@")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Show SVN patch output in a temp file (for property-only changes)
+ */
+export async function openPatch(
+  repo: IRemoteRepository,
+  remotePath: Uri,
+  revision: string
+): Promise<void> {
+  let patch: string;
+  try {
+    patch = await repo.patchRevision(revision, remotePath);
+  } catch {
+    window.showErrorMessage("Failed to get patch for revision");
+    return;
+  }
+
+  if (!patch.trim()) {
+    window.showInformationMessage("No changes in this revision");
+    return;
+  }
+
+  // Create temp file with patch content
+  const patchUri = await tempSvnFs.createTempSvnRevisionFile(
+    remotePath,
+    `${revision}.patch`,
+    patch
+  );
+  const opts: TextDocumentShowOptions = {
+    preview: true
+  };
+  return commands.executeCommand<void>("vscode.open", patchUri, opts);
+}
