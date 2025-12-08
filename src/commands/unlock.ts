@@ -12,8 +12,11 @@ export class Unlock extends Command {
 
   public async execute(...args: (SourceControlResourceState | Uri)[]) {
     // Handle Uri from Explorer context menu
+    // args[0] = clicked item, args[1] = array of all selected items (multi-select)
     if (args.length > 0 && args[0] instanceof Uri) {
-      const uris = args.filter((a): a is Uri => a instanceof Uri);
+      const uris = Array.isArray(args[1])
+        ? (args[1] as Uri[]).filter((a): a is Uri => a instanceof Uri)
+        : [args[0]];
       await this.runByRepository(uris, async (repository, resources) => {
         const paths = resources.map(r => r.fsPath);
         const result = await repository.unlock(paths);
@@ -92,8 +95,11 @@ export class BreakLock extends Command {
     }
 
     // Handle Uri from Explorer context menu
+    // args[0] = clicked item, args[1] = array of all selected items (multi-select)
     if (args.length > 0 && args[0] instanceof Uri) {
-      const uris = args.filter((a): a is Uri => a instanceof Uri);
+      const uris = Array.isArray(args[1])
+        ? (args[1] as Uri[]).filter((a): a is Uri => a instanceof Uri)
+        : [args[0]];
       await this.runByRepository(uris, async (repository, resources) => {
         const paths = resources.map(r => r.fsPath);
         const result = await repository.unlock(paths, { force: true });
