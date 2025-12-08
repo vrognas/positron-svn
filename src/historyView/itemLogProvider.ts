@@ -49,6 +49,7 @@ export class ItemLogProvider
 
   private currentItem?: ICachedLog;
   private _dispose: Disposable[] = [];
+  private isRollingBack = false;
 
   constructor(private sourceControlManager: SourceControlManager) {
     this._dispose.push(
@@ -132,6 +133,7 @@ export class ItemLogProvider
       return;
     }
 
+    this.isRollingBack = true;
     try {
       const filePath = this.currentItem.localPath;
       const fileUri = Uri.file(filePath);
@@ -160,6 +162,8 @@ export class ItemLogProvider
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       window.showErrorMessage(`Rollback failed: ${message}`);
+    } finally {
+      this.isRollingBack = false;
     }
   }
 
@@ -235,6 +239,10 @@ export class ItemLogProvider
   }
 
   public async editorChanged(te?: TextEditor) {
+    // Skip refresh during rollback to prevent flashing
+    if (this.isRollingBack) {
+      return;
+    }
     return this.refresh(undefined, te);
   }
 
