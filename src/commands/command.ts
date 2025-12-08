@@ -586,7 +586,18 @@ export abstract class Command implements Disposable {
           | { message?: string; stderr?: string; stderrFormated?: string };
         const rawStderr = err?.stderrFormated || err?.stderr || "";
         const svnMsg = this.sanitizeStderr(rawStderr) || err?.message || "";
-        window.showErrorMessage(svnMsg ? `${errorMsg}: ${svnMsg}` : errorMsg);
+        const userMessage = svnMsg ? `${errorMsg}: ${svnMsg}` : errorMsg;
+
+        // Offer cleanup button for cleanup-related errors
+        if (this.needsCleanup(error)) {
+          const runCleanup = "Run Cleanup";
+          const choice = await window.showErrorMessage(userMessage, runCleanup);
+          if (choice === runCleanup) {
+            await commands.executeCommand("svn.cleanup");
+          }
+        } else {
+          window.showErrorMessage(userMessage);
+        }
       }
     });
   }
@@ -774,25 +785,34 @@ export abstract class Command implements Disposable {
 
   /**
    * Check if an error indicates that cleanup is needed.
-   * Returns true for E155004, E155009, E155037, E200030, E200033, E155032, and related text patterns.
+   * Returns true for E155xxx working copy errors and related text patterns.
+   * @see https://subversion.apache.org/docs/api/1.11/svn__error__codes_8h.html
    */
   private needsCleanup(error: unknown): boolean {
     const fullError = this.getFullErrorString(error);
 
     return (
-      fullError.includes("e155004") ||
-      fullError.includes("e155009") ||
-      fullError.includes("e155016") ||
-      fullError.includes("e155032") ||
-      fullError.includes("e155037") ||
+      // Working copy locked/lock errors
+      fullError.includes("e155004") || // WC locked / already locked
+      fullError.includes("e155005") || // WC not locked (inconsistent state)
+      fullError.includes("e155009") || // Failed to run WC DB work queue
+      fullError.includes("e155010") || // Node in inconsistent state
+      fullError.includes("e155015") || // Another client has the lock
+      fullError.includes("e155016") || // WC database corrupt
+      fullError.includes("e155031") || // Obstructed update
+      fullError.includes("e155032") || // WC upgrade required
+      fullError.includes("e155037") || // Previous operation not finished
+      // SQLite/database errors
       fullError.includes("e200030") ||
       fullError.includes("e200033") ||
       fullError.includes("e200034") ||
+      // Text pattern detection
       /\blocked\b/.test(fullError) ||
       fullError.includes("previous operation") ||
       fullError.includes("run 'cleanup'") ||
       fullError.includes("work queue") ||
       fullError.includes("is corrupt") ||
+      fullError.includes("disk image is malformed") ||
       /sqlite[:\[]/.test(fullError)
     );
   }
