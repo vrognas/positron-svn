@@ -382,13 +382,14 @@ export class SvnFileDecorationProvider
   ): string | undefined {
     const prefix = isFolder ? "Folder " : "";
 
+    // A+ badge - added with history (rename/copy)
     if (status === Status.ADDED && renameUri) {
-      return `${prefix}Renamed from ${renameUri.fsPath}`;
+      return `${prefix}Added with history: Rename/copy (history preserved) from ${renameUri.fsPath}`;
     }
 
     switch (status) {
       case Status.ADDED:
-        return `${prefix}Added`;
+        return `${prefix}Added: New file (no prior history)`;
       case Status.CONFLICTED:
         return `${prefix}Conflicted`;
       case Status.DELETED:
@@ -396,7 +397,7 @@ export class SvnFileDecorationProvider
       case Status.MODIFIED:
         return `${prefix}Modified`;
       case Status.REPLACED:
-        return `${prefix}Replaced`;
+        return `${prefix}Replaced: Delete+add at same path (history broken)`;
       case Status.UNVERSIONED:
         return `${prefix}Unversioned`;
       case Status.MISSING:
