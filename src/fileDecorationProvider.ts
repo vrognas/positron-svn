@@ -264,11 +264,14 @@ export class SvnFileDecorationProvider
 
   /**
    * Convert repository log action to Status constant
+   * Returns special marker "ADDED_WITH_HISTORY" for A+ (rename/copy)
    */
   private actionToStatus(action: string): string | undefined {
     switch (action) {
       case "A":
         return Status.ADDED;
+      case "A+":
+        return "ADDED_WITH_HISTORY"; // Special marker for rename/copy
       case "M":
         return Status.MODIFIED;
       case "D":
@@ -287,6 +290,9 @@ export class SvnFileDecorationProvider
   ): string | undefined {
     // Addition with history (rename/copy) - 2 char limit for badges
     if (status === Status.ADDED && renameUri) {
+      return "A+";
+    }
+    if (status === "ADDED_WITH_HISTORY") {
       return "A+";
     }
 
@@ -334,6 +340,7 @@ export class SvnFileDecorationProvider
         return new ThemeColor("gitDecoration.deletedResourceForeground");
       case Status.ADDED:
       case Status.UNVERSIONED:
+      case "ADDED_WITH_HISTORY":
         return new ThemeColor("gitDecoration.untrackedResourceForeground");
       case Status.IGNORED:
         return new ThemeColor("gitDecoration.ignoredResourceForeground");
@@ -385,6 +392,9 @@ export class SvnFileDecorationProvider
     // A+ badge - added with history (rename/copy)
     if (status === Status.ADDED && renameUri) {
       return `${prefix}Added with history: Rename/copy (history preserved) from ${renameUri.fsPath}`;
+    }
+    if (status === "ADDED_WITH_HISTORY") {
+      return `${prefix}Added with history: Rename/copy (history preserved)`;
     }
 
     switch (status) {

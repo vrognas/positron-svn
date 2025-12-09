@@ -963,9 +963,14 @@ export class RepoLogProvider
 
       // Use resourceUri to show file type icon and trigger file decorations
       // Add action as query param so FileDecorationProvider can decorate historical files
+      // Use A+ for added-with-history (rename/copy)
       if (parsedPath.localFullPath) {
+        let action = pathElem.action;
+        if (action === "A" && pathElem.copyfromPath) {
+          action = "A+"; // Added with history (rename/copy)
+        }
         ti.resourceUri = parsedPath.localFullPath.with({
-          query: `action=${pathElem.action}`
+          query: `action=${action}`
         });
       }
 
