@@ -1,1 +1,2 @@
 npx lint-staged
+npx vitest run --changed HEAD~1

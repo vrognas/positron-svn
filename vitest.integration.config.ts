@@ -1,17 +1,15 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
 
+// Integration tests config - requires SVN CLI
+// Run on CI only via: npm run test:integration
 export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: [
-      "test/unit/**/*.test.ts",
-      "test/scripts/**/*.test.ts"
-      // Integration tests excluded by default - run via test:integration
-    ],
+    include: ["test/integration/**/*.test.ts"],
     exclude: ["node_modules", "out", "dist"],
-    testTimeout: 30000,
+    testTimeout: 60000, // Integration tests need more time
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
