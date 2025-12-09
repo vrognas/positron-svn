@@ -705,10 +705,34 @@ export class RepoLogProvider
 
   private async promptFilterAction(current?: ActionType[]) {
     const items = [
-      { label: "$(add) Added", value: "A" as ActionType, picked: false },
-      { label: "$(edit) Modified", value: "M" as ActionType, picked: false },
-      { label: "$(trash) Deleted", value: "D" as ActionType, picked: false },
-      { label: "$(replace) Renamed", value: "R" as ActionType, picked: false }
+      {
+        label: "$(add) Added",
+        description: "New file (no prior history)",
+        value: "A" as ActionType,
+        picked: false
+      },
+      {
+        label: "$(history) Renamed/Copied",
+        description: "Added with history (A+)",
+        value: "A+" as ActionType,
+        picked: false
+      },
+      {
+        label: "$(edit) Modified",
+        value: "M" as ActionType,
+        picked: false
+      },
+      {
+        label: "$(trash) Deleted",
+        value: "D" as ActionType,
+        picked: false
+      },
+      {
+        label: "$(replace) Replaced",
+        description: "Delete+add at same path (history broken)",
+        value: "R" as ActionType,
+        picked: false
+      }
     ];
 
     if (current) {

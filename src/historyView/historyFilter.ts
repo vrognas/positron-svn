@@ -6,8 +6,13 @@ import { ISvnLogEntry } from "../common/types";
 
 /**
  * Action types for file changes in SVN commits
+ * A = Added (new file, no history)
+ * A+ = Added with history (rename/copy - has copyfromPath)
+ * M = Modified
+ * D = Deleted
+ * R = Replaced (delete+add at same path, history broken)
  */
-export type ActionType = "A" | "M" | "D" | "R";
+export type ActionType = "A" | "A+" | "M" | "D" | "R";
 
 /**
  * Filter criteria for SVN history
@@ -347,6 +352,7 @@ function formatSvnDate(date: Date): string {
 
 /**
  * Filter log entries by action type (client-side filtering)
+ * Handles special case: A+ = Added with copyfromPath (rename/copy)
  */
 export function filterEntriesByAction(
   entries: ISvnLogEntry[],
@@ -357,9 +363,26 @@ export function filterEntriesByAction(
   }
 
   const actionSet = new Set(actions);
+  const wantAddedWithHistory = actionSet.has("A+");
+  const wantAddedPlain = actionSet.has("A");
 
   return entries.filter(entry => {
     // Keep entry if any of its paths match the action filter
-    return entry.paths?.some(p => actionSet.has(p.action as ActionType));
+    return entry.paths?.some(p => {
+      const action = p.action;
+
+      // Handle A vs A+ distinction
+      if (action === "A") {
+        const hasHistory = !!p.copyfromPath;
+        if (hasHistory) {
+          return wantAddedWithHistory; // A+ filter
+        } else {
+          return wantAddedPlain; // A filter
+        }
+      }
+
+      // Other actions (M, D, R) - direct match
+      return actionSet.has(action as ActionType);
+    });
   });
 }
