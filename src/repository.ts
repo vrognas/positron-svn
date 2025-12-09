@@ -454,7 +454,18 @@ export class Repository implements IRemoteRepository {
       }
     });
 
-    this.status();
+    this.status().catch(err => {
+      // Show user-friendly message for connection errors on startup
+      const svnError = err as ISvnErrorData;
+      if (
+        svnError.svnErrorCode === svnErrorCodes.UnableToConnect ||
+        svnError.stderrFormated?.includes("No such host")
+      ) {
+        window.showErrorMessage(
+          "Unable to connect to SVN server. Check VPN/network."
+        );
+      }
+    });
 
     this.disposables.push(
       workspace.onDidSaveTextDocument(document => {
@@ -776,6 +787,11 @@ export class Repository implements IRemoteRepository {
   private lastForceRefresh: number = 0;
   private readonly FORCE_REFRESH_GRACE_MS = 5000; // 5 seconds
   private pendingGraceRefresh: NodeJS.Timeout | undefined;
+
+  /** Set grace period to block file watcher status updates */
+  public setGracePeriod(): void {
+    this.lastForceRefresh = Date.now();
+  }
 
   @globalSequentialize("updateModelState")
   public async updateModelState(
