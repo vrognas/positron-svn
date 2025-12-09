@@ -800,8 +800,13 @@ export class RepoLogProvider
     if (fetchMoreClick) {
       // Fetch more commits for current repo
       const cached = this.getCached(element);
-      if (cached) {
-        await fetchMore(cached);
+      if (cached && !cached.isLoading) {
+        cached.isLoading = true;
+        try {
+          await fetchMore(cached);
+        } finally {
+          cached.isLoading = false;
+        }
       }
     } else if (element === undefined) {
       // Determine if we should clear or preserve cache
