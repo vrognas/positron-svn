@@ -72,6 +72,7 @@ export interface ICachedLog {
   // Local working copy file path (for file-level history)
   localPath?: string;
   isComplete: boolean;
+  isLoading?: boolean; // True while fetching from SVN
   repo: IRemoteRepository;
   persisted: {
     readonly commitFrom: string;

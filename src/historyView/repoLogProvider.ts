@@ -879,9 +879,9 @@ export class RepoLogProvider
         };
         this.logCache.set(repoUrl, newCached);
 
-        // If cache was cleared, fetch new commits immediately
-        // Don't rely on getChildren - VS Code may not call it if tree is hidden
-        if (clearEntries) {
+        // If cache was cleared and tree is hidden, fetch now (getChildren won't be called)
+        // If visible, getChildren handles loading state for snappy UX
+        if (clearEntries && !this.treeView?.visible) {
           await fetchMore(newCached);
         }
       }
@@ -974,9 +974,27 @@ export class RepoLogProvider
       const limit = getLimit();
       const logentries = cached.entries;
 
-      if (logentries.length === 0) {
-        await fetchMore(cached);
+      // Show loading indicator while fetching
+      if (cached.isLoading) {
+        const loadingItem = new TreeItem("Loading...");
+        loadingItem.iconPath = new ThemeIcon("loading~spin");
+        return [{ kind: LogTreeItemKind.TItem, data: loadingItem }];
       }
+
+      // Fetch more if needed (non-blocking)
+      if (logentries.length === 0 && !cached.isComplete) {
+        cached.isLoading = true;
+        // Fetch in background, refresh when done
+        fetchMore(cached).finally(() => {
+          cached.isLoading = false;
+          this._onDidChangeTreeData.fire(undefined);
+        });
+        // Show loading state
+        const loadingItem = new TreeItem("Loading...");
+        loadingItem.iconPath = new ThemeIcon("loading~spin");
+        return [{ kind: LogTreeItemKind.TItem, data: loadingItem }];
+      }
+
       const result = transform(logentries, LogTreeItemKind.Commit, undefined);
       insertBaseMarker(cached, logentries, result);
 
