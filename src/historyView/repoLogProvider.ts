@@ -762,6 +762,7 @@ export class RepoLogProvider
     for (const cached of this.logCache.values()) {
       cached.entries = [];
       cached.isComplete = false;
+      cached.isLoading = false; // Reset to allow new fetch
     }
     // Update tree view description and context variable
     this.updateFilterUI();
@@ -1026,10 +1027,15 @@ export class RepoLogProvider
       // Fetch more if needed (non-blocking)
       if (logentries.length === 0 && !cached.isComplete) {
         cached.isLoading = true;
+        const repoUrl = cached.svnTarget.toString(true);
         // Fetch in background, refresh when done
         fetchMore(cached).finally(() => {
-          cached.isLoading = false;
-          this._onDidChangeTreeData.fire(undefined);
+          // Only refresh if this cached object is still current (not replaced by filter change)
+          const currentCached = this.logCache.get(repoUrl);
+          if (currentCached === cached) {
+            cached.isLoading = false;
+            this._onDidChangeTreeData.fire(undefined);
+          }
         });
         // Show loading state
         const loadingItem = new TreeItem("Loading...");
