@@ -243,6 +243,9 @@ export class RepoLogProvider
       }),
       this.filterService
     );
+
+    // Initialize context variable for menu visibility
+    this.updateFilterUI();
   }
 
   public dispose() {
