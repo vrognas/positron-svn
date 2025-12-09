@@ -961,17 +961,23 @@ export class RepoLogProvider
       ti.description = dirname;
       ti.tooltip = parsedPath.relativeFromBranch;
 
+      // Determine action for badge (A+ for rename/copy)
+      let action = pathElem.action;
+      if (action === "A" && pathElem.copyfromPath) {
+        action = "A+"; // Added with history (rename/copy)
+      }
+
       // Use resourceUri to show file type icon and trigger file decorations
-      // Add action as query param so FileDecorationProvider can decorate historical files
-      // Use A+ for added-with-history (rename/copy)
+      // For files without local path, use synthetic URI for badge only
       if (parsedPath.localFullPath) {
-        let action = pathElem.action;
-        if (action === "A" && pathElem.copyfromPath) {
-          action = "A+"; // Added with history (rename/copy)
-        }
         ti.resourceUri = parsedPath.localFullPath.with({
           query: `action=${action}`
         });
+      } else {
+        // Synthetic URI for historical files not in working copy
+        ti.resourceUri = Uri.parse(
+          `svn-history:${encodeURIComponent(pathElem._)}?action=${action}`
+        );
       }
 
       ti.contextValue = "diffable";
