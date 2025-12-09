@@ -969,14 +969,16 @@ export class RepoLogProvider
 
       // Use resourceUri to show file type icon and trigger file decorations
       // For files without local path, use synthetic URI for badge only
+      // Note: encodeURIComponent needed because "+" in "A+" becomes space in URLs
+      const encodedAction = encodeURIComponent(action);
       if (parsedPath.localFullPath) {
         ti.resourceUri = parsedPath.localFullPath.with({
-          query: `action=${action}`
+          query: `action=${encodedAction}`
         });
       } else {
         // Synthetic URI for historical files not in working copy
         ti.resourceUri = Uri.parse(
-          `svn-history:${encodeURIComponent(pathElem._)}?action=${action}`
+          `svn-history:${encodeURIComponent(pathElem._)}?action=${encodedAction}`
         );
       }
 
