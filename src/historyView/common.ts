@@ -256,10 +256,14 @@ export async function fetchMore(cached: ICachedLog) {
 
     if (hasServerSideFilter) {
       // Build filter with revision range for pagination
+      // Use min of user's revisionTo and current position (rfrom)
+      const rfromNum = parseInt(rfrom, 10);
+      const paginatedRevisionTo = filter.revisionTo
+        ? Math.min(filter.revisionTo, rfromNum || Infinity)
+        : rfromNum || undefined;
       const paginatedFilter: IHistoryFilter = {
         ...filter,
-        // Override revisionTo with current position for pagination
-        revisionTo: filter.revisionTo ?? (parseInt(rfrom, 10) || undefined)
+        revisionTo: paginatedRevisionTo
       };
       moreCommits = await cached.repo.logWithFilter(
         paginatedFilter,
