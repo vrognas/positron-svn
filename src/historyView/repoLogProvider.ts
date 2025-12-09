@@ -577,13 +577,57 @@ export class RepoLogProvider
   }
 
   private async promptFilterAuthor(current?: string) {
-    const input = await window.showInputBox({
-      prompt: "Filter by author",
-      placeHolder: "Enter author name",
-      value: current
+    // Extract unique authors from cached entries
+    const authors = new Set<string>();
+    for (const cached of this.logCache.values()) {
+      for (const entry of cached.entries) {
+        if (entry.author) {
+          authors.add(entry.author);
+        }
+      }
+    }
+
+    // Build QuickPick items - authors sorted alphabetically
+    const authorItems = Array.from(authors)
+      .sort((a, b) => a.localeCompare(b))
+      .map(author => ({
+        label: author,
+        picked: author === current
+      }));
+
+    // Add "Custom..." option for authors not in cache
+    const customOption = { label: "$(edit) Custom...", id: "custom" };
+
+    // Add "Clear" option if filter is active
+    const clearOption = current
+      ? [{ label: "$(close) Clear author filter", id: "clear" }]
+      : [];
+
+    const items = [...clearOption, ...authorItems, customOption];
+
+    const selected = await window.showQuickPick(items, {
+      placeHolder: authors.size
+        ? "Select author or choose Custom..."
+        : "No authors in cache - choose Custom...",
+      title: "Filter by Author"
     });
-    if (input !== undefined) {
-      this.filterService.updateFilter({ author: input || undefined });
+
+    if (!selected) return;
+
+    if ("id" in selected && selected.id === "clear") {
+      this.filterService.updateFilter({ author: undefined });
+    } else if ("id" in selected && selected.id === "custom") {
+      // Fall back to InputBox for custom author
+      const input = await window.showInputBox({
+        prompt: "Filter by author",
+        placeHolder: "Enter author name",
+        value: current
+      });
+      if (input !== undefined) {
+        this.filterService.updateFilter({ author: input || undefined });
+      }
+    } else {
+      this.filterService.updateFilter({ author: selected.label });
     }
   }
 
