@@ -765,6 +765,7 @@ export class RepoLogProvider
       this.logCache.set(key, {
         ...cached,
         entries: [],
+        revisionSet: new Set(),
         isComplete: false,
         isLoading: false,
         filter: newFilter
@@ -905,6 +906,7 @@ export class RepoLogProvider
         }
         const newCached: ICachedLog = {
           entries,
+          revisionSet: new Set(entries.map(e => e.revision)),
           isComplete,
           repo,
           svnTarget: remoteRoot,

@@ -52,48 +52,6 @@ describe("HistoryFilterService", () => {
     });
   });
 
-  describe("filter cache", () => {
-    it("returns cached results for same filter", () => {
-      const entries: ISvnLogEntry[] = [
-        createEntry("1", "john", "fix bug"),
-        createEntry("2", "jane", "add feature")
-      ];
-
-      // First call - should cache
-      const result1 = service.filterEntries(entries, { author: "john" });
-      // Second call - should return cached
-      const result2 = service.filterEntries(entries, { author: "john" });
-
-      expect(result1).toEqual(result2);
-      expect(result1).toHaveLength(1);
-    });
-
-    it("invalidates cache when filter changes", () => {
-      const entries: ISvnLogEntry[] = [
-        createEntry("1", "john", "fix bug"),
-        createEntry("2", "jane", "add feature")
-      ];
-
-      service.filterEntries(entries, { author: "john" });
-      service.clearFilter();
-
-      // Cache should be cleared after filter change
-      expect(service.getCacheSize()).toBe(0);
-    });
-
-    it("evicts oldest entries when cache is full", () => {
-      const entries: ISvnLogEntry[] = [createEntry("1", "test", "msg")];
-
-      // Fill cache beyond max size
-      for (let i = 0; i < 60; i++) {
-        service.filterEntries(entries, { message: `filter${i}` });
-      }
-
-      // Cache should be capped at max size (50)
-      expect(service.getCacheSize()).toBeLessThanOrEqual(50);
-    });
-  });
-
   describe("filter description", () => {
     it("returns empty string for no filter", () => {
       expect(service.getFilterDescription()).toBe("");
@@ -237,20 +195,6 @@ describe("filterEntriesByAction", () => {
 });
 
 // Helper functions
-function createEntry(
-  revision: string,
-  author: string,
-  msg: string
-): ISvnLogEntry {
-  return {
-    revision,
-    author,
-    msg,
-    date: new Date().toISOString(),
-    paths: []
-  };
-}
-
 function createEntryWithPaths(
   revision: string,
   author: string,

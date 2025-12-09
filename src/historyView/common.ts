@@ -67,6 +67,8 @@ export class SvnPath {
 
 export interface ICachedLog {
   entries: ISvnLogEntry[];
+  // O(1) lookup for deduplication during pagination
+  revisionSet: Set<string>;
   // Uri of svn repository (remote URL)
   svnTarget: Uri;
   // Local working copy file path (for file-level history)
@@ -300,9 +302,13 @@ export async function fetchMore(cached: ICachedLog) {
   if (filter?.actions?.length) {
     moreCommits = filterEntriesByAction(moreCommits, filter.actions);
   }
-  // Deduplicate: skip commits already in entries
-  const existingRevs = new Set(entries.map(e => e.revision));
-  const newCommits = moreCommits.filter(c => !existingRevs.has(c.revision));
+  // Deduplicate using persistent Set (O(1) lookup)
+  const newCommits = moreCommits.filter(
+    c => !cached.revisionSet.has(c.revision)
+  );
+  for (const c of newCommits) {
+    cached.revisionSet.add(c.revision);
+  }
   entries.push(...newCommits);
 }
 

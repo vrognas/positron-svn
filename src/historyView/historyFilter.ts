@@ -37,23 +37,11 @@ export interface IHistoryFilter {
 }
 
 /**
- * Cache entry for filtered results
- */
-interface FilterCacheEntry {
-  key: string;
-  entries: ISvnLogEntry[];
-  accessTime: number;
-}
-
-const MAX_FILTER_CACHE_SIZE = 50;
-
-/**
- * Service to manage history filter state and caching
+ * Service to manage history filter state
  */
 export class HistoryFilterService implements Disposable {
   private _filter?: IHistoryFilter;
   private _onDidChangeFilter = new EventEmitter<IHistoryFilter | undefined>();
-  private _cache = new Map<string, FilterCacheEntry>();
   private _disposables: Disposable[] = [];
 
   public readonly onDidChangeFilter: Event<IHistoryFilter | undefined> =
@@ -75,7 +63,6 @@ export class HistoryFilterService implements Disposable {
    */
   public setFilter(filter: IHistoryFilter): void {
     this._filter = filter;
-    this.clearCache();
     this._onDidChangeFilter.fire(filter);
   }
 
@@ -84,7 +71,6 @@ export class HistoryFilterService implements Disposable {
    */
   public updateFilter(partial: Partial<IHistoryFilter>): void {
     this._filter = { ...this._filter, ...partial };
-    this.clearCache();
     this._onDidChangeFilter.fire(this._filter);
   }
 
@@ -93,7 +79,6 @@ export class HistoryFilterService implements Disposable {
    */
   public clearFilter(): void {
     this._filter = undefined;
-    this.clearCache();
     this._onDidChangeFilter.fire(undefined);
   }
 
@@ -178,130 +163,8 @@ export class HistoryFilterService implements Disposable {
     return parts.join(" ");
   }
 
-  /**
-   * Filter entries with caching (client-side filtering for cached data)
-   */
-  public filterEntries(
-    entries: ISvnLogEntry[],
-    filter: IHistoryFilter
-  ): ISvnLogEntry[] {
-    const cacheKey = this.createCacheKey(filter);
-
-    // Check cache
-    const cached = this._cache.get(cacheKey);
-    if (cached) {
-      cached.accessTime = Date.now();
-      return cached.entries;
-    }
-
-    // Apply client-side filtering
-    let result = entries;
-
-    // Filter by author (case-insensitive)
-    if (filter.author) {
-      const authorLower = filter.author.toLowerCase();
-      result = result.filter(e =>
-        e.author?.toLowerCase().includes(authorLower)
-      );
-    }
-
-    // Filter by message (case-insensitive)
-    if (filter.message) {
-      const msgLower = filter.message.toLowerCase();
-      result = result.filter(e => e.msg?.toLowerCase().includes(msgLower));
-    }
-
-    // Filter by path (case-insensitive)
-    if (filter.path) {
-      const pathLower = filter.path.toLowerCase();
-      result = result.filter(e =>
-        e.paths?.some(p => p._?.toLowerCase().includes(pathLower))
-      );
-    }
-
-    // Filter by revision range
-    if (filter.revisionFrom !== undefined || filter.revisionTo !== undefined) {
-      const from = filter.revisionFrom ?? 1;
-      const to = filter.revisionTo ?? Number.MAX_SAFE_INTEGER;
-      result = result.filter(e => {
-        const rev = parseInt(e.revision, 10);
-        return rev >= from && rev <= to;
-      });
-    }
-
-    // Filter by date range
-    if (filter.dateFrom || filter.dateTo) {
-      const fromTime = filter.dateFrom?.getTime() ?? 0;
-      // Include entire end day (add 23:59:59.999 = 86399999ms)
-      const toTime = filter.dateTo
-        ? filter.dateTo.getTime() + 86399999
-        : Date.now();
-      result = result.filter(e => {
-        const entryTime = new Date(e.date).getTime();
-        return entryTime >= fromTime && entryTime <= toTime;
-      });
-    }
-
-    // Filter by action types
-    if (filter.actions?.length) {
-      result = filterEntriesByAction(result, filter.actions);
-    }
-
-    // Store in cache
-    this.addToCache(cacheKey, result);
-
-    return result;
-  }
-
-  /**
-   * Get current cache size
-   */
-  public getCacheSize(): number {
-    return this._cache.size;
-  }
-
-  private createCacheKey(filter: IHistoryFilter): string {
-    return JSON.stringify(filter, (_, v) =>
-      v instanceof Date ? v.toISOString() : v
-    );
-  }
-
-  private addToCache(key: string, entries: ISvnLogEntry[]): void {
-    // Evict oldest if cache is full
-    if (this._cache.size >= MAX_FILTER_CACHE_SIZE) {
-      this.evictOldest();
-    }
-
-    this._cache.set(key, {
-      key,
-      entries,
-      accessTime: Date.now()
-    });
-  }
-
-  private evictOldest(): void {
-    let oldestKey: string | undefined;
-    let oldestTime = Infinity;
-
-    for (const [key, entry] of this._cache) {
-      if (entry.accessTime < oldestTime) {
-        oldestTime = entry.accessTime;
-        oldestKey = key;
-      }
-    }
-
-    if (oldestKey) {
-      this._cache.delete(oldestKey);
-    }
-  }
-
-  private clearCache(): void {
-    this._cache.clear();
-  }
-
   public dispose(): void {
     this._disposables.forEach(d => d.dispose());
-    this._cache.clear();
   }
 }
 
@@ -324,22 +187,23 @@ export function buildSvnLogArgs(filter: IHistoryFilter): string[] {
     args.push("--search", filter.path);
   }
 
-  // Revision range
+  // Revision range: SVN -r syntax is "start:end" where results go from start toward end
+  // We want newest-first, so start at upper bound (revisionTo) and descend to lower bound (revisionFrom)
   if (filter.revisionFrom !== undefined || filter.revisionTo !== undefined) {
-    const from = filter.revisionTo ?? "HEAD";
-    const to = filter.revisionFrom ?? 1;
-    args.push("-r", `${from}:${to}`);
+    const upper = filter.revisionTo ?? "HEAD"; // Start here (newest)
+    const lower = filter.revisionFrom ?? 1; // Go back to here (oldest)
+    args.push("-r", `${upper}:${lower}`);
   }
 
-  // Date range (uses SVN {DATE} syntax)
+  // Date range: same logic - start at newer date, descend to older
   if (filter.dateFrom || filter.dateTo) {
-    const fromDate = filter.dateFrom
+    const olderDate = filter.dateFrom
       ? `{${formatSvnDate(filter.dateFrom)}}`
       : "{1970-01-01}";
-    const toDate = filter.dateTo
+    const newerDate = filter.dateTo
       ? `{${formatSvnDate(filter.dateTo)}}`
       : "{" + formatSvnDate(new Date()) + "}";
-    args.push("-r", `${toDate}:${fromDate}`);
+    args.push("-r", `${newerDate}:${olderDate}`);
   }
 
   // Note: actions filter is client-side only, not included here
@@ -348,10 +212,13 @@ export function buildSvnLogArgs(filter: IHistoryFilter): string[] {
 }
 
 /**
- * Format date for SVN -r {DATE} syntax
+ * Format date for SVN -r {DATE} syntax (uses local timezone)
  */
 function formatSvnDate(date: Date): string {
-  return date.toISOString().split("T")[0]!;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 /**
