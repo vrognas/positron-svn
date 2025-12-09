@@ -268,11 +268,6 @@ export async function fetchMore(cached: ICachedLog) {
     } else {
       // No server-side filter, use regular log
       moreCommits = await cached.repo.log(rfrom, "1", limit, cached.svnTarget);
-
-      // Apply client-side action filter if present
-      if (filter?.actions?.length) {
-        moreCommits = filterEntriesByAction(moreCommits, filter.actions);
-      }
     }
   } catch (e) {
     // Show user-friendly message for connection errors
@@ -289,8 +284,15 @@ export async function fetchMore(cached: ICachedLog) {
     }
     // Silently ignore other errors (e.g., item didn't exist)
   }
+
+  // Check needFetch BEFORE action filtering (action filter reduces count)
   if (!needFetch(entries, moreCommits, limit)) {
     cached.isComplete = true;
+  }
+
+  // Apply client-side action filter AFTER needFetch check
+  if (filter?.actions?.length) {
+    moreCommits = filterEntriesByAction(moreCommits, filter.actions);
   }
   // Deduplicate: skip commits already in entries
   const existingRevs = new Set(entries.map(e => e.revision));
