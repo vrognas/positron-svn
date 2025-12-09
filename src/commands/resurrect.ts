@@ -5,7 +5,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { QuickPickItem, Uri, window } from "vscode";
-import { IDeletedItem, ISvnErrorData, Status } from "../common/types";
+import { IDeletedItem, ISvnErrorData } from "../common/types";
 import { exists } from "../fs";
 import { Repository } from "../repository";
 import { Command } from "./command";
@@ -83,13 +83,16 @@ export class Resurrect extends Command {
     const targetExists = await exists(fullTargetPath);
 
     if (targetExists) {
-      // Check if existing target is versioned
+      // Check if existing target is versioned using svn info
+      // Note: getResourceFromFile only returns changed files, not NORMAL versioned files
       const targetUri = Uri.file(fullTargetPath);
-      const resource = repository.getResourceFromFile(fullTargetPath);
-      const isVersioned =
-        resource &&
-        resource.type !== Status.UNVERSIONED &&
-        resource.type !== Status.IGNORED;
+      let isVersioned = false;
+      try {
+        await repository.getInfo(fullTargetPath);
+        isVersioned = true; // svn info succeeded = file is versioned
+      } catch {
+        // svn info failed = file is not versioned (unversioned or ignored)
+      }
 
       const warningMsg = isVersioned
         ? `"${targetPath}" exists and is versioned. Overwriting will replace it.`
@@ -111,9 +114,14 @@ export class Resurrect extends Command {
         const newName = await window.showInputBox({
           prompt: "Enter new name for restored item",
           value: this.generateRestoredName(targetPath),
-          validateInput: value => {
+          validateInput: async value => {
             if (!value || value.trim().length === 0) {
               return "Name cannot be empty";
+            }
+            // Check if new path already exists
+            const newFullPath = path.join(repository.workspaceRoot, value);
+            if (await exists(newFullPath)) {
+              return `"${value}" already exists`;
             }
             return undefined;
           }
