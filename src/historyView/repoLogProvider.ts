@@ -46,6 +46,7 @@ import {
 } from "./common";
 import { revealFileInOS, diffWithExternalTool } from "../util/fileOperations";
 import { logError } from "../util/errorLogger";
+import { exists } from "../fs";
 import { HistoryFilterService, ActionType } from "./historyFilter";
 
 // Reserved for future use - icon rendering in history view
@@ -198,6 +199,11 @@ export class RepoLogProvider
       commands.registerCommand(
         "svn.repolog.diffWithExternalTool",
         this.diffWithExternalToolCmd,
+        this
+      ),
+      commands.registerCommand(
+        "svn.repolog.resurrect",
+        this.resurrectDeletedCmd,
         this
       ),
       this.sourceControlManager.onDidChangeRepository(
@@ -433,6 +439,160 @@ export class RepoLogProvider
       logError("Failed to open external diff", error);
       window.showErrorMessage("Could not open external diff tool");
     }
+  }
+
+  /**
+   * Resurrect a deleted file or directory from SVN history.
+   * Uses svn copy with peg revision to restore with history linkage.
+   */
+  public async resurrectDeletedCmd(element: ILogTreeItem) {
+    if (element.kind !== LogTreeItemKind.CommitDetail) {
+      return;
+    }
+
+    const pathElem = element.data as ISvnLogEntryPath;
+    // Only allow resurrection for deleted items
+    if (pathElem.action !== "D") {
+      window.showWarningMessage("Can only resurrect deleted items");
+      return;
+    }
+
+    const item = this.getCached(element);
+    if (!item) {
+      window.showErrorMessage("Could not find repository for resurrection");
+      return;
+    }
+
+    // Get the revision where the file was deleted
+    const parent = (element.parent as ILogTreeItem).data as ISvnLogEntry;
+    const deletionRev = parseInt(parent.revision, 10);
+    // Use revision just before deletion
+    const pegRevision = (deletionRev - 1).toString();
+
+    const pathInfo = item.repo.getPathNormalizer().parse(pathElem._);
+    const remotePath = pathInfo.relativeFromBranch || pathElem._;
+
+    // Check if we have a local path (working copy)
+    if (!pathInfo.localFullPath) {
+      window.showErrorMessage(
+        "Cannot resurrect: file is outside the working copy"
+      );
+      return;
+    }
+
+    let targetPath = pathInfo.localFullPath.fsPath;
+    const targetExists = await exists(targetPath);
+
+    // Handle conflict: target already exists
+    if (targetExists) {
+      const choice = await this.promptConflictResolution(targetPath);
+      if (choice === "cancel") {
+        return;
+      }
+      if (choice === "rename") {
+        targetPath = this.generateRenamedPath(targetPath);
+      } else if (choice === "overwrite") {
+        // Remove existing file/dir first
+        try {
+          const repo = item.repo instanceof Repository ? item.repo : null;
+          if (repo) {
+            // Use svn rm --force to remove (handles versioned files)
+            await repo.repository.exec(["rm", "--force", targetPath]);
+          }
+        } catch (error) {
+          logError("Failed to remove existing file for overwrite", error);
+          window.showErrorMessage(
+            "Could not remove existing file. Try renaming instead."
+          );
+          return;
+        }
+      }
+    }
+
+    // Execute resurrection
+    try {
+      const repo = item.repo instanceof Repository ? item.repo : null;
+      if (!repo) {
+        window.showErrorMessage("Repository not available for resurrection");
+        return;
+      }
+
+      await repo.repository.resurrect(remotePath, pegRevision, targetPath);
+
+      // Show success with action button
+      const action = await window.showInformationMessage(
+        `Resurrected: ${path.basename(targetPath)}`,
+        "View File",
+        "Show in Explorer"
+      );
+
+      if (action === "View File") {
+        commands.executeCommand("vscode.open", Uri.file(targetPath));
+      } else if (action === "Show in Explorer") {
+        revealFileInOS(Uri.file(targetPath));
+      }
+
+      // Refresh the tree to show updated status
+      this._onDidChangeTreeData.fire(undefined);
+    } catch (error) {
+      logError("Resurrection failed", error);
+      const err = error as { message?: string; stderrFormated?: string };
+      const msg = err.stderrFormated || err.message || "Unknown error";
+      window.showErrorMessage(`Resurrection failed: ${msg}`);
+    }
+  }
+
+  /**
+   * Prompt user for conflict resolution when target exists.
+   */
+  private async promptConflictResolution(
+    targetPath: string
+  ): Promise<"overwrite" | "rename" | "cancel"> {
+    const options = [
+      {
+        label: "$(replace) Overwrite",
+        description: "Replace existing file (destructive)",
+        value: "overwrite" as const
+      },
+      {
+        label: "$(file-add) Rename",
+        description: `Save as '${path.basename(this.generateRenamedPath(targetPath))}'`,
+        value: "rename" as const
+      },
+      {
+        label: "$(close) Cancel",
+        description: "Abort resurrection",
+        value: "cancel" as const
+      }
+    ];
+
+    const result = await window.showQuickPick(options, {
+      title: "File already exists at target location",
+      placeHolder: "Choose an action"
+    });
+
+    return result?.value ?? "cancel";
+  }
+
+  /**
+   * Generate a renamed path for resurrection to avoid conflict.
+   */
+  private generateRenamedPath(originalPath: string): string {
+    const lastSlash = originalPath.lastIndexOf(path.sep);
+    const filename =
+      lastSlash >= 0 ? originalPath.substring(lastSlash + 1) : originalPath;
+    const dir = lastSlash >= 0 ? originalPath.substring(0, lastSlash + 1) : "";
+
+    const lastDot = filename.lastIndexOf(".");
+    // Has extension if dot exists and is not at start (dotfile)
+    const hasExtension = lastDot > 0;
+
+    if (hasExtension) {
+      const name = filename.substring(0, lastDot);
+      const ext = filename.substring(lastDot);
+      return `${dir}${name}_restored${ext}`;
+    }
+    return `${originalPath}_restored`;
   }
 
   // Wrapper for explicit user refresh (clears cache)
@@ -991,7 +1151,8 @@ export class RepoLogProvider
         );
       }
 
-      ti.contextValue = "diffable";
+      // Include action in contextValue for menu filtering (e.g., "diffable:D" for resurrect)
+      ti.contextValue = action === "D" ? "diffable:D" : "diffable";
       ti.command = {
         command: "svn.repolog.openDiff",
         title: "Open diff",

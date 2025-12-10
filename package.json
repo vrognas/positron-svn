@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.35.0",
+  "version": "2.36.0",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.105.0",
@@ -825,6 +825,12 @@
         "title": "Diff with External Tool"
       },
       {
+        "command": "svn.repolog.resurrect",
+        "category": "SVN",
+        "title": "Resurrect Deleted Item",
+        "icon": "$(history)"
+      },
+      {
         "command": "svn.repolog.filterHistory",
         "category": "SVN",
         "title": "Filter History",
@@ -1160,6 +1166,10 @@
           "when": "false"
         },
         {
+          "command": "svn.repolog.resurrect",
+          "when": "false"
+        },
+        {
           "command": "svn.resolve",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         },
@@ -1389,6 +1399,11 @@
           "command": "svn.repolog.diffWithExternalTool",
           "when": "view == repolog && viewItem == diffable",
           "group": "navigation"
+        },
+        {
+          "command": "svn.repolog.resurrect",
+          "when": "view == repolog && viewItem == diffable:D",
+          "group": "2_resurrect"
         },
         {
           "command": "svn.repolog.fetch",

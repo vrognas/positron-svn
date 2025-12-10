@@ -1,3 +1,16 @@
+## [2.36.0] (2025-12-10)
+
+### Feature: Resurrect Deleted Items
+
+- **New command**: "Resurrect Deleted Item" in Repository History view
+- **Location**: Right-click any deleted item (D badge) → "Resurrect Deleted Item"
+- **Method**: Uses `svn copy URL@REV target` (peg revision preserves history)
+- **Conflict handling**: QuickPick with Overwrite/Rename/Cancel options
+- **Overwrite**: Removes existing file then copies from history
+- **Rename**: Auto-generates `filename_restored.ext` suffix
+- **Supports**: Files and directories (recursive via svn copy)
+- **Files**: svnRepository.ts, repoLogProvider.ts, package.json
+
 ## [2.35.0] (2025-12-09)
 
 ### Feature: History Filtering

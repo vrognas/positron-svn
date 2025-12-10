@@ -1130,6 +1130,33 @@ export class Repository {
     return result.stdout;
   }
 
+  /**
+   * Resurrect a deleted file or directory from history using svn copy.
+   * Uses: svn copy <repo-url><path>@<rev> <target>
+   *
+   * Per SVN book: using peg revision preserves history linkage (shows as "A +").
+   *
+   * @param remotePath Path from repo root (e.g., "/trunk/deleted.txt")
+   * @param pegRevision Revision where file existed (before deletion)
+   * @param targetPath Local target path for resurrection
+   * @returns SVN copy output
+   */
+  public async resurrect(
+    remotePath: string,
+    pegRevision: string,
+    targetPath: string
+  ): Promise<string> {
+    const repoUrl = await this.getRepoUrl();
+    // Build source URL with peg revision
+    const sourceUrl = `${repoUrl}${remotePath}@${pegRevision}`;
+    const args = ["copy", sourceUrl, fixPegRevision(targetPath)];
+
+    const result = await this.exec(args);
+    this.resetInfoCache();
+
+    return result.stdout;
+  }
+
   public async revert(files: string[], depth: keyof typeof SvnDepth) {
     files = files.map(file => this.removeAbsolutePath(file));
 
