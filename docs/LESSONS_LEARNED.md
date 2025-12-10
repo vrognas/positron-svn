@@ -1,7 +1,7 @@
 # Lessons Learned
 
-**Version**: v2.34.0
-**Updated**: 2025-12-05
+**Version**: v2.35.0
+**Updated**: 2025-12-09
 
 ---
 
@@ -979,5 +979,64 @@ But VS Code's internal Graph view threw "Tree input not set" errors due to their
 **Rule**: Proposed APIs are unstable by definition. Even correct implementations can fail due to VS Code internal bugs. Always have a stable fallback (TreeView worked perfectly while Graph view failed).
 
 **Recommendation**: Avoid proposed APIs unless absolutely necessary. Wait for them to become stable APIs before adoption.
+
+---
+
+### 15. History Filtering: Hybrid Server/Client Approach
+
+**Lesson**: Leverage immutable data characteristics for aggressive caching.
+
+**Context** (v2.35.0 - History Filtering):
+
+SVN revision history is immutable and linear. This enables:
+
+1. **LRU cache with infinite TTL** - Entries never invalidate (only evict by LRU)
+2. **Server-side filtering** - Use SVN `--search` for text, `-r {DATE}` for dates
+3. **Client-side filtering** - Action types (A/M/D/R) not supported by SVN
+
+**Pattern**:
+
+1. Check if filter uses server-supported features (--search, -r)
+2. If yes → Call `logWithFilter()` with SVN args
+3. If no → Use regular `log()` + client-side filter
+4. Cache both raw and filtered results keyed by filter hash
+
+**Benefits**:
+
+- First query: SVN call → cache
+- Same filter: instant cache hit
+- Different filter on same data: client-side filter from cache
+
+**Trade-off**: Memory usage grows with unique filter combinations (capped at 50 entries).
+
+**Rule**: Immutable data enables aggressive caching. Split filtering between server (what it supports) and client (what it doesn't).
+
+---
+
+### 16. VS Code Native UX: Multi-Step QuickPick
+
+**Lesson**: Prefer VS Code native UI patterns over custom solutions.
+
+**Context** (v2.35.0 - History Filtering UX):
+
+Initial implementation: 8 separate filter commands in toolbar menu. Overwhelming and non-standard.
+
+**Better Pattern**:
+
+1. **Single entry point** - One "Filter" button opens multi-step QuickPick
+2. **Step 1**: Select filter type (shows current values in detail line)
+3. **Step 2**: Enter value (pre-populated with current value)
+4. **TreeView.description** - Shows active filter summary (not title change)
+5. **Context variable** - `commands.executeCommand('setContext', 'key', value)`
+6. **Dynamic visibility** - Clear button visible only when filter active
+
+**VS Code UX Guidelines**:
+
+- Use QuickPick for selection, InputBox for text entry
+- Use description property for state display
+- Use when clauses for dynamic menu items
+- Avoid webviews when native UI suffices
+
+**Rule**: Fewer toolbar buttons = better UX. Use multi-step QuickPick for complex operations.
 
 ---

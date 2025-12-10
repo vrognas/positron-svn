@@ -27,6 +27,11 @@ import {
 } from "./common/types";
 import { sequentialize } from "./decorators";
 import * as encodeUtil from "./encoding";
+import {
+  IHistoryFilter,
+  buildSvnLogArgs,
+  filterEntriesByAction
+} from "./historyView/historyFilter";
 import { exists, writeFile, stat, readdir } from "./fs";
 import { getBranchName } from "./helpers/branch";
 import { configuration } from "./helpers/configuration";
@@ -1330,6 +1335,82 @@ export class Repository {
     }
     const result = await this.exec(args);
     const entries = await parseSvnLog(result.stdout);
+
+    // Evict LRU if at max size
+    if (this._logCache.size >= this.MAX_LOG_CACHE_SIZE) {
+      this.evictLogEntry();
+    }
+
+    // Cache with TTL
+    const timer = setTimeout(() => {
+      this.resetLogCache(cacheKey);
+    }, this.LOG_CACHE_TTL_MS);
+
+    this._logCache.set(cacheKey, {
+      entries,
+      timeout: timer,
+      lastAccessed: Date.now()
+    });
+
+    return entries;
+  }
+
+  /**
+   * Fetch log entries with filter criteria
+   * Uses SVN --search for text filters, -r for date/revision ranges
+   * Action filtering is done client-side after fetch
+   */
+  public async logWithFilter(
+    filter: IHistoryFilter,
+    limit: number,
+    target?: string | Uri
+  ): Promise<ISvnLogEntry[]> {
+    const targetStr =
+      target instanceof Uri ? target.toString(true) : target || "";
+
+    // Build cache key including filter
+    const filterKey = JSON.stringify(filter, (_, v) =>
+      v instanceof Date ? v.toISOString() : v
+    );
+    const cacheKey = `logFilter:${targetStr}:${limit}:${filterKey}`;
+
+    // Check cache
+    const cached = this._logCache.get(cacheKey);
+    if (cached) {
+      cached.lastAccessed = Date.now();
+      return cached.entries;
+    }
+
+    // Build base args
+    const args = ["log", `--limit=${limit}`, "--xml", "-v"];
+
+    // Add filter-based args (--search, -r)
+    const filterArgs = buildSvnLogArgs(filter);
+    args.push(...filterArgs);
+
+    // If no revision range from filter, default to HEAD:1
+    if (
+      !filter.revisionFrom &&
+      !filter.revisionTo &&
+      !filter.dateFrom &&
+      !filter.dateTo
+    ) {
+      args.push("-r", "HEAD:1");
+    }
+
+    // Add target if specified
+    if (target !== undefined) {
+      const targetPath = fixPegRevision(targetStr);
+      args.push(targetPath);
+    }
+
+    const result = await this.exec(args);
+    let entries = await parseSvnLog(result.stdout);
+
+    // Apply client-side action filter (SVN doesn't support server-side action filtering)
+    if (filter.actions?.length) {
+      entries = filterEntriesByAction(entries, filter.actions);
+    }
 
     // Evict LRU if at max size
     if (this._logCache.size >= this.MAX_LOG_CACHE_SIZE) {

@@ -123,7 +123,16 @@ export class Resource implements SourceControlResourceState {
     let tip = "";
 
     if (this.type === Status.ADDED && this.renameResourceUri) {
-      tip = "Renamed from " + this.renameResourceUri.fsPath;
+      // A+ badge
+      tip =
+        "Added with history: Rename/copy (history preserved) from " +
+        this.renameResourceUri.fsPath;
+    } else if (this.type === Status.ADDED) {
+      // A badge
+      tip = "Added: New file (no prior history)";
+    } else if (this.type === Status.REPLACED) {
+      // R badge
+      tip = "Replaced: Delete+add at same path (history broken)";
     } else if (
       this.type === Status.NORMAL &&
       this.props &&
@@ -162,7 +171,7 @@ export class Resource implements SourceControlResourceState {
     switch (this.type) {
       case Status.ADDED:
         if (this.renameResourceUri) {
-          return "R";
+          return "A+"; // Addition with history (rename/copy)
         }
         return "A";
       case Status.CONFLICTED:

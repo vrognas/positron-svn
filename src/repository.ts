@@ -109,6 +109,7 @@ import {
 } from "./util";
 import { logError } from "./util/errorLogger";
 import { match } from "./util/globMatch";
+import { IHistoryFilter } from "./historyView/historyFilter";
 import { RepositoryFilesWatcher } from "./watchers/repositoryFilesWatcher";
 
 function shouldShowProgress(operation: Operation): boolean {
@@ -1513,6 +1514,16 @@ export class Repository implements IRemoteRepository {
   public async logBatch(revisions: string[], target?: string | Uri) {
     return this.run(Operation.Log, () =>
       this.repository.logBatch(revisions, target)
+    );
+  }
+
+  public async logWithFilter(
+    filter: IHistoryFilter,
+    limit: number,
+    target?: string | Uri
+  ) {
+    return this.run(Operation.Log, () =>
+      this.repository.logWithFilter(filter, limit, target)
     );
   }
 

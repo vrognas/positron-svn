@@ -2,7 +2,7 @@
   "name": "positron-svn",
   "displayName": "SVN (Positron)",
   "description": "Integrated Subversion source control with Positron IDE support. Privacy-focused: zero telemetry, local-only operations.",
-  "version": "2.33.32",
+  "version": "2.35.0",
   "publisher": "vrognas",
   "engines": {
     "vscode": "^1.105.0",
@@ -825,6 +825,18 @@
         "title": "Diff with External Tool"
       },
       {
+        "command": "svn.repolog.filterHistory",
+        "category": "SVN",
+        "title": "Filter History",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "svn.repolog.clearFilter",
+        "category": "SVN",
+        "title": "Clear Filters",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "svn.resolve",
         "title": "Resolve conflicts for selected",
         "category": "SVN",
@@ -1140,6 +1152,14 @@
           "when": "false"
         },
         {
+          "command": "svn.repolog.filterHistory",
+          "when": "false"
+        },
+        {
+          "command": "svn.repolog.clearFilter",
+          "when": "false"
+        },
+        {
           "command": "svn.resolve",
           "when": "config.svn.enabled && svnOpenRepositoryCount != 0"
         },
@@ -1237,6 +1257,22 @@
           "command": "svn.repolog.refresh",
           "when": "view == repolog",
           "group": "navigation@3"
+        },
+        {
+          "command": "svn.repolog.filterHistory",
+          "when": "view == repolog && !svn.historyFilterActive",
+          "group": "navigation@4"
+        },
+        {
+          "command": "svn.repolog.filterHistory",
+          "when": "view == repolog && svn.historyFilterActive",
+          "group": "navigation@4",
+          "alt": "svn.repolog.clearFilter"
+        },
+        {
+          "command": "svn.repolog.clearFilter",
+          "when": "view == repolog && svn.historyFilterActive",
+          "group": "navigation@5"
         },
         {
           "command": "svn.itemlog.refresh",

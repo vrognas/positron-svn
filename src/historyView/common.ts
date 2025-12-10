@@ -13,6 +13,7 @@ import {
   window
 } from "vscode";
 import { ISvnLogEntry, ISvnLogEntryPath } from "../common/types";
+import { IHistoryFilter, filterEntriesByAction } from "./historyFilter";
 import SvnError from "../svnError";
 import { svnErrorCodes } from "../svn";
 import { exists, lstat } from "../fs";
@@ -66,11 +67,14 @@ export class SvnPath {
 
 export interface ICachedLog {
   entries: ISvnLogEntry[];
+  // O(1) lookup for deduplication during pagination
+  revisionSet: Set<string>;
   // Uri of svn repository (remote URL)
   svnTarget: Uri;
   // Local working copy file path (for file-level history)
   localPath?: string;
   isComplete: boolean;
+  isLoading?: boolean; // True while fetching from SVN
   repo: IRemoteRepository;
   persisted: {
     readonly commitFrom: string;
@@ -79,6 +83,8 @@ export interface ICachedLog {
   };
   order: number;
   lastAccessed?: number; // LRU tracking
+  // Active filter for this cache
+  filter?: IHistoryFilter;
 }
 
 type TreeItemData = ISvnLogEntry | ISvnLogEntryPath | SvnPath | TreeItem;
@@ -221,21 +227,56 @@ export function getLimit(): number {
 
 /// @note: cached.svnTarget should be valid
 export async function fetchMore(cached: ICachedLog) {
-  let rfrom = cached.persisted.commitFrom;
   const entries = cached.entries;
+  const limit = getLimit();
+  const filter = cached.filter;
+
+  // Build revision range based on existing entries
+  let rfrom = cached.persisted.commitFrom;
   if (entries.length) {
     const lastRev = Number.parseInt(entries[entries.length - 1]!.revision, 10);
-    // Already at r1, nothing more to fetch
-    if (lastRev <= 1) {
+    // Already at r1 or invalid revision, nothing more to fetch
+    if (isNaN(lastRev) || lastRev <= 1) {
       cached.isComplete = true;
       return;
     }
     rfrom = (lastRev - 1).toString();
   }
+
   let moreCommits: ISvnLogEntry[] = [];
-  const limit = getLimit();
   try {
-    moreCommits = await cached.repo.log(rfrom, "1", limit, cached.svnTarget);
+    // Use filtered log when filter is active (and has server-side filters)
+    const hasServerSideFilter =
+      filter &&
+      (filter.message ||
+        filter.author ||
+        filter.path ||
+        filter.revisionFrom !== undefined ||
+        filter.revisionTo !== undefined ||
+        filter.dateFrom ||
+        filter.dateTo);
+
+    if (hasServerSideFilter) {
+      // Build filter with revision range for pagination
+      // Use min of user's revisionTo and current position (rfrom)
+      const rfromNum = parseInt(rfrom, 10);
+      const validRfrom = !isNaN(rfromNum) ? rfromNum : undefined;
+      const paginatedRevisionTo = filter.revisionTo
+        ? Math.min(filter.revisionTo, validRfrom ?? Infinity)
+        : validRfrom;
+      const paginatedFilter: IHistoryFilter = {
+        ...filter,
+        revisionTo: paginatedRevisionTo
+      };
+      moreCommits = await cached.repo.logWithFilter(
+        paginatedFilter,
+        limit,
+        cached.svnTarget
+      );
+    } else {
+      // No server-side filter, use regular log
+      moreCommits = await cached.repo.log(rfrom, "1", limit, cached.svnTarget);
+    }
   } catch (e) {
     // Show user-friendly message for connection errors
     if (e instanceof SvnError) {
@@ -251,12 +292,23 @@ export async function fetchMore(cached: ICachedLog) {
     }
     // Silently ignore other errors (e.g., item didn't exist)
   }
+
+  // Check needFetch BEFORE action filtering (action filter reduces count)
   if (!needFetch(entries, moreCommits, limit)) {
     cached.isComplete = true;
   }
-  // Deduplicate: skip commits already in entries
-  const existingRevs = new Set(entries.map(e => e.revision));
-  const newCommits = moreCommits.filter(c => !existingRevs.has(c.revision));
+
+  // Apply client-side action filter AFTER needFetch check
+  if (filter?.actions?.length) {
+    moreCommits = filterEntriesByAction(moreCommits, filter.actions);
+  }
+  // Deduplicate using persistent Set (O(1) lookup)
+  const newCommits = moreCommits.filter(
+    c => !cached.revisionSet.has(c.revision)
+  );
+  for (const c of newCommits) {
+    cached.revisionSet.add(c.revision);
+  }
   entries.push(...newCommits);
 }
 

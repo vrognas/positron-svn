@@ -313,6 +313,7 @@ export class ItemLogProvider
             this.currentItem = {
               isComplete: false,
               entries: [],
+              revisionSet: new Set(),
               repo,
               svnTarget: Uri.parse(info.url),
               localPath: uri.fsPath,

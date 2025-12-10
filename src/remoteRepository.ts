@@ -4,6 +4,7 @@
 
 import { Uri } from "vscode";
 import { ISvnInfo, ISvnLogEntry } from "./common/types";
+import { IHistoryFilter } from "./historyView/historyFilter";
 import { PathNormalizer } from "./pathNormalizer";
 import { Svn } from "./svn";
 import { Repository as BaseRepository } from "./svnRepository";
@@ -19,6 +20,12 @@ export interface IRemoteRepository {
     limit: number,
     target?: string | Uri,
     pegRevision?: string
+  ): Promise<ISvnLogEntry[]>;
+
+  logWithFilter(
+    filter: IHistoryFilter,
+    limit: number,
+    target?: string | Uri
   ): Promise<ISvnLogEntry[]>;
 
   show(filePath: string | Uri, revision?: string): Promise<string>;
@@ -59,6 +66,14 @@ export class RemoteRepository implements IRemoteRepository {
     pegRevision?: string
   ): Promise<ISvnLogEntry[]> {
     return this.repo.log(rfrom, rto, limit, target, pegRevision);
+  }
+
+  public async logWithFilter(
+    filter: IHistoryFilter,
+    limit: number,
+    target?: string | Uri
+  ): Promise<ISvnLogEntry[]> {
+    return this.repo.logWithFilter(filter, limit, target);
   }
 
   public async show(

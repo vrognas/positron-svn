@@ -46,6 +46,7 @@ import {
 } from "./common";
 import { revealFileInOS, diffWithExternalTool } from "../util/fileOperations";
 import { logError } from "../util/errorLogger";
+import { HistoryFilterService, ActionType } from "./historyFilter";
 
 // Reserved for future use - icon rendering in history view
 /*
@@ -88,6 +89,9 @@ export class RepoLogProvider
   private treeView?: TreeView<ILogTreeItem>;
   private refreshTimeout?: NodeJS.Timeout;
   private readonly DEBOUNCE_MS = 1000;
+
+  // History filtering
+  private readonly filterService = new HistoryFilterService();
 
   private evictOldestLogEntry(): void {
     let oldestKey: string | null = null;
@@ -221,8 +225,27 @@ export class RepoLogProvider
       }),
       this.sourceControlManager.onDidCloseRepository(() => {
         this.refresh();
-      })
+      }),
+      // Filter commands - unified entry point
+      commands.registerCommand(
+        "svn.repolog.filterHistory",
+        this.filterHistory,
+        this
+      ),
+      commands.registerCommand(
+        "svn.repolog.clearFilter",
+        this.clearFilter,
+        this
+      ),
+      // Subscribe to filter changes
+      this.filterService.onDidChangeFilter(() => {
+        this.onFilterChange();
+      }),
+      this.filterService
     );
+
+    // Initialize context variable for menu visibility
+    this.updateFilterUI();
   }
 
   public dispose() {
@@ -452,6 +475,322 @@ export class RepoLogProvider
     }
   }
 
+  /**
+   * Unified filter command - multi-step QuickPick for native UX
+   */
+  public async filterHistory() {
+    const currentFilter = this.filterService.getFilter() || {};
+
+    // Step 1: Select filter types
+    const filterTypes = [
+      {
+        label: "$(search) Message",
+        id: "message",
+        detail: currentFilter.message
+          ? `Current: "${currentFilter.message}"`
+          : undefined
+      },
+      {
+        label: "$(person) Author",
+        id: "author",
+        detail: currentFilter.author
+          ? `Current: "${currentFilter.author}"`
+          : undefined
+      },
+      {
+        label: "$(file) Path",
+        id: "path",
+        detail: currentFilter.path
+          ? `Current: "${currentFilter.path}"`
+          : undefined
+      },
+      {
+        label: "$(git-commit) Revision Range",
+        id: "revision",
+        detail:
+          currentFilter.revisionFrom || currentFilter.revisionTo
+            ? `Current: ${currentFilter.revisionFrom ?? 1}-${currentFilter.revisionTo ?? "HEAD"}`
+            : undefined
+      },
+      {
+        label: "$(calendar) Date Range",
+        id: "date",
+        detail:
+          currentFilter.dateFrom || currentFilter.dateTo
+            ? `Current: ${currentFilter.dateFrom?.toLocaleDateString() ?? "..."} to ${currentFilter.dateTo?.toLocaleDateString() ?? "..."}`
+            : undefined
+      },
+      {
+        label: "$(symbol-event) Action Types",
+        id: "action",
+        detail: currentFilter.actions?.length
+          ? `Current: ${currentFilter.actions.join(", ")}`
+          : undefined
+      }
+    ];
+
+    const selected = await window.showQuickPick(filterTypes, {
+      placeHolder: "Select filter type to configure",
+      title: "Filter History"
+    });
+
+    if (!selected) return;
+
+    // Step 2: Configure selected filter type
+    switch (selected.id) {
+      case "message":
+        await this.promptFilterMessage(currentFilter.message);
+        break;
+      case "author":
+        await this.promptFilterAuthor(currentFilter.author);
+        break;
+      case "path":
+        await this.promptFilterPath(currentFilter.path);
+        break;
+      case "revision":
+        await this.promptFilterRevision(
+          currentFilter.revisionFrom,
+          currentFilter.revisionTo
+        );
+        break;
+      case "date":
+        await this.promptFilterDate(
+          currentFilter.dateFrom,
+          currentFilter.dateTo
+        );
+        break;
+      case "action":
+        await this.promptFilterAction(currentFilter.actions);
+        break;
+    }
+  }
+
+  private async promptFilterMessage(current?: string) {
+    const input = await window.showInputBox({
+      prompt: "Filter by commit message",
+      placeHolder: "Enter text to search in commit messages",
+      value: current
+    });
+    if (input !== undefined) {
+      this.filterService.updateFilter({ message: input || undefined });
+    }
+  }
+
+  private async promptFilterAuthor(current?: string) {
+    // Extract unique authors from cached entries
+    const authors = new Set<string>();
+    for (const cached of this.logCache.values()) {
+      for (const entry of cached.entries) {
+        if (entry.author) {
+          authors.add(entry.author);
+        }
+      }
+    }
+
+    // Build QuickPick items - authors sorted alphabetically
+    const authorItems = Array.from(authors)
+      .sort((a, b) => a.localeCompare(b))
+      .map(author => ({
+        label: author,
+        picked: author === current
+      }));
+
+    // Add "Custom..." option for authors not in cache
+    const customOption = { label: "$(edit) Custom...", id: "custom" };
+
+    // Add "Clear" option if filter is active
+    const clearOption = current
+      ? [{ label: "$(close) Clear author filter", id: "clear" }]
+      : [];
+
+    const items = [...clearOption, ...authorItems, customOption];
+
+    const selected = await window.showQuickPick(items, {
+      placeHolder: authors.size
+        ? "Select author or choose Custom..."
+        : "No authors in cache - choose Custom...",
+      title: "Filter by Author"
+    });
+
+    if (!selected) return;
+
+    if ("id" in selected && selected.id === "clear") {
+      this.filterService.updateFilter({ author: undefined });
+    } else if ("id" in selected && selected.id === "custom") {
+      // Fall back to InputBox for custom author
+      const input = await window.showInputBox({
+        prompt: "Filter by author",
+        placeHolder: "Enter author name",
+        value: current
+      });
+      if (input !== undefined) {
+        this.filterService.updateFilter({ author: input || undefined });
+      }
+    } else {
+      this.filterService.updateFilter({ author: selected.label });
+    }
+  }
+
+  private async promptFilterPath(current?: string) {
+    const input = await window.showInputBox({
+      prompt: "Filter by path",
+      placeHolder: "Enter file or folder path pattern",
+      value: current
+    });
+    if (input !== undefined) {
+      this.filterService.updateFilter({ path: input || undefined });
+    }
+  }
+
+  private async promptFilterRevision(fromVal?: number, toVal?: number) {
+    const fromStr = await window.showInputBox({
+      prompt: "Revision range - From (older)",
+      placeHolder: "e.g., 100 (leave empty for 1)",
+      value: fromVal?.toString()
+    });
+    if (fromStr === undefined) return;
+
+    const toStr = await window.showInputBox({
+      prompt: "Revision range - To (newer)",
+      placeHolder: "e.g., 200 (leave empty for HEAD)",
+      value: toVal?.toString()
+    });
+    if (toStr === undefined) return;
+
+    const revisionFrom = fromStr ? parseInt(fromStr, 10) : undefined;
+    const revisionTo = toStr ? parseInt(toStr, 10) : undefined;
+
+    if (fromStr && isNaN(revisionFrom!)) {
+      window.showErrorMessage("Invalid 'from' revision number");
+      return;
+    }
+    if (toStr && isNaN(revisionTo!)) {
+      window.showErrorMessage("Invalid 'to' revision number");
+      return;
+    }
+
+    this.filterService.updateFilter({ revisionFrom, revisionTo });
+  }
+
+  private async promptFilterDate(fromVal?: Date, toVal?: Date) {
+    const fmt = (d?: Date) => (d ? d.toISOString().split("T")[0] : "");
+    const fromStr = await window.showInputBox({
+      prompt: "Date range - From",
+      placeHolder: "YYYY-MM-DD (e.g., 2024-01-01)",
+      value: fmt(fromVal)
+    });
+    if (fromStr === undefined) return;
+
+    const toStr = await window.showInputBox({
+      prompt: "Date range - To",
+      placeHolder: "YYYY-MM-DD (e.g., 2024-12-31)",
+      value: fmt(toVal)
+    });
+    if (toStr === undefined) return;
+
+    const dateFrom = fromStr ? new Date(fromStr) : undefined;
+    const dateTo = toStr ? new Date(toStr) : undefined;
+
+    if (fromStr && isNaN(dateFrom!.getTime())) {
+      window.showErrorMessage("Invalid 'from' date format. Use YYYY-MM-DD");
+      return;
+    }
+    if (toStr && isNaN(dateTo!.getTime())) {
+      window.showErrorMessage("Invalid 'to' date format. Use YYYY-MM-DD");
+      return;
+    }
+
+    this.filterService.updateFilter({ dateFrom, dateTo });
+  }
+
+  private async promptFilterAction(current?: ActionType[]) {
+    const items = [
+      {
+        label: "$(add) Added",
+        description: "New file (no prior history)",
+        value: "A" as ActionType,
+        picked: false
+      },
+      {
+        label: "$(history) Renamed/Copied",
+        description: "Added with history (A+)",
+        value: "A+" as ActionType,
+        picked: false
+      },
+      {
+        label: "$(edit) Modified",
+        value: "M" as ActionType,
+        picked: false
+      },
+      {
+        label: "$(trash) Deleted",
+        value: "D" as ActionType,
+        picked: false
+      },
+      {
+        label: "$(replace) Replaced",
+        description: "Delete+add at same path (history broken)",
+        value: "R" as ActionType,
+        picked: false
+      }
+    ];
+
+    if (current) {
+      for (const item of items) {
+        item.picked = current.includes(item.value);
+      }
+    }
+
+    const selected = await window.showQuickPick(items, {
+      canPickMany: true,
+      placeHolder: "Select action types to show"
+    });
+
+    if (selected !== undefined) {
+      const actions =
+        selected.length > 0 ? selected.map(s => s.value) : undefined;
+      this.filterService.updateFilter({ actions });
+    }
+  }
+
+  public clearFilter() {
+    this.filterService.clearFilter();
+  }
+
+  private onFilterChange() {
+    // Replace cached objects (not mutate) to invalidate ongoing fetches
+    // This ensures identity check in fetchMore.finally() fails for stale fetches
+    const newFilter = this.filterService.getFilter();
+    for (const [key, cached] of this.logCache.entries()) {
+      this.logCache.set(key, {
+        ...cached,
+        entries: [],
+        revisionSet: new Set(),
+        isComplete: false,
+        isLoading: false,
+        filter: newFilter
+      });
+    }
+    // Update tree view description and context variable
+    this.updateFilterUI();
+    // Refresh tree
+    this.refresh(undefined, false, true);
+  }
+
+  private updateFilterUI() {
+    const hasFilter = this.filterService.hasActiveFilter();
+
+    // Set context variable for dynamic icon (filter vs filter-filled)
+    commands.executeCommand("setContext", "svn.historyFilterActive", hasFilter);
+
+    if (!this.treeView) return;
+
+    // Use description for filter summary (appears next to title)
+    this.treeView.description = hasFilter
+      ? this.filterService.getShortDescription()
+      : undefined;
+  }
+
   // Navigate to a specific revision in the tree view
   public async goToRevision(revision: number) {
     if (!this.treeView) {
@@ -493,8 +832,13 @@ export class RepoLogProvider
     if (fetchMoreClick) {
       // Fetch more commits for current repo
       const cached = this.getCached(element);
-      if (cached) {
-        await fetchMore(cached);
+      if (cached && !cached.isLoading) {
+        cached.isLoading = true;
+        try {
+          await fetchMore(cached);
+        } finally {
+          cached.isLoading = false;
+        }
       }
     } else if (element === undefined) {
       // Determine if we should clear or preserve cache
@@ -562,18 +906,20 @@ export class RepoLogProvider
         }
         const newCached: ICachedLog = {
           entries,
+          revisionSet: new Set(entries.map(e => e.revision)),
           isComplete,
           repo,
           svnTarget: remoteRoot,
           persisted,
           order: this.logCache.size,
-          lastAccessed: Date.now()
+          lastAccessed: Date.now(),
+          filter: this.filterService.getFilter()
         };
         this.logCache.set(repoUrl, newCached);
 
-        // If cache was cleared, fetch new commits immediately
-        // Don't rely on getChildren - VS Code may not call it if tree is hidden
-        if (clearEntries) {
+        // If cache was cleared and tree is hidden, fetch now (getChildren won't be called)
+        // If visible, getChildren handles loading state for snappy UX
+        if (clearEntries && !this.treeView?.visible) {
           await fetchMore(newCached);
         }
       }
@@ -624,12 +970,25 @@ export class RepoLogProvider
       ti.description = dirname;
       ti.tooltip = parsedPath.relativeFromBranch;
 
+      // Determine action for badge (A+ for rename/copy)
+      let action = pathElem.action;
+      if (action === "A" && pathElem.copyfromPath) {
+        action = "A+"; // Added with history (rename/copy)
+      }
+
       // Use resourceUri to show file type icon and trigger file decorations
-      // Add action as query param so FileDecorationProvider can decorate historical files
+      // For files without local path, use synthetic URI for badge only
+      // Note: encodeURIComponent needed because "+" in "A+" becomes space in URLs
+      const encodedAction = encodeURIComponent(action);
       if (parsedPath.localFullPath) {
         ti.resourceUri = parsedPath.localFullPath.with({
-          query: `action=${pathElem.action}`
+          query: `action=${encodedAction}`
         });
+      } else {
+        // Synthetic URI for historical files not in working copy
+        ti.resourceUri = Uri.parse(
+          `svn-history:${encodeURIComponent(pathElem._)}?action=${encodedAction}`
+        );
       }
 
       ti.contextValue = "diffable";
@@ -666,9 +1025,32 @@ export class RepoLogProvider
       const limit = getLimit();
       const logentries = cached.entries;
 
-      if (logentries.length === 0) {
-        await fetchMore(cached);
+      // Show loading indicator while fetching
+      if (cached.isLoading) {
+        const loadingItem = new TreeItem("Loading...");
+        loadingItem.iconPath = new ThemeIcon("loading~spin");
+        return [{ kind: LogTreeItemKind.TItem, data: loadingItem }];
       }
+
+      // Fetch more if needed (non-blocking)
+      if (logentries.length === 0 && !cached.isComplete) {
+        cached.isLoading = true;
+        const repoUrl = cached.svnTarget.toString(true);
+        // Fetch in background, refresh when done
+        fetchMore(cached).finally(() => {
+          // Only refresh if this cached object is still current (not replaced by filter change)
+          const currentCached = this.logCache.get(repoUrl);
+          if (currentCached === cached) {
+            cached.isLoading = false;
+            this._onDidChangeTreeData.fire(undefined);
+          }
+        });
+        // Show loading state
+        const loadingItem = new TreeItem("Loading...");
+        loadingItem.iconPath = new ThemeIcon("loading~spin");
+        return [{ kind: LogTreeItemKind.TItem, data: loadingItem }];
+      }
+
       const result = transform(logentries, LogTreeItemKind.Commit, undefined);
       insertBaseMarker(cached, logentries, result);
 

@@ -1,3 +1,17 @@
+## [2.35.0] (2025-12-09)
+
+### Feature: History Filtering
+
+- **Unified UX**: Single "Filter History" button with multi-step QuickPick
+- **Filter types**: Message, Author, Path, Revision range, Date range, Actions
+- **Smart display**: Filter summary shown in tree view description
+- **Dynamic UI**: Clear button appears only when filter is active
+- **Context-aware**: Remembers current filter values when editing
+- **Server-side**: Uses SVN `--search` and `-r` for efficient filtering
+- **Client-side**: Action filtering (A/M/D/R) applied locally
+- **Caching**: LRU cache (50 entries) for filtered results
+- **Files**: historyFilter.ts, repoLogProvider.ts, common.ts, svnRepository.ts
+
 ## [2.34.0] (2025-12-08)
 
 ### Feature: File Rollback to Revision
