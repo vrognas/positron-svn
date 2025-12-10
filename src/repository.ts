@@ -1275,6 +1275,52 @@ export class Repository implements IRemoteRepository {
     return Array.from(result);
   }
 
+  /**
+   * Clean up stale staged files that no longer have actual modifications.
+   * This can happen after `svn update` brings in changes that match local changes.
+   * Files in __staged__ changelist with Status.NORMAL are auto-unstaged.
+   * @returns Names of files that were auto-unstaged
+   */
+  public async cleanupStaleStagedFiles(): Promise<string[]> {
+    const staledFiles: string[] = [];
+
+    // Get staged resources from the UI group
+    const stagedResources = this.groupManager.staged.resourceStates;
+
+    for (const resource of stagedResources) {
+      // Check if file has no actual modifications (Status.NORMAL or Status.NONE)
+      const status = resource.type;
+      const props = resource.props;
+      const isNormalStatus = status === Status.NORMAL || status === Status.NONE;
+      const isNormalProps =
+        !props || props === Status.NORMAL || props === Status.NONE;
+
+      if (isNormalStatus && isNormalProps) {
+        staledFiles.push(resource.resourceUri.fsPath);
+      }
+    }
+
+    if (staledFiles.length === 0) {
+      return [];
+    }
+
+    // Auto-unstage stale files (don't restore to original changelist)
+    const filesOnly = await this.filterOutDirectories(staledFiles);
+    if (filesOnly.length > 0) {
+      await this.repository.removeChangelist(filesOnly);
+    }
+
+    // Clear original changelist tracking for these files
+    this.staging.clearOriginalChangelists(staledFiles);
+
+    // Update UI - remove from staged group
+    this.groupManager.moveFromStaged(staledFiles);
+    this.updateActionButton();
+    this.triggerInputValidation();
+
+    return staledFiles;
+  }
+
   public async getCurrentBranch() {
     return this.run(Operation.CurrentBranch, async () => {
       return this.repository.getCurrentBranch();
@@ -1319,6 +1365,17 @@ export class Repository implements IRemoteRepository {
       // Skip updateRemoteChangedFiles - after update we're at HEAD, no remote changes
       return updateResult;
     });
+
+    // Clean up stale staged files after update brings in matching changes
+    // This prevents confusion when staged files no longer have modifications
+    const stalledFiles = await this.cleanupStaleStagedFiles();
+    if (stalledFiles.length > 0) {
+      const fileNames = stalledFiles.map(f => path.basename(f)).join(", ");
+      window.showInformationMessage(
+        `Auto-unstaged ${stalledFiles.length} file(s) with no changes: ${fileNames}`
+      );
+    }
+
     // Fetch history views to show new commits from update
     await commands.executeCommand("svn.repolog.fetch");
     await commands.executeCommand("svn.itemlog.refresh");

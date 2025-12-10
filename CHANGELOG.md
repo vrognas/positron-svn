@@ -1,3 +1,14 @@
+## [2.35.2] (2025-12-10)
+
+### Feature: Auto-Unstage After Update
+
+- **Scenario**: User stages files, runs `svn update`, colleague's changes match local changes
+- **Problem**: Files stayed in staging area despite having no modifications to commit
+- **Solution**: After update, automatically unstage files with no actual changes
+- **Notification**: Shows "Auto-unstaged N file(s) with no changes: file1, file2"
+- **Method**: Detects `Status.NORMAL` files in staging, removes from changelist
+- **Affected**: repository.ts:cleanupStaleStagedFiles(), updateRevision()
+
 ## [2.35.1] (2025-12-10)
 
 ### Fix: Silent Commit Failure

@@ -1,6 +1,6 @@
 # Lessons Learned
 
-**Version**: v2.35.1
+**Version**: v2.35.2
 **Updated**: 2025-12-10
 
 ---
@@ -1080,5 +1080,49 @@ return result.stdout;
 - ❌ Commands where empty output is valid (status with no changes)
 
 **Rule**: Empty output from a command that should produce output is an error, not success.
+
+---
+
+### 29. Staging Cleanup: Auto-Unstage After Update
+
+**Lesson**: SVN changelists persist even when files have no modifications. Clean up stale staging after update.
+
+**Issue** (v2.35.2):
+
+- User staged files with local modifications
+- Ran `svn update` - colleague committed identical changes
+- Files now matched repository (no diff) but still in `__staged__` changelist
+- User tried to commit → silent failure (nothing to commit)
+
+**Root Cause**:
+
+- SVN changelists track files, not changes
+- Update doesn't modify changelist membership
+- Staging UI showed files with `Status.NORMAL` (no actual changes)
+
+**Fix**:
+
+```typescript
+// After svn update, check staged files for actual modifications
+async cleanupStaleStagedFiles(): Promise<string[]> {
+  const stale = stagedResources.filter(r =>
+    (r.type === Status.NORMAL || r.type === Status.NONE) &&
+    (!r.props || r.props === Status.NORMAL || r.props === Status.NONE)
+  );
+  if (stale.length > 0) {
+    await repository.removeChangelist(stalePaths);
+    window.showInformationMessage(`Auto-unstaged ${stale.length} file(s)...`);
+  }
+}
+```
+
+**Pattern**:
+
+1. After operations that sync with server (update, switch), validate staging
+2. Files with `Status.NORMAL` and no property changes are "stale"
+3. Auto-remove from changelist and notify user
+4. Prevents confusion about commit failures
+
+**Rule**: Cached state (like staging) must be validated after server sync operations.
 
 ---
