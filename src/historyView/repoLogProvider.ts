@@ -202,8 +202,8 @@ export class RepoLogProvider
         this
       ),
       commands.registerCommand(
-        "svn.repolog.resurrect",
-        this.resurrectDeletedCmd,
+        "svn.repolog.restore",
+        this.restoreDeletedCmd,
         this
       ),
       this.sourceControlManager.onDidChangeRepository(
@@ -442,24 +442,24 @@ export class RepoLogProvider
   }
 
   /**
-   * Resurrect a deleted file or directory from SVN history.
+   * Restore a deleted file or directory from SVN history.
    * Uses svn copy with peg revision to restore with history linkage.
    */
-  public async resurrectDeletedCmd(element: ILogTreeItem) {
+  public async restoreDeletedCmd(element: ILogTreeItem) {
     if (element.kind !== LogTreeItemKind.CommitDetail) {
       return;
     }
 
     const pathElem = element.data as ISvnLogEntryPath;
-    // Only allow resurrection for deleted items
+    // Only allow restore for deleted items
     if (pathElem.action !== "D") {
-      window.showWarningMessage("Can only resurrect deleted items");
+      window.showWarningMessage("Can only restore deleted items");
       return;
     }
 
     const item = this.getCached(element);
     if (!item) {
-      window.showErrorMessage("Could not find repository for resurrection");
+      window.showErrorMessage("Could not find repository");
       return;
     }
 
@@ -474,9 +474,7 @@ export class RepoLogProvider
 
     // Check if we have a local path (working copy)
     if (!pathInfo.localFullPath) {
-      window.showErrorMessage(
-        "Cannot resurrect: file is outside the working copy"
-      );
+      window.showErrorMessage("Cannot restore: file is outside working copy");
       return;
     }
 
@@ -501,27 +499,34 @@ export class RepoLogProvider
           }
         } catch (error) {
           logError("Failed to remove existing file for overwrite", error);
-          window.showErrorMessage(
-            "Could not remove existing file. Try renaming instead."
-          );
+          window.showErrorMessage("Could not remove file. Try renaming.");
           return;
         }
       }
     }
 
-    // Execute resurrection
+    // Execute restore with progress indicator
+    const filename = path.basename(targetPath);
     try {
       const repo = item.repo instanceof Repository ? item.repo : null;
       if (!repo) {
-        window.showErrorMessage("Repository not available for resurrection");
+        window.showErrorMessage("Repository not available");
         return;
       }
 
-      await repo.repository.resurrect(remotePath, pegRevision, targetPath);
+      await window.withProgress(
+        {
+          location: { viewId: "repolog" },
+          title: `Restoring ${filename}...`
+        },
+        async () => {
+          await repo.repository.restore(remotePath, pegRevision, targetPath);
+        }
+      );
 
-      // Show success with action button
+      // Show success with revision info and action buttons
       const action = await window.showInformationMessage(
-        `Resurrected: ${path.basename(targetPath)}`,
+        `Restored ${filename} from r${pegRevision}`,
         "View File",
         "Show in Explorer"
       );
@@ -535,10 +540,10 @@ export class RepoLogProvider
       // Refresh the tree to show updated status
       this._onDidChangeTreeData.fire(undefined);
     } catch (error) {
-      logError("Resurrection failed", error);
+      logError("Restore failed", error);
       const err = error as { message?: string; stderrFormated?: string };
       const msg = err.stderrFormated || err.message || "Unknown error";
-      window.showErrorMessage(`Resurrection failed: ${msg}`);
+      window.showErrorMessage(`Restore failed: ${msg}`);
     }
   }
 
@@ -548,20 +553,21 @@ export class RepoLogProvider
   private async promptConflictResolution(
     targetPath: string
   ): Promise<"overwrite" | "rename" | "cancel"> {
+    // Safe option (Rename) first, destructive (Overwrite) second
     const options = [
-      {
-        label: "$(replace) Overwrite",
-        description: "Replace existing file (destructive)",
-        value: "overwrite" as const
-      },
       {
         label: "$(file-add) Rename",
         description: `Save as '${path.basename(this.generateRenamedPath(targetPath))}'`,
         value: "rename" as const
       },
       {
+        label: "$(replace) Overwrite",
+        description: "Replace existing file (destructive)",
+        value: "overwrite" as const
+      },
+      {
         label: "$(close) Cancel",
-        description: "Abort resurrection",
+        description: "Abort restore",
         value: "cancel" as const
       }
     ];
@@ -575,7 +581,7 @@ export class RepoLogProvider
   }
 
   /**
-   * Generate a renamed path for resurrection to avoid conflict.
+   * Generate a renamed path for restore to avoid conflict.
    */
   private generateRenamedPath(originalPath: string): string {
     const lastSlash = originalPath.lastIndexOf(path.sep);
@@ -1151,7 +1157,7 @@ export class RepoLogProvider
         );
       }
 
-      // Include action in contextValue for menu filtering (e.g., "diffable:D" for resurrect)
+      // Include action in contextValue for menu filtering (e.g., "diffable:D" for restore)
       ti.contextValue = action === "D" ? "diffable:D" : "diffable";
       ti.command = {
         command: "svn.repolog.openDiff",

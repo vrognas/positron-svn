@@ -825,10 +825,10 @@
         "title": "Diff with External Tool"
       },
       {
-        "command": "svn.repolog.resurrect",
+        "command": "svn.repolog.restore",
         "category": "SVN",
-        "title": "Resurrect Deleted Item",
-        "icon": "$(history)"
+        "title": "Restore Deleted Item",
+        "icon": "$(discard)"
       },
       {
         "command": "svn.repolog.filterHistory",
@@ -1166,7 +1166,7 @@
           "when": "false"
         },
         {
-          "command": "svn.repolog.resurrect",
+          "command": "svn.repolog.restore",
           "when": "false"
         },
         {
@@ -1401,9 +1401,9 @@
           "group": "navigation"
         },
         {
-          "command": "svn.repolog.resurrect",
+          "command": "svn.repolog.restore",
           "when": "view == repolog && viewItem == diffable:D",
-          "group": "2_resurrect"
+          "group": "inline@1"
         },
         {
           "command": "svn.repolog.fetch",

@@ -2,23 +2,23 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { window } from "vscode";
 
 /**
- * Resurrect Deleted Items E2E Tests
+ * Restore Deleted Items E2E Tests
  *
- * Tests for resurrecting deleted files/directories from SVN history.
+ * Tests for restoring deleted files/directories from SVN history.
  * Uses: svn copy <repo-url><path>@<rev> <target>
  *
  * Per SVN book: "svn copy" with peg revision preserves history linkage.
  */
-describe("Resurrect Deleted Items", () => {
-  describe("buildResurrectArgs() argument building", () => {
+describe("Restore Deleted Items", () => {
+  describe("buildRestoreArgs() argument building", () => {
     /**
-     * Builds svn copy arguments for resurrection
+     * Builds svn copy arguments for restore
      * @param repoUrl - Repository root URL (e.g., "https://svn.example.com/repo")
      * @param remotePath - Path from repo root (e.g., "/trunk/file.txt")
      * @param pegRevision - Revision where file existed (e.g., "399")
-     * @param targetPath - Local target path for resurrection
+     * @param targetPath - Local target path for restore
      */
-    function buildResurrectArgs(
+    function buildRestoreArgs(
       repoUrl: string,
       remotePath: string,
       pegRevision: string,
@@ -29,8 +29,8 @@ describe("Resurrect Deleted Items", () => {
       return ["copy", sourceUrl, targetPath];
     }
 
-    it("builds correct args for file resurrection", () => {
-      const args = buildResurrectArgs(
+    it("builds correct args for file restore", () => {
+      const args = buildRestoreArgs(
         "https://svn.example.com/repo",
         "/trunk/src/real.c",
         "399",
@@ -43,8 +43,8 @@ describe("Resurrect Deleted Items", () => {
       ]);
     });
 
-    it("builds correct args for directory resurrection", () => {
-      const args = buildResurrectArgs(
+    it("builds correct args for directory restore", () => {
+      const args = buildRestoreArgs(
         "https://svn.example.com/repo",
         "/trunk/old-dir",
         "150",
@@ -58,7 +58,7 @@ describe("Resurrect Deleted Items", () => {
     });
 
     it("handles paths with special characters", () => {
-      const args = buildResurrectArgs(
+      const args = buildRestoreArgs(
         "https://svn.example.com/repo",
         "/trunk/data file.txt",
         "100",
@@ -71,14 +71,14 @@ describe("Resurrect Deleted Items", () => {
     });
 
     it("uses revision just before deletion", () => {
-      // If deleted in r400, resurrect from r399
+      // If deleted in r400, restore from r399
       const deletionRev = 400;
-      const resurrectRev = (deletionRev - 1).toString();
+      const restoreRev = (deletionRev - 1).toString();
 
-      const args = buildResurrectArgs(
+      const args = buildRestoreArgs(
         "https://svn.example.com/repo",
         "/trunk/deleted.txt",
-        resurrectRev,
+        restoreRev,
         "/workspace/trunk/deleted.txt"
       );
 
@@ -98,9 +98,9 @@ describe("Resurrect Deleted Items", () => {
       "overwrite" | "rename" | "cancel"
     > {
       const options = [
-        { label: "Overwrite", description: "Replace existing file" },
         { label: "Rename", description: "Save as new name" },
-        { label: "Cancel", description: "Abort resurrection" }
+        { label: "Overwrite", description: "Replace existing file" },
+        { label: "Cancel", description: "Abort restore" }
       ];
 
       const result = await window.showQuickPick(options, {
@@ -112,16 +112,6 @@ describe("Resurrect Deleted Items", () => {
       return result.label.toLowerCase() as "overwrite" | "rename" | "cancel";
     }
 
-    it("returns 'overwrite' when user selects Overwrite", async () => {
-      vi.mocked(window.showQuickPick).mockResolvedValue({
-        label: "Overwrite",
-        description: "Replace existing file"
-      } as unknown as undefined);
-
-      const result = await promptConflictResolution();
-      expect(result).toBe("overwrite");
-    });
-
     it("returns 'rename' when user selects Rename", async () => {
       vi.mocked(window.showQuickPick).mockResolvedValue({
         label: "Rename",
@@ -130,6 +120,16 @@ describe("Resurrect Deleted Items", () => {
 
       const result = await promptConflictResolution();
       expect(result).toBe("rename");
+    });
+
+    it("returns 'overwrite' when user selects Overwrite", async () => {
+      vi.mocked(window.showQuickPick).mockResolvedValue({
+        label: "Overwrite",
+        description: "Replace existing file"
+      } as unknown as undefined);
+
+      const result = await promptConflictResolution();
+      expect(result).toBe("overwrite");
     });
 
     it("returns 'cancel' when user dismisses dialog", async () => {
@@ -142,7 +142,7 @@ describe("Resurrect Deleted Items", () => {
 
   describe("Rename suffix generation", () => {
     /**
-     * Generate a renamed path for resurrection to avoid conflict
+     * Generate a renamed path for restore to avoid conflict
      */
     function generateRenamedPath(originalPath: string): string {
       const lastSlash = originalPath.lastIndexOf("/");
@@ -182,11 +182,11 @@ describe("Resurrect Deleted Items", () => {
     });
   });
 
-  describe("resurrectDeleted() flow", () => {
+  describe("restoreDeleted() flow", () => {
     /**
-     * Simulates the resurrection command flow
+     * Simulates the restore command flow
      */
-    async function executeResurrectionFlow(
+    async function executeRestoreFlow(
       hasDeletedItem: boolean,
       targetExists: boolean,
       conflictChoice: "overwrite" | "rename" | "cancel",
@@ -223,7 +223,7 @@ describe("Resurrect Deleted Items", () => {
         // Rename: target path will be modified, no rm needed
       }
 
-      // Try resurrection
+      // Try restore
       try {
         if (!copySucceeds) {
           throw new Error("svn: E160013: Path not found");
@@ -240,19 +240,14 @@ describe("Resurrect Deleted Items", () => {
     }
 
     it("exits early when no deleted item is selected", async () => {
-      const result = await executeResurrectionFlow(
-        false,
-        false,
-        "cancel",
-        true
-      );
+      const result = await executeRestoreFlow(false, false, "cancel", true);
 
       expect(result.copyCalled).toBe(false);
       expect(result.infoShown).toBe(false);
     });
 
-    it("resurrects directly when target does not exist", async () => {
-      const result = await executeResurrectionFlow(true, false, "cancel", true);
+    it("restores directly when target does not exist", async () => {
+      const result = await executeRestoreFlow(true, false, "cancel", true);
 
       expect(result.copyCalled).toBe(true);
       expect(result.rmCalled).toBe(false);
@@ -260,12 +255,7 @@ describe("Resurrect Deleted Items", () => {
     });
 
     it("removes then copies when overwrite is chosen", async () => {
-      const result = await executeResurrectionFlow(
-        true,
-        true,
-        "overwrite",
-        true
-      );
+      const result = await executeRestoreFlow(true, true, "overwrite", true);
 
       expect(result.rmCalled).toBe(true);
       expect(result.copyCalled).toBe(true);
@@ -273,7 +263,7 @@ describe("Resurrect Deleted Items", () => {
     });
 
     it("copies to renamed path when rename is chosen", async () => {
-      const result = await executeResurrectionFlow(true, true, "rename", true);
+      const result = await executeRestoreFlow(true, true, "rename", true);
 
       expect(result.rmCalled).toBe(false);
       expect(result.copyCalled).toBe(true);
@@ -281,7 +271,7 @@ describe("Resurrect Deleted Items", () => {
     });
 
     it("exits when user cancels conflict resolution", async () => {
-      const result = await executeResurrectionFlow(true, true, "cancel", true);
+      const result = await executeRestoreFlow(true, true, "cancel", true);
 
       expect(result.copyCalled).toBe(false);
       expect(result.rmCalled).toBe(false);
@@ -290,12 +280,7 @@ describe("Resurrect Deleted Items", () => {
     });
 
     it("shows error on svn copy failure", async () => {
-      const result = await executeResurrectionFlow(
-        true,
-        false,
-        "cancel",
-        false
-      );
+      const result = await executeRestoreFlow(true, false, "cancel", false);
 
       expect(result.copyCalled).toBe(false);
       expect(result.errorShown).toBe(true);
@@ -354,10 +339,8 @@ describe("Resurrect Deleted Items", () => {
     it("builds user-friendly error message", () => {
       const err = new Error("svn: E160013: Path not found");
       const message = err instanceof Error ? err.message : String(err);
-      const userMessage = `Resurrection failed: ${message}`;
-      expect(userMessage).toBe(
-        "Resurrection failed: svn: E160013: Path not found"
-      );
+      const userMessage = `Restore failed: ${message}`;
+      expect(userMessage).toBe("Restore failed: svn: E160013: Path not found");
     });
   });
 });
