@@ -1104,10 +1104,11 @@ return result.stdout;
 
 ```typescript
 // After svn update, check staged files for actual modifications
+@sequentialize  // Prevent concurrent calls
 async cleanupStaleStagedFiles(): Promise<string[]> {
-  const stale = stagedResources.filter(r =>
+  const stale = [...stagedResources].filter(r =>  // Snapshot array
     (r.type === Status.NORMAL || r.type === Status.NONE) &&
-    (!r.props || r.props === Status.NORMAL || r.props === Status.NONE)
+    (!r.props || r.props === PropStatus.NORMAL || r.props === PropStatus.NONE)
   );
   if (stale.length > 0) {
     await repository.removeChangelist(stalePaths);

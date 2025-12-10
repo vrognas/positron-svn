@@ -87,7 +87,13 @@ import {
   IStoredAuth,
   ISvnListItem
 } from "./common/types";
-import { debounce, globalSequentialize, memoize, throttle } from "./decorators";
+import {
+  debounce,
+  globalSequentialize,
+  memoize,
+  sequentialize,
+  throttle
+} from "./decorators";
 import { exists, rename as fsRename, stat } from "./fs";
 import { configuration } from "./helpers/configuration";
 import OperationsImpl from "./operationsImpl";
@@ -1282,11 +1288,12 @@ export class Repository implements IRemoteRepository {
    * Files in __staged__ changelist with no modifications are auto-unstaged.
    * @returns Names of files that were auto-unstaged
    */
+  @sequentialize
   public async cleanupStaleStagedFiles(): Promise<string[]> {
     const staledFiles: string[] = [];
 
-    // Get staged resources from the UI group
-    const stagedResources = this.groupManager.staged.resourceStates;
+    // Snapshot staged resources to avoid race conditions during iteration
+    const stagedResources = [...this.groupManager.staged.resourceStates];
 
     for (const resource of stagedResources) {
       // Check if file has no actual modifications (Status.NORMAL or Status.NONE)
@@ -1312,9 +1319,8 @@ export class Repository implements IRemoteRepository {
     }
 
     // Clear original changelist tracking for these files
+    // Always update UI state even if SVN command fails - keeps UI in sync
     this.staging.clearOriginalChangelists(staledFiles);
-
-    // Update UI - remove from staged group
     this.groupManager.moveFromStaged(staledFiles);
     this.updateActionButton();
     this.triggerInputValidation();
@@ -1345,11 +1351,7 @@ export class Repository implements IRemoteRepository {
     });
 
     // Clean up stale staged files after switch - files may no longer have changes
-    try {
-      await this.cleanupStaleStagedFiles();
-    } catch {
-      // Best-effort cleanup
-    }
+    await this.cleanupStaleWithNotification("switch");
   }
 
   public async merge(
@@ -1363,10 +1365,30 @@ export class Repository implements IRemoteRepository {
     });
 
     // Clean up stale staged files after merge - files may no longer have changes
+    await this.cleanupStaleWithNotification("merge");
+  }
+
+  /**
+   * Helper to cleanup stale staged files with notification
+   */
+  private async cleanupStaleWithNotification(operation: string): Promise<void> {
     try {
-      await this.cleanupStaleStagedFiles();
-    } catch {
-      // Best-effort cleanup
+      const stalledFiles = await this.cleanupStaleStagedFiles();
+      if (stalledFiles.length > 0) {
+        const fileNames = stalledFiles.map(f => path.basename(f));
+        const displayNames =
+          fileNames.length <= 3
+            ? fileNames.join(", ")
+            : `${fileNames.slice(0, 3).join(", ")} +${fileNames.length - 3} more`;
+        window.showInformationMessage(
+          `Auto-unstaged ${stalledFiles.length} file(s): ${displayNames}`
+        );
+      }
+    } catch (err) {
+      console.error(
+        `Failed to cleanup stale staged files after ${operation}:`,
+        err
+      );
     }
   }
 
@@ -1382,24 +1404,7 @@ export class Repository implements IRemoteRepository {
     });
 
     // Clean up stale staged files after update brings in matching changes
-    // This prevents confusion when staged files no longer have modifications
-    // Wrapped in try-catch to not fail the update on cleanup errors
-    try {
-      const stalledFiles = await this.cleanupStaleStagedFiles();
-      if (stalledFiles.length > 0) {
-        const fileNames = stalledFiles.map(f => path.basename(f));
-        const displayNames =
-          fileNames.length <= 3
-            ? fileNames.join(", ")
-            : `${fileNames.slice(0, 3).join(", ")} +${fileNames.length - 3} more`;
-        window.showInformationMessage(
-          `Auto-unstaged ${stalledFiles.length} file(s): ${displayNames}`
-        );
-      }
-    } catch (err) {
-      // Log but don't fail update - cleanup is best-effort
-      console.error("Failed to cleanup stale staged files:", err);
-    }
+    await this.cleanupStaleWithNotification("update");
 
     // Fetch history views to show new commits from update
     await commands.executeCommand("svn.repolog.fetch");

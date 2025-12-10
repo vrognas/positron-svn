@@ -1,3 +1,14 @@
+## [2.35.4] (2025-12-10)
+
+### Fix: Concurrency and Consistency
+
+- **Concurrency**: Added `@sequentialize` decorator to prevent race conditions
+- **Race fix**: Snapshot staged array before iteration to avoid modification during loop
+- **Consistency**: Unified notification logic across update, switch, merge via helper
+- **Logging**: All cleanup errors now logged for debugging (no silent failures)
+- **PropStatus**: Fixed StatusService.ts to use correct PropStatus enum
+- **Affected**: repository.ts, StatusService.ts, LESSONS_LEARNED.md
+
 ## [2.35.3] (2025-12-10)
 
 ### Fix: Auto-Unstage Robustness

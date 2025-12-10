@@ -3,7 +3,7 @@
 // Licensed under MIT License
 
 import { Disposable, Uri, workspace } from "vscode";
-import { IFileStatus, LockStatus, Status } from "../common/types";
+import { IFileStatus, LockStatus, PropStatus, Status } from "../common/types";
 import { configuration } from "../helpers/configuration";
 import { stat } from "../fs";
 import { Resource } from "../resource";
@@ -411,7 +411,7 @@ export class StatusService implements IStatusService {
       const isNormal =
         status.status === Status.NORMAL || status.status === Status.NONE;
       const propsNormal =
-        status.props === Status.NORMAL || status.props === Status.NONE;
+        status.props === PropStatus.NORMAL || status.props === PropStatus.NONE;
       const noChangelist = !status.changelist;
       // Skip locked-only files (no content changes) - lock is already on server
       // Lock badge is shown via lockStatusCache, not resource group
